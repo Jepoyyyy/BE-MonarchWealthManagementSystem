@@ -1,13 +1,11 @@
-package com.indivaragroup.jdt17wms.dto.response;
+package com.indivaragroup.jdt17wms.dto.response.auth;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.util.UUID;
 
 @Getter
 @Setter

@@ -2,6 +2,8 @@ package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.services.UserManagementService;
+import com.indivaragroup.jdt17wms.services.JwtService;
+import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -30,6 +32,12 @@ class UserControllerTest {
 
     @MockBean
     private UserManagementService userManagementService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Test
     void getAllUsers_shouldReturnOk() throws Exception {
@@ -78,7 +86,7 @@ class UserControllerTest {
                         .contentType("application/json")
                         .content("{\"status\":\"invalid_status\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.error").value("Invalid JSON Body"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.error").value("Invalid status value"))
                 .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.code").value(400));
     }
 }

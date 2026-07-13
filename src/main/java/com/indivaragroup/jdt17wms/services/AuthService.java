@@ -1,9 +1,9 @@
 package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.request.AuthDTO;
-import com.indivaragroup.jdt17wms.dto.response.AuthSuccessDTO;
-import com.indivaragroup.jdt17wms.dto.response.LogoutSuccessDTO;
-import com.indivaragroup.jdt17wms.dto.response.RefreshTokenSuccessDTO;
+import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
+import com.indivaragroup.jdt17wms.dto.response.auth.LogoutSuccessDTO;
+import com.indivaragroup.jdt17wms.dto.response.auth.RefreshTokenSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
 import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
@@ -59,15 +59,15 @@ public class AuthService {
             errors.add(new ValidationErrorDetailDTO("password","Password is Required", "ERR-001"));
         }
 
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors, "VALIDATION");
+        }
+
         User user = userRepository.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new BadRequestException("Email Or Password Invalid"));
 
-
         if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
             throw new BadRequestException("Email or Password Invalid");
-        }
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors, "VALIDATION");
         }
 
         String accessToken = jwtService.generateAccessToken(user);
@@ -135,6 +135,9 @@ public class AuthService {
         } else {
             if (dto.getPassword().length() < 8) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must be at least 8 characters", "ERR-003"));
+            }
+            if (dto.getPassword().length() > 72) {
+                errors.add(new ValidationErrorDetailDTO("password", "Must not exceed 72 characters", "ERR-003"));
             }
             if (!Pattern.compile("[a-z]").matcher(dto.getPassword()).find()) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must contain lowercase letter", "ERR-003"));

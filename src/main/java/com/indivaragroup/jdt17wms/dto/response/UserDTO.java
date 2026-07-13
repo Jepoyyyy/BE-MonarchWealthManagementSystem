@@ -18,7 +18,7 @@ public class UserDTO {
     private UUID id;
     private String name;
     private String email;
-//    @JsonProperty("isAdmin")
+    @JsonProperty("isAdmin")
     private Boolean isAdmin;
     private Boolean questionnaireCompleted;
 }

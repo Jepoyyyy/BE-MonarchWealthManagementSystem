@@ -2,12 +2,15 @@ package com.indivaragroup.jdt17wms.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.indivaragroup.jdt17wms.dto.request.AuthDTO;
-import com.indivaragroup.jdt17wms.dto.response.AuthSuccessDTO;
+import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
+import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
 import com.indivaragroup.jdt17wms.exceptions.ConflictException;
 import com.indivaragroup.jdt17wms.exceptions.ValidationException;
 import com.indivaragroup.jdt17wms.services.AuthService;
+import com.indivaragroup.jdt17wms.services.JwtService;
+import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -37,6 +40,12 @@ class RegisterControllerTest {
 
     @MockBean
     private AuthService authService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private UserRepository userRepository;
 
     private final UserDTO mockUser = UserDTO.builder()
             .id(UUID.randomUUID())
@@ -109,10 +118,12 @@ class RegisterControllerTest {
 
     // 📝 REGISTER — null request body
     @Test
-    void register_withNullBody_shouldReturnNull() throws Exception {
+    void register_withNullBody_shouldReturn400() throws Exception {
+        when(authService.register(any())).thenThrow(new BadRequestException("Invalid Request Body"));
+
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().string(""));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Invalid Request Body"));
     }
 }

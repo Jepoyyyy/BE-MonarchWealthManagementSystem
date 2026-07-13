@@ -1,7 +1,9 @@
 package com.indivaragroup.jdt17wms.controllers;
 
+import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.services.AssetsManagementService;
 import com.indivaragroup.jdt17wms.services.InvestmentProductTrackingService;
+import com.indivaragroup.jdt17wms.services.JwtService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -26,6 +28,12 @@ class AssetControllerTest {
 
     @MockBean
     private InvestmentProductTrackingService investmentProductTrackingService;
+
+    @MockBean
+    private JwtService jwtService;
+
+    @MockBean
+    private UserRepository userRepository;
 
     @Test
     void createAsset_shouldReturnOk() throws Exception {

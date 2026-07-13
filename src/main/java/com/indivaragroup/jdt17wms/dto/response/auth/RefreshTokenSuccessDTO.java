@@ -1,4 +1,4 @@
-package com.indivaragroup.jdt17wms.dto.response;
+package com.indivaragroup.jdt17wms.dto.response.auth;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
