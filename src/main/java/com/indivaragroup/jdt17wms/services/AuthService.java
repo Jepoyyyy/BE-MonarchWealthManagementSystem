@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Service
@@ -104,8 +105,9 @@ public class AuthService {
 
     //logout
     @Transactional
-    public LogoutSuccessDTO logout(String userEmail) {
+    public LogoutSuccessDTO logout(String userEmail, UUID userId) {
         AuditLog auditLog = AuditLog.builder()
+                .userId(userId)
                 .userName(userEmail != null ? userEmail : "anonymous")
                 .action("LOGOUT")
                 .details("User logged out")

@@ -239,7 +239,7 @@ class AuthServiceTest {
 
     @Test
     void logout_withEmail_shouldReturnSuccess() {
-        LogoutSuccessDTO result = authService.logout("test@example.com");
+        LogoutSuccessDTO result = authService.logout("test@example.com", userId);
 
         assertTrue(result.getSuccess());
         assertEquals("Logout successful", result.getMessage());
@@ -248,7 +248,7 @@ class AuthServiceTest {
 
     @Test
     void logout_withoutEmail_shouldReturnSuccessAsAnonymous() {
-        LogoutSuccessDTO result = authService.logout(null);
+        LogoutSuccessDTO result = authService.logout(null, null);
 
         assertTrue(result.getSuccess());
         verify(auditLogRepository).save(argThat(log -> "anonymous".equals(log.getUserName())));

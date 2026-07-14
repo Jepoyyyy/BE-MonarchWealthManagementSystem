@@ -8,20 +8,25 @@ import com.indivaragroup.jdt17wms.dto.response.auth.LogoutSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.RefreshTokenSuccessDTO;
 import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
 import com.indivaragroup.jdt17wms.services.AuthService;
+import com.indivaragroup.jdt17wms.services.JwtService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping(RestApiPath.BASE_AUTH_PATH)
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtService jwtService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtService jwtService) {
         this.authService = authService;
+        this.jwtService = jwtService;
     }
 
     @PostMapping(RestApiPath.LOGIN_PATH)
@@ -43,14 +48,17 @@ public class AuthController {
 
     @PostMapping(RestApiPath.LOGOUT_PATH)
     public LogoutSuccessDTO logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+
         String email = null;
+        UUID userId = null;
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             try {
                 String token = authHeader.substring(7);
-                email = authService.extractEmailFromToken(token);
+                email = jwtService.getEmailFromToken(token);
+                userId = jwtService.getUserIdFromToken(token);
             } catch (Exception ignored) {}
         }
-        return authService.logout(email);
+        return authService.logout(email, userId);
     }
 
     //refresh

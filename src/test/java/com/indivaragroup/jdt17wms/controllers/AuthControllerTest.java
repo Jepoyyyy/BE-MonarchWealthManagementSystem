@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -187,12 +188,13 @@ class AuthControllerTest {
 
     @Test
     void logout_withValidToken_shouldReturn200() throws Exception {
-        when(authService.extractEmailFromToken(anyString())).thenReturn("test@example.com");
-        when(authService.logout("test@example.com")).thenReturn(
+        when(jwtService.getEmailFromToken(anyString())).thenReturn("test@example.com");
+        when(jwtService.getUserIdFromToken(anyString())).thenReturn(UUID.randomUUID());
+        when(authService.logout(eq("test@example.com"), any())).thenReturn(
                 LogoutSuccessDTO.builder().success(true).message("Logout successful").build());
 
         mockMvc.perform(post("/api/v1/auth/logout")
-                        .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiJ9.test"))
+                        .header("Authorization", "Bearer eyJhbG...test"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("Logout successful"));
@@ -200,7 +202,7 @@ class AuthControllerTest {
 
     @Test
     void logout_withoutToken_shouldReturn200AsAnonymous() throws Exception {
-        when(authService.logout(null)).thenReturn(
+        when(authService.logout(null, null)).thenReturn(
                 LogoutSuccessDTO.builder().success(true).message("Logout successful").build());
 
         mockMvc.perform(post("/api/v1/auth/logout"))
@@ -210,8 +212,8 @@ class AuthControllerTest {
 
     @Test
     void logout_withInvalidToken_shouldStillReturn200() throws Exception {
-        when(authService.extractEmailFromToken(anyString())).thenThrow(new RuntimeException("bad token"));
-        when(authService.logout(null)).thenReturn(
+        when(jwtService.getEmailFromToken(anyString())).thenThrow(new RuntimeException("bad token"));
+        when(authService.logout(null, null)).thenReturn(
                 LogoutSuccessDTO.builder().success(true).message("Logout successful").build());
 
         mockMvc.perform(post("/api/v1/auth/logout")
