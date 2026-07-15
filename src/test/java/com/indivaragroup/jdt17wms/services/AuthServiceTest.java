@@ -1,14 +1,12 @@
 package com.indivaragroup.jdt17wms.services;
 
-import com.indivaragroup.jdt17wms.dto.request.AuthDTO;
+import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
+import com.indivaragroup.jdt17wms.dto.request.RegisterDTO;
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
 import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.LogoutSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.RefreshTokenSuccessDTO;
-import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
-import com.indivaragroup.jdt17wms.exceptions.ConflictException;
-import com.indivaragroup.jdt17wms.exceptions.InvalidTokenException;
-import com.indivaragroup.jdt17wms.exceptions.UnauthorizedException;
-import com.indivaragroup.jdt17wms.exceptions.ValidationException;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.AuditLog;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.enums.UserRole;
@@ -55,7 +53,8 @@ class AuthServiceTest {
             .questionnaireCompleted(false)
             .build();
 
-    private final AuthDTO validDto = new AuthDTO("Test User", "test@example.com", "Test1234!");
+    private final LoginDTO validLoginDto = new LoginDTO("test@example.com", "Test1234!");
+    private final RegisterDTO validRegisterDto = new RegisterDTO("Test User", "test@example.com", "Test1234!");
 
     // ───────────────────── LOGIN ─────────────────────
 
@@ -66,7 +65,7 @@ class AuthServiceTest {
         when(jwtService.generateAccessToken(mockUser)).thenReturn("access-token");
         when(jwtService.generateRefreshToken(mockUser)).thenReturn("refresh-token");
 
-        AuthSuccessDTO result = authService.login(validDto);
+        AuthSuccessDTO result = authService.login(validLoginDto);
 
         assertTrue(result.getSuccess());
         assertEquals("Login successful", result.getMessage());
@@ -81,20 +80,20 @@ class AuthServiceTest {
 
     @Test
     void login_withEmptyEmail_shouldThrowValidationException() {
-        AuthDTO dto = new AuthDTO("Test", "", "Test1234!");
+        LoginDTO dto = new LoginDTO("", "Test1234!");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.login(dto));
-        assertEquals("VALIDATION", ex.getType());
+        assertEquals("Invalid field values", ex.getMessage());
         assertEquals("ERR-001", ex.getDetails().get(0).getType());
         assertEquals("email", ex.getDetails().get(0).getField());
     }
 
     @Test
     void login_withEmptyPassword_shouldThrowValidationException() {
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "");
+        LoginDTO dto = new LoginDTO("test@example.com", "");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.login(dto));
         assertEquals("password", ex.getDetails().get(0).getField());
     }
@@ -103,8 +102,8 @@ class AuthServiceTest {
     void login_withUserNotFound_shouldThrowBadRequest() {
         when(userRepository.findByEmail("unknown@example.com")).thenReturn(Optional.empty());
 
-        AuthDTO dto = new AuthDTO("Test", "unknown@example.com", "Test1234!");
-        assertThrows(BadRequestException.class, () -> authService.login(dto));
+        LoginDTO dto = new LoginDTO("unknown@example.com", "Test1234!");
+        assertThrows(CoreThrowHandler.class, () -> authService.login(dto));
     }
 
     @Test
@@ -112,8 +111,8 @@ class AuthServiceTest {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         when(passwordEncoder.matches("WrongPass1!", "encoded-pass")).thenReturn(false);
 
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "WrongPass1!");
-        assertThrows(BadRequestException.class, () -> authService.login(dto));
+        LoginDTO dto = new LoginDTO("test@example.com", "WrongPass1!");
+        assertThrows(CoreThrowHandler.class, () -> authService.login(dto));
     }
 
     // ───────────────────── REGISTER ─────────────────────
@@ -126,7 +125,7 @@ class AuthServiceTest {
         when(jwtService.generateAccessToken(mockUser)).thenReturn("access-token");
         when(jwtService.generateRefreshToken(mockUser)).thenReturn("refresh-token");
 
-        AuthSuccessDTO result = authService.register(validDto);
+        AuthSuccessDTO result = authService.register(validRegisterDto);
 
         assertTrue(result.getSuccess());
         assertEquals("Registration successful", result.getMessage());
@@ -135,18 +134,18 @@ class AuthServiceTest {
 
     @Test
     void register_withEmptyEmail_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "", "Test1234!");
+        RegisterDTO dto = new RegisterDTO("Test", "", "Test1234!");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().stream().anyMatch(d -> d.getField().equals("email")));
     }
 
     @Test
     void register_withInvalidEmailFormat_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "invalid-email", "Test1234!");
+        RegisterDTO dto = new RegisterDTO("Test", "invalid-email", "Test1234!");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertEquals("ERR-002", ex.getDetails().stream()
                 .filter(d -> d.getField().equals("email"))
@@ -155,18 +154,18 @@ class AuthServiceTest {
 
     @Test
     void register_withEmptyPassword_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "");
+        RegisterDTO dto = new RegisterDTO("Test", "test@example.com", "");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().stream().anyMatch(d -> d.getField().equals("password")));
     }
 
     @Test
     void register_withWeakPassword_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "short");
+        RegisterDTO dto = new RegisterDTO("Test", "test@example.com", "short");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         long passwordErrors = ex.getDetails().stream()
                 .filter(d -> d.getField().equals("password"))
@@ -176,9 +175,9 @@ class AuthServiceTest {
 
     @Test
     void register_withoutLowercase_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "ABCD1234!");
+        RegisterDTO dto = new RegisterDTO("Test", "test@example.com", "ABCD1234!");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().stream()
                 .anyMatch(d -> d.getField().equals("password")
@@ -187,9 +186,9 @@ class AuthServiceTest {
 
     @Test
     void register_withoutUppercase_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "abcd1234!");
+        RegisterDTO dto = new RegisterDTO("Test", "test@example.com", "abcd1234!");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().stream()
                 .anyMatch(d -> d.getField().equals("password")
@@ -198,9 +197,9 @@ class AuthServiceTest {
 
     @Test
     void register_withoutSymbol_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("Test", "test@example.com", "Abcd1234");
+        RegisterDTO dto = new RegisterDTO("Test", "test@example.com", "Abcd1234");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().stream()
                 .anyMatch(d -> d.getField().equals("password")
@@ -209,9 +208,9 @@ class AuthServiceTest {
 
     @Test
     void register_withEmptyName_shouldThrowValidation() {
-        AuthDTO dto = new AuthDTO("", "test@example.com", "Test1234!");
+        RegisterDTO dto = new RegisterDTO("", "test@example.com", "Test1234!");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().stream().anyMatch(d -> d.getField().equals("name")));
     }
@@ -220,14 +219,14 @@ class AuthServiceTest {
     void register_withDuplicateEmail_shouldThrowConflict() {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
 
-        assertThrows(ConflictException.class, () -> authService.register(validDto));
+        assertThrows(CoreThrowHandler.class, () -> authService.register(validRegisterDto));
     }
 
     @Test
     void register_withAllFieldsInvalid_shouldCollectAllErrors() {
-        AuthDTO dto = new AuthDTO("", "bad", "x");
+        RegisterDTO dto = new RegisterDTO("", "bad", "x");
 
-        ValidationException ex = assertThrows(ValidationException.class,
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> authService.register(dto));
         assertTrue(ex.getDetails().size() >= 3);
         assertTrue(ex.getDetails().stream().anyMatch(d -> d.getField().equals("email")));
@@ -275,15 +274,15 @@ class AuthServiceTest {
 
     @Test
     void refreshToken_withEmptyToken_shouldThrowBadRequest() {
-        assertThrows(BadRequestException.class, () -> authService.refreshToken(""));
-        assertThrows(BadRequestException.class, () -> authService.refreshToken(null));
+        assertThrows(CoreThrowHandler.class, () -> authService.refreshToken(""));
+        assertThrows(CoreThrowHandler.class, () -> authService.refreshToken(null));
     }
 
     @Test
     void refreshToken_withNonRefreshToken_shouldThrowInvalidToken() {
         when(jwtService.isRefreshToken("access-token")).thenReturn(false);
 
-        assertThrows(InvalidTokenException.class, () -> authService.refreshToken("access-token"));
+        assertThrows(CoreThrowHandler.class, () -> authService.refreshToken("access-token"));
     }
 
     @Test
@@ -292,21 +291,21 @@ class AuthServiceTest {
         when(jwtService.getEmailFromToken("valid-refresh")).thenReturn("missing@example.com");
         when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
 
-        assertThrows(UnauthorizedException.class, () -> authService.refreshToken("valid-refresh"));
+        assertThrows(CoreThrowHandler.class, () -> authService.refreshToken("valid-refresh"));
     }
 
     @Test
     void refreshToken_withExpiredToken_shouldThrowUnauthorized() {
         when(jwtService.isRefreshToken("expired-refresh")).thenThrow(ExpiredJwtException.class);
 
-        assertThrows(UnauthorizedException.class, () -> authService.refreshToken("expired-refresh"));
+        assertThrows(CoreThrowHandler.class, () -> authService.refreshToken("expired-refresh"));
     }
 
     @Test
     void refreshToken_withMalformedToken_shouldThrowInvalidToken() {
         when(jwtService.isRefreshToken("malformed")).thenThrow(RuntimeException.class);
 
-        assertThrows(InvalidTokenException.class, () -> authService.refreshToken("malformed"));
+        assertThrows(CoreThrowHandler.class, () -> authService.refreshToken("malformed"));
     }
 
     // ───────────────────── UTILITY ─────────────────────

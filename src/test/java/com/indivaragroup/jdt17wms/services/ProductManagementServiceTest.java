@@ -1,5 +1,7 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import org.junit.jupiter.api.Test;
@@ -71,7 +73,7 @@ class ProductManagementServiceTest {
         UUID id = UUID.randomUUID();
         when(productRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
-        org.junit.jupiter.api.Assertions.assertThrows(com.indivaragroup.jdt17wms.exceptions.NotFoundException.class, () -> {
+        org.junit.jupiter.api.Assertions.assertThrows(CoreThrowHandler.class, () -> {
             productManagementService.updateProductVisibility(id, true);
         });
     }

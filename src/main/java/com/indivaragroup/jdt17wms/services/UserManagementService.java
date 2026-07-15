@@ -1,7 +1,7 @@
 package com.indivaragroup.jdt17wms.services;
 
-import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
-import com.indivaragroup.jdt17wms.exceptions.NotFoundException;
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import org.springframework.data.domain.Page;
@@ -26,10 +26,10 @@ public class UserManagementService {
 
     public User updateUserStatus(UUID id, String status) {
         if (status == null || (!status.equals("active") && !status.equals("disabled"))) {
-            throw new BadRequestException("Invalid status value");
+            throw new CoreThrowHandler(ApiError.VALIDATION,"Invalid status value");
         }
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("No valid item with the ID"));
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.NOT_FOUND,"No valid item with the ID"));
         user.setStatus(status);
         return userRepository.save(user);
     }

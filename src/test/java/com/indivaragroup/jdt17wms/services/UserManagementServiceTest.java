@@ -1,5 +1,7 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -71,7 +73,7 @@ class UserManagementServiceTest {
         UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
-        org.junit.jupiter.api.Assertions.assertThrows(com.indivaragroup.jdt17wms.exceptions.NotFoundException.class, () -> {
+        org.junit.jupiter.api.Assertions.assertThrows(CoreThrowHandler.class, () -> {
             userManagementService.updateUserStatus(id, "active");
         });
     }
@@ -79,7 +81,7 @@ class UserManagementServiceTest {
     @Test
     void updateUserStatus_shouldThrowBadRequestException_whenStatusIsInvalid() {
         UUID id = UUID.randomUUID();
-        org.junit.jupiter.api.Assertions.assertThrows(com.indivaragroup.jdt17wms.exceptions.BadRequestException.class, () -> {
+        org.junit.jupiter.api.Assertions.assertThrows(CoreThrowHandler.class, () -> {
             userManagementService.updateUserStatus(id, "invalid_status");
         });
     }

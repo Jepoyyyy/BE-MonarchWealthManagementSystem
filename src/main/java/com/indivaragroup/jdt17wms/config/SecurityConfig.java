@@ -35,6 +35,7 @@ public class SecurityConfig {
         .anyRequest().authenticated()
       )
       .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+      .logout(logout -> logout.disable())
       .formLogin(form -> form.disable())
       .httpBasic(basic -> basic.disable());
 

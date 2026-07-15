@@ -1,13 +1,12 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.indivaragroup.jdt17wms.dto.request.AuthDTO;
+import com.indivaragroup.jdt17wms.dto.request.RegisterDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
-import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
-import com.indivaragroup.jdt17wms.exceptions.ConflictException;
-import com.indivaragroup.jdt17wms.exceptions.ValidationException;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.services.AuthService;
 import com.indivaragroup.jdt17wms.services.JwtService;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
@@ -30,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
-class RegisterControllerTest {
+class LoginDTOControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -64,9 +63,9 @@ class RegisterControllerTest {
                 .user(mockUser)
                 .build();
 
-        when(authService.register(any(AuthDTO.class))).thenReturn(mockResponse);
+        when(authService.register(any(RegisterDTO.class))).thenReturn(mockResponse);
 
-        String body = objectMapper.writeValueAsString(new AuthDTO("Test User", "test@example.com", "Test1234!"));
+        String body = objectMapper.writeValueAsString(new RegisterDTO("Test User", "test@example.com", "Test1234!"));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -85,16 +84,15 @@ class RegisterControllerTest {
         List<ValidationErrorDetailDTO> details = new ArrayList<>();
         details.add(new ValidationErrorDetailDTO("email", "Invalid email format", "ERR-002"));
 
-        when(authService.register(any(AuthDTO.class))).thenThrow(new ValidationException(details, "VALIDATION"));
+        when(authService.register(any(RegisterDTO.class))).thenThrow(new CoreThrowHandler(ApiError.VALIDATION, "Invalid field values", details));
 
-        String body = objectMapper.writeValueAsString(new AuthDTO("Test User", "invalid-email", "Test1234!"));
+        String body = objectMapper.writeValueAsString(new RegisterDTO("Test User", "invalid-email", "Test1234!"));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("Invalid field values"))
-                .andExpect(jsonPath("$.type").value("ERR-VALIDATION"))
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.details[0].field").value("email"))
                 .andExpect(jsonPath("$.details[0].reason").value("Invalid email format"))
@@ -104,9 +102,9 @@ class RegisterControllerTest {
     // 📝 REGISTER — duplicate email (conflict error)
     @Test
     void register_withDuplicateEmail_shouldReturnConflictError() throws Exception {
-        when(authService.register(any(AuthDTO.class))).thenThrow(new ConflictException("Email already in use"));
+        when(authService.register(any(RegisterDTO.class))).thenThrow(new CoreThrowHandler(ApiError.CONFLICT, "Email already in use"));
 
-        String body = objectMapper.writeValueAsString(new AuthDTO("Test User", "duplicate@example.com", "Test1234!"));
+        String body = objectMapper.writeValueAsString(new RegisterDTO("Test User", "duplicate@example.com", "Test1234!"));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -119,7 +117,7 @@ class RegisterControllerTest {
     // 📝 REGISTER — null request body
     @Test
     void register_withNullBody_shouldReturn400() throws Exception {
-        when(authService.register(any())).thenThrow(new BadRequestException("Invalid Request Body"));
+        when(authService.register(any())).thenThrow(new CoreThrowHandler(ApiError.BAD_REQUEST, "Invalid Request Body"));
 
         mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON))

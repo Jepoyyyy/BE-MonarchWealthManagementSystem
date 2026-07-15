@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.services;
 
-import com.indivaragroup.jdt17wms.exceptions.NotFoundException;
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import org.springframework.data.domain.Page;
@@ -24,7 +25,7 @@ public class ProductManagementService {
 
     public Product updateProductVisibility(UUID id, Boolean visibility) {
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("No valid item with the ID"));
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.NOT_FOUND,"No valid item with the ID"));
         product.setVisible(visibility);
         return productRepository.save(product);
     }

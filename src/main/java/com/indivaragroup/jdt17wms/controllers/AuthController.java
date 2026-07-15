@@ -1,14 +1,19 @@
 package com.indivaragroup.jdt17wms.controllers;
 
-import com.indivaragroup.jdt17wms.dto.request.AuthDTO;
+import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
 import com.indivaragroup.jdt17wms.dto.request.RefreshTokenDTO;
-import com.indivaragroup.jdt17wms.dto.response.RestApiPath;
+import com.indivaragroup.jdt17wms.dto.request.RegisterDTO;
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.LogoutSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.RefreshTokenSuccessDTO;
-import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.services.AuthService;
 import com.indivaragroup.jdt17wms.services.JwtService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -18,8 +23,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(RestApiPath.BASE_AUTH_PATH)
+@RequestMapping(ApiPath.BASE_AUTH_PATH)
 public class AuthController {
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     private final AuthService authService;
     private final JwtService jwtService;
@@ -29,24 +35,24 @@ public class AuthController {
         this.jwtService = jwtService;
     }
 
-    @PostMapping(RestApiPath.LOGIN_PATH)
-    public AuthSuccessDTO login(@RequestBody(required = false) AuthDTO dto) {
+    @PostMapping(ApiPath.LOGIN_PATH)
+    public AuthSuccessDTO login(@Valid @RequestBody(required = false) LoginDTO dto) {
         if (dto == null){
-            throw new BadRequestException("Invalid Request Body");
+            throw new CoreThrowHandler(ApiError.INVALID_REQUEST_BODY);
         }
         return authService.login(dto);
     }
 
-    @PostMapping(RestApiPath.REGISTER_PATH)
-    public AuthSuccessDTO register(@RequestBody(required = false) AuthDTO dto) {
+    @PostMapping(ApiPath.REGISTER_PATH)
+    public AuthSuccessDTO register(@Valid @RequestBody(required = false) RegisterDTO dto) {
         if (dto == null) {
-            throw new BadRequestException("Invalid Request Body");
+            throw new CoreThrowHandler(ApiError.INVALID_REQUEST_BODY);
         }
         return authService.register(dto);
     }
 
 
-    @PostMapping(RestApiPath.LOGOUT_PATH)
+    @PostMapping(ApiPath.LOGOUT_PATH)
     public LogoutSuccessDTO logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
 
         String email = null;
@@ -56,16 +62,18 @@ public class AuthController {
                 String token = authHeader.substring(7);
                 email = jwtService.getEmailFromToken(token);
                 userId = jwtService.getUserIdFromToken(token);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                log.debug("Logout token parse failed {}",e.getMessage());
+            }
         }
         return authService.logout(email, userId);
     }
 
     //refresh
-    @PostMapping(RestApiPath.REFRESH_TOKEN_PATH)
+    @PostMapping(ApiPath.REFRESH_TOKEN_PATH)
     public RefreshTokenSuccessDTO refresh(@RequestBody(required = false) RefreshTokenDTO dto) {
         if (dto == null || dto.getRefreshToken() == null || dto.getRefreshToken().trim().isEmpty()) {
-            throw new BadRequestException("Refresh token is required");
+            throw new CoreThrowHandler(ApiError.REQUIRED_REFRESH_TOKEN);
         }
         return authService.refreshToken(dto.getRefreshToken());
     }

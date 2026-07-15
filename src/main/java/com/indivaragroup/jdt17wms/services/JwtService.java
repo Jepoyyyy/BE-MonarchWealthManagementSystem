@@ -35,11 +35,11 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    @Value("${jwt.access-token-expiration-ms:900000}") // 15 minutes
-    private long accessTokenExpirationMs;
+    @Value("${jwt.access-token-expiration-ms}") // 15 minutes
+    private Integer accessTokenExpirationMs;
 
-    @Value("${jwt.refresh-token-expiration-ms:604800000}") // 7 days
-    private long refreshTokenExpirationMs;
+    @Value("${jwt.refresh-token-expiration-ms}") // 7 days
+    private Integer refreshTokenExpirationMs;
     
     @PostConstruct
     public void validateConfiguration() {
@@ -133,6 +133,14 @@ public class JwtService {
 
     public String getTokenType(String token) {
         return getClaim(token, claims -> claims.get(TOKEN_TYPE_CLAIM, String.class));
+    }
+
+    public Integer getAccessTokenExpirationMs() {
+        return accessTokenExpirationMs;
+    }
+
+    public Integer getRefreshTokenExpirationMs() {
+        return refreshTokenExpirationMs;
     }
 
     public boolean isAccessToken(String token) {

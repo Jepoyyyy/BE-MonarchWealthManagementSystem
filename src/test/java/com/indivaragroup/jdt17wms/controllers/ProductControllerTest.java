@@ -1,5 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.services.ProductManagementService;
 import com.indivaragroup.jdt17wms.services.JwtService;
@@ -65,7 +67,7 @@ class ProductControllerTest {
     void updateProduct_shouldReturnNotFound_whenProductDoesNotExist() throws Exception {
         UUID id = UUID.randomUUID();
         when(productManagementService.updateProductVisibility(any(UUID.class), any(Boolean.class)))
-                .thenThrow(new com.indivaragroup.jdt17wms.exceptions.NotFoundException("No valid item with the ID"));
+                .thenThrow(new CoreThrowHandler(ApiError.NOT_FOUND, "No valid item with the ID"));
 
         mockMvc.perform(put("/api/v1/products/" + id)
                         .contentType("application/json")

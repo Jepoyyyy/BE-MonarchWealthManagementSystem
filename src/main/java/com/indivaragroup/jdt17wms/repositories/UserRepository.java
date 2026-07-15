@@ -13,4 +13,5 @@ public interface UserRepository extends JpaRepository<User, UUID> {
   List<User> findByRiskProfile(String riskProfile);
   boolean existsByEmail(String email);
   Optional<User> findByEmail(String email);
+
 }

@@ -1,16 +1,14 @@
 package com.indivaragroup.jdt17wms.services;
 
-import com.indivaragroup.jdt17wms.dto.request.AuthDTO;
+import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
+import com.indivaragroup.jdt17wms.dto.request.RegisterDTO;
+import com.indivaragroup.jdt17wms.dto.response.ApiError;
 import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.LogoutSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.RefreshTokenSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
-import com.indivaragroup.jdt17wms.exceptions.BadRequestException;
-import com.indivaragroup.jdt17wms.exceptions.ConflictException;
-import com.indivaragroup.jdt17wms.exceptions.InvalidTokenException;
-import com.indivaragroup.jdt17wms.exceptions.UnauthorizedException;
-import com.indivaragroup.jdt17wms.exceptions.ValidationException;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.AuditLog;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.enums.UserRole;
@@ -50,26 +48,30 @@ public class AuthService {
     }
 
     // Login
-    public AuthSuccessDTO login(AuthDTO dto) {
+    public AuthSuccessDTO login(LoginDTO dto) {
         List<ValidationErrorDetailDTO> errors = new ArrayList<>();
-
-        if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
+        if (dto.getLoginRequestEmail() == null || dto.getLoginRequestEmail().trim().isEmpty()) {
             errors.add(new ValidationErrorDetailDTO("email", "Email is required", "ERR-001"));
         }
-        if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
+        if (dto.getLoginRequestPassword() == null || dto.getLoginRequestPassword().trim().isEmpty()) {
             errors.add(new ValidationErrorDetailDTO("password","Password is Required", "ERR-001"));
         }
 
         if (!errors.isEmpty()) {
-            throw new ValidationException(errors, "VALIDATION");
+            throw new CoreThrowHandler(ApiError.VALIDATION, "Invalid field values", errors);
         }
 
-        User user = userRepository.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new BadRequestException("Email Or Password Invalid"));
+        User user = userRepository.findByEmail(dto.getLoginRequestEmail())
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST,"Email Or Password Invalid"));
 
-        if (!passwordEncoder.matches(dto.getPassword(), user.getPasswordHash())) {
-            throw new BadRequestException("Email or Password Invalid");
+        if(!"ACTIVE".equals(user.getStatus())){
+            throw new CoreThrowHandler(ApiError.UNAUTHORIZED,"Account is Not active. Please Contact Admin");
         }
+
+        if (!passwordEncoder.matches(dto.getLoginRequestPassword(), user.getPasswordHash())) {
+            throw new CoreThrowHandler(ApiError.VALIDATION,"Email or Password Invalid");
+        }
+
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
@@ -78,7 +80,7 @@ public class AuthService {
                 .userId(user.getId())
                 .userName(user.getName())
                 .action("LOGIN")
-                .details("User logged in: " + user.getEmail())
+                .details(user.getName()+ "logged in")
                 .category("AUTH")
                 .timestamp(Instant.now())
                 .build();
@@ -96,9 +98,9 @@ public class AuthService {
                 .success(true)
                 .message("Login successful")
                 .accessToken(accessToken)
-                .expiresIn(900)
+                .expiresIn(jwtService.getAccessTokenExpirationMs())
                 .refreshToken(refreshToken)
-                .refreshExpiresIn(604800)
+                .refreshExpiresIn(jwtService.getRefreshTokenExpirationMs())
                 .user(userDto)
                 .build();
     }
@@ -124,50 +126,50 @@ public class AuthService {
 
     //Register Harusnya Udah,coba crosscheck lagi
     @Transactional
-    public AuthSuccessDTO register(AuthDTO dto) {
+    public AuthSuccessDTO register(RegisterDTO dto) {
         List<ValidationErrorDetailDTO> errors = new ArrayList<>();
-        if (dto.getEmail() == null || dto.getEmail().trim().isEmpty()) {
+        if (dto.getRegisterRequestEmail() == null || dto.getRegisterRequestEmail().trim().isEmpty()) {
             errors.add(new ValidationErrorDetailDTO("email", "Email is required", "ERR-001"));
-        } else if (!Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$").matcher(dto.getEmail()).matches()) {
+        } else if (!Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$").matcher(dto.getRegisterRequestEmail()).matches()) {
             errors.add(new ValidationErrorDetailDTO("email", "Invalid email format", "ERR-002"));
         }
 
-        if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
+        if (dto.getRegisterRequestEmail() == null || dto.getRegisterRequestPassword().trim().isEmpty()) {
             errors.add(new ValidationErrorDetailDTO("password", "Password is required", "ERR-001"));
         } else {
-            if (dto.getPassword().length() < 8) {
+            if (dto.getRegisterRequestPassword().length() < 8) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must be at least 8 characters", "ERR-003"));
             }
-            if (dto.getPassword().length() > 72) {
+            if (dto.getRegisterRequestPassword().length() > 72) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must not exceed 72 characters", "ERR-003"));
             }
-            if (!Pattern.compile("[a-z]").matcher(dto.getPassword()).find()) {
+            if (!Pattern.compile("[a-z]").matcher(dto.getRegisterRequestPassword()).find()) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must contain lowercase letter", "ERR-003"));
             }
-            if (!Pattern.compile("[A-Z]").matcher(dto.getPassword()).find()) {
+            if (!Pattern.compile("[A-Z]").matcher(dto.getRegisterRequestPassword()).find()) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must contain uppercase letter", "ERR-003"));
             }
-            if (!Pattern.compile("[^a-zA-Z0-9]").matcher(dto.getPassword()).find()) {
+            if (!Pattern.compile("[^a-zA-Z0-9]").matcher(dto.getRegisterRequestPassword()).find()) {
                 errors.add(new ValidationErrorDetailDTO("password", "Must contain symbol", "ERR-003"));
             }
         }
 
-        if (dto.getName() == null || dto.getName().trim().isEmpty()) {
+        if (dto.getRegisterRequestName() == null || dto.getRegisterRequestName().trim().isEmpty()) {
             errors.add(new ValidationErrorDetailDTO("name", "Name is required", "ERR-001"));
         }
 
         if (!errors.isEmpty()) {
-            throw new ValidationException(errors, "VALIDATION");
+            throw new CoreThrowHandler(ApiError.VALIDATION, "Invalid field values", errors);
         }
 
-        if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new ConflictException("Email already in use");
+        if (userRepository.existsByEmail(dto.getRegisterRequestEmail())) {
+            throw new CoreThrowHandler(ApiError.NOT_UNIQUE_EMAIL);
         }
 
         User user = User.builder()
-                .name(dto.getName())
-                .email(dto.getEmail())
-                .passwordHash(passwordEncoder.encode(dto.getPassword()))
+                .name(dto.getRegisterRequestName())
+                .email(dto.getRegisterRequestEmail())
+                .passwordHash(passwordEncoder.encode(dto.getRegisterRequestPassword()))
                 .role(UserRole.user)
                 .status("ACTIVE")
                 .questionnaireCompleted(false)
@@ -183,7 +185,7 @@ public class AuthService {
                 .userId(savedUser.getId())
                 .userName(savedUser.getName())
                 .action("REGISTER")
-                .details("User successfully registered: " + savedUser.getEmail())
+                .details(user.getName()+ "Successfully registered: ")
                 .category("AUTH")
                 .timestamp(Instant.now())
                 .build();
@@ -201,9 +203,9 @@ public class AuthService {
                 .success(true)
                 .message("Registration successful")
                 .accessToken(accessToken)
-                .expiresIn(900)
+                .expiresIn(jwtService.getAccessTokenExpirationMs())
                 .refreshToken(refreshToken)
-                .refreshExpiresIn(604800)
+                .refreshExpiresIn(jwtService.getRefreshTokenExpirationMs())
                 .user(userDto)
                 .build();
     }
@@ -212,19 +214,19 @@ public class AuthService {
     @Transactional
     public RefreshTokenSuccessDTO refreshToken(String refreshToken) {
         if (refreshToken == null || refreshToken.trim().isEmpty()) {
-            throw new BadRequestException("Invalid Message Body");
+            throw new CoreThrowHandler(ApiError.INVALID_REQUEST_BODY);
         }
 
         try {
             // Validate token type
             if (!jwtService.isRefreshToken(refreshToken)) {
-                throw new InvalidTokenException("Token is not a refresh token");
+                throw new CoreThrowHandler(ApiError.INVALID_TOKEN, "Token is not a refresh token");
             }
 
             // Extract email and load user
             String email = jwtService.getEmailFromToken(refreshToken);
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new UnauthorizedException("User not found"));
+                    .orElseThrow(() -> new CoreThrowHandler(ApiError.USER_NOT_FOUND));
 
             // Generate new tokens (rotation)
             String newAccessToken = jwtService.generateAccessToken(user);
@@ -235,7 +237,7 @@ public class AuthService {
                     .userId(user.getId())
                     .userName(user.getName())
                     .action("TOKEN_REFRESH")
-                    .details("Access token refreshed for: " + user.getEmail())
+                    .details("Access token refreshed for: " + user.getName())
                     .category("AUTH")
                     .timestamp(Instant.now())
                     .build();
@@ -245,17 +247,15 @@ public class AuthService {
                     .success(true)
                     .message("Token refreshed successfully")
                     .accessToken(newAccessToken)
-                    .expiresIn(900)
-                    .refreshToken(newRefreshToken)
-                    .refreshExpiresIn(604800)
+                    .expiresIn(jwtService.getAccessTokenExpirationMs())
+                    .refreshToken(refreshToken)
+                    .refreshExpiresIn(jwtService.getRefreshTokenExpirationMs())
                     .build();
 
         } catch (ExpiredJwtException e) {
-            throw new UnauthorizedException("Refresh token expired");
-        } catch (InvalidTokenException | UnauthorizedException e) {
-            throw e;
+            throw new CoreThrowHandler(ApiError.UNAUTHORIZED,"Token Expired");
         } catch (Exception e) {
-            throw new InvalidTokenException("Invalid refresh token");
+            throw new CoreThrowHandler(ApiError.INVALID_TOKEN);
         }
     }
 }
