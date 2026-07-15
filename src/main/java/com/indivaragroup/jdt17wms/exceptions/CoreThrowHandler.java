@@ -1,6 +1,6 @@
 package com.indivaragroup.jdt17wms.exceptions;
 
-import com.indivaragroup.jdt17wms.dto.response.ApiError;
+import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
 import lombok.Getter;
 
