@@ -8,7 +8,11 @@ import java.util.Map;
 import java.util.Set;
 
 public final class ProductConstants {
-    private ProductConstants() {}
+    private ProductConstants() {
+      // Prevent Instantiation
+    }
+
+    public static final int SUMMARY_COUNT = 5;
 
     public static final String MONEY_MARKET = "money_market";
     public static final String DEPOSIT = "deposit";

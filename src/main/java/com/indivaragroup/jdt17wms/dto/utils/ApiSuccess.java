@@ -56,6 +56,10 @@ public enum ApiSuccess {
     // Recommendations
     RECOMMENDATIONS_FETCHED(HttpStatus.OK.value(), "Recommendations retrieved successfully"),
 
+    // Finances
+    FINANCES_FETCHED(HttpStatus.OK.value(), "Financial profile retrieved successfully"),
+    FINANCES_UPDATED(HttpStatus.OK.value(), "Financial profile updated successfully"),
+
     // Health
     HEALTH_OK(HttpStatus.OK.value(), "Service is healthy"),
 

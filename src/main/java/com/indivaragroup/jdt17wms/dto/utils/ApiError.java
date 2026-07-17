@@ -24,8 +24,9 @@ public enum ApiError {
     REQUIRED_REFRESH_TOKEN(HttpStatus.BAD_REQUEST.value(), "Refresh Token Required"),
     NOT_UNIQUE_EMAIL(HttpStatus.CONFLICT.value(), "Email Already Used"),
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "Item Not Found"),
-    DUPLICATE_PRIORITY_GOALS(HttpStatus.CONFLICT.value(), "Can't set more than 1 priority"),
-    INSUFFICIENT_INCOME(HttpStatus.FORBIDDEN.value(), "Can't set more allocation than income"),
+    DUPLICATE_PRIORITY_GOALS(HttpStatus.CONFLICT.value(), "Can’t set more than 1 priority"),
+    INSUFFICIENT_INCOME(HttpStatus.FORBIDDEN.value(), "Can’t set more allocation than income"),
+    FINANCIAL_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "Financial profile not found"),
 
     // Transaction errors
     INSUFFICIENT_UNITS(HttpStatus.BAD_REQUEST.value(), "Insufficient units available for sale"),

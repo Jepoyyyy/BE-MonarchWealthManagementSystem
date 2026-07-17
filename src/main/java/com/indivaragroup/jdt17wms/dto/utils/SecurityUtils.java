@@ -9,6 +9,8 @@ import java.util.UUID;
 public final class
 SecurityUtils {
 
+    public static final UUID STATIC_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000000");
+
     private SecurityUtils() {
         // Prevent instantiation
     }

@@ -99,7 +99,7 @@ public class ExceptionHandlingAdvice {
                         .reason(v.getMessage())
                         .type("ERR-001")
                         .build())
-                .collect(Collectors.toList());
+                .toList();
 
         Map<String, Serializable> errorMap = new HashMap<>();
         errorMap.put("fields", (Serializable) details);

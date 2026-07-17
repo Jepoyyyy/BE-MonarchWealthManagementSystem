@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.dto.utils;
 
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -29,17 +30,17 @@ class SecurityUtilsTest {
     }
 
     @Test
-    void getCurrentUserId_whenAuthenticationIsNull_shouldReturnDefaultUserId() {
+    void getCurrentUserId_whenAuthenticationIsNull_shouldThrowCoreThrowHandler() {
         SecurityContextHolder.clearContext();
-        assertEquals(SecurityUtils.STATIC_USER_ID, SecurityUtils.getCurrentUserId());
+        assertThrows(CoreThrowHandler.class, SecurityUtils::getCurrentUserId);
     }
 
     @Test
-    void getCurrentUserId_whenPrincipalIsNotUserDTO_shouldReturnDefaultUserId() {
+    void getCurrentUserId_whenPrincipalIsNotUserDTO_shouldThrowCoreThrowHandler() {
         Authentication auth = new UsernamePasswordAuthenticationToken("anonymous", null);
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        assertEquals(SecurityUtils.STATIC_USER_ID, SecurityUtils.getCurrentUserId());
+        assertThrows(CoreThrowHandler.class, SecurityUtils::getCurrentUserId);
     }
 
     @Test

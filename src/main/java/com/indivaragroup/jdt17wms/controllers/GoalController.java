@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.controllers;
 
+import com.indivaragroup.jdt17wms.aspects.AuditLogged;
 import com.indivaragroup.jdt17wms.dto.request.GoalEditingDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
@@ -35,12 +36,14 @@ public class GoalController {
     }
 
     @PostMapping
+    @AuditLogged(action = "CREATE_GOAL", category = "GOAL")
     public ApiResponse<GoalDTO> createGoal(@Valid @RequestBody GoalRegistrationDTO dto) {
         return ApiResponse.created(ApiSuccess.GOAL_CREATED,
                 goalsManagementService.createGoalForUser(dto));
     }
 
     @PutMapping("/{id}")
+    @AuditLogged(action = "UPDATE_GOAL", category = "GOAL")
     public ApiResponse<GoalDTO> updateGoal(@PathVariable UUID id,
                                             @Valid @RequestBody GoalEditingDTO dto) {
         return ApiResponse.success(ApiSuccess.GOAL_UPDATED,
@@ -48,6 +51,7 @@ public class GoalController {
     }
 
     @DeleteMapping("/{id}")
+    @AuditLogged(action = "DELETE_GOAL", category = "GOAL")
     public ApiResponse<Void> deleteGoal(@PathVariable UUID id) {
         goalsManagementService.deleteGoalForUser(id);
         return ApiResponse.success(ApiSuccess.GOAL_DELETED, null);

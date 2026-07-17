@@ -1,11 +1,13 @@
 package com.indivaragroup.jdt17wms.controllers;
 
-import com.indivaragroup.jdt17wms.dto.request.AdminUserAccessDTO;
+import com.indivaragroup.jdt17wms.aspects.AuditLogged;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
+import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.services.UserManagementService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
@@ -29,10 +31,11 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
+    @AuditLogged(action = "UPDATE_USER_STATUS", category = "USER")
     public ApiResponse<User> updateUser(
             @PathVariable UUID id,
-            @RequestBody AdminUserAccessDTO adminUserAccessDTO) {
+            @Valid @RequestBody UserStatusUpdateDTO userStatusUpdateDTO) {
         return ApiResponse.success(ApiSuccess.USER_UPDATED,
-                userManagementService.updateUserStatus(id, adminUserAccessDTO.getStatus()));
+                userManagementService.updateUserStatus(id, userStatusUpdateDTO));
     }
 }

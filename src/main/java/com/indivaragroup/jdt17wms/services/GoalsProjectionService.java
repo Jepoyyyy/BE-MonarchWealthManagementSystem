@@ -1,12 +1,12 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.aspects.RiskProfileAssessmentRequired;
 import com.indivaragroup.jdt17wms.constants.GoalConstants;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.dto.response.GoalProjectionDTO;
 import com.indivaragroup.jdt17wms.dto.response.GoalProjectionDTO.TimeSeriesPointDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
-import com.indivaragroup.jdt17wms.models.FinancialProfile;
 import com.indivaragroup.jdt17wms.models.Goal;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.Asset;
@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class GoalsProjectionService {
@@ -37,8 +36,12 @@ public class GoalsProjectionService {
     private final ProductRepository productRepository;
     private final Clock clock;
 
-  private static final int MAX_SIMULATION_MONTHS = 12_000;
+  private static final int MAX_SIMULATION_MONTHS = 1_200;
   private static final int PROJECTION_WINDOW_MONTHS = 60;
+  private static final Double MONTHS_COUNT = 12.0;
+  private static final Double ONE_HUNDRED_PERCENT = 100.0;
+  private static final int DOUBLE_DECIMAL_DIGITS = 2;
+
 
     public GoalsProjectionService(GoalRepository goalRepository,
                                   UserRepository userRepository,
@@ -54,6 +57,7 @@ public class GoalsProjectionService {
         this.clock = clock;
     }
 
+  @RiskProfileAssessmentRequired
   public List<GoalProjectionDTO> getProjectionsForUser() {
     User user = userRepository.findById(SecurityUtils.getCurrentUserId())
       .orElseThrow(() -> new CoreThrowHandler(ApiError.USER_NOT_FOUND));
@@ -61,13 +65,6 @@ public class GoalsProjectionService {
     if (!Boolean.TRUE.equals(user.getQuestionnaireCompleted())) {
       throw new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER);
     }
-
-    // NOTE: intentionally left as-is pending discussion with team — not currently
-    // wired into any calculation below.
-    BigDecimal defaultReturn = financialProfileRepository.findByUserId(user.getId())
-      .map(FinancialProfile::getDefaultReturn)
-      .orElse(BigDecimal.valueOf(7.50));
-    double annualRate = defaultReturn.doubleValue();
 
     double defaultMonthlyRate = 0.0; // Savings do not grow like assets do, so rate is 0.0
 
@@ -91,8 +88,7 @@ public class GoalsProjectionService {
 
     if (assets.isEmpty()) {
       // Scenario A: No assets tied to the goal. Savings do not grow (0% return rate).
-      double balance = Optional.ofNullable(goal.getCurrentAmount())
-        .map(BigDecimal::doubleValue).orElse(0.0);
+      double balance = goal.getCurrentAmount().doubleValue();
 
       int monthsToTarget = simulateMonthsToTarget(
         new double[]{balance}, new double[]{defaultMonthlyRate}, totalContribution, target);
@@ -112,16 +108,15 @@ public class GoalsProjectionService {
 
       for (int j = 0; j < kValue; j++) {
         Asset asset = assets.get(j);
-        balances[j] = Optional.ofNullable(asset.getCurrentValue())
-          .map(Number::doubleValue).orElse(0.0);
+        balances[j] = asset.getCurrentValue().doubleValue();
 
         Product product = productRepository.findById(asset.getProductId())
           .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
 
         if (product.getAnnualReturn() == null) {
-          throw new IllegalStateException("Missing Annual Return");
+          throw new CoreThrowHandler(ApiError.BAD_REQUEST,"Missing Annual Return");
         }
-        rates[j] = product.getAnnualReturn().doubleValue() / 100.0 / 12.0;
+        rates[j] = product.getAnnualReturn().doubleValue() / ONE_HUNDRED_PERCENT / MONTHS_COUNT;
       }
 
       int monthsToTarget = simulateMonthsToTarget(balances, rates, contributionPerAsset, target);
@@ -224,7 +219,7 @@ public class GoalsProjectionService {
   }
 
   private BigDecimal toScaledBigDecimal(double value) {
-    return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP);
+    return BigDecimal.valueOf(value).setScale(DOUBLE_DECIMAL_DIGITS, RoundingMode.HALF_UP);
   }
 
   private boolean hasGrowthPotential(double[] balances, double[] rates, double contributionPerBucket) {

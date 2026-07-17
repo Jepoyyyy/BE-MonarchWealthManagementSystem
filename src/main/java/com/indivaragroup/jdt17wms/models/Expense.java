@@ -23,8 +23,9 @@ public class Expense {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "financial_profile_id", nullable = false)
-    private UUID financialProfileId;
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "financial_profile_id", nullable = false)
+    private FinancialProfile financialProfile;
 
     @Column(name = "housing", precision = 18, scale = 4,  nullable = false)
     private BigDecimal housing;

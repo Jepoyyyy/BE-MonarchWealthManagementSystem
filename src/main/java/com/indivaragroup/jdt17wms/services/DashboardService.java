@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.constants.RiskConstants;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.aspects.RiskProfileAssessmentRequired;
@@ -22,10 +23,7 @@ import java.time.LocalTime;
 import java.time.Month;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,7 +33,7 @@ public class DashboardService {
     private final AssetRepository assetRepository;
     private final ProductRepository productRepository;
     private final AuditLogRepository auditLogRepository;
-  private final ProductPriceRepository productPriceRepository;
+    private final ProductPriceRepository productPriceRepository;
 
     public DashboardService(UserRepository userRepository,
                             AssetRepository assetRepository,
@@ -56,9 +54,9 @@ public class DashboardService {
                         UserRepository.RiskProfileCount::getCount));
 
         RiskProfilesDTO riskProfiles = RiskProfilesDTO.builder()
-                .riskAverse(riskMap.getOrDefault("risk_averse", 0L).intValue())
-                .moderate(riskMap.getOrDefault("moderate", 0L).intValue())
-                .riskTaker(riskMap.getOrDefault("risk_taker", 0L).intValue())
+                .riskAverse(riskMap.getOrDefault(RiskConstants.RISK_AVERSE, 0L).intValue())
+                .moderate(riskMap.getOrDefault(RiskConstants.MODERATE, 0L).intValue())
+                .riskTaker(riskMap.getOrDefault(RiskConstants.RISK_TAKER, 0L).intValue())
                 .build();
 
         return AdminDashboardDTO.builder()
@@ -79,7 +77,22 @@ public class DashboardService {
     // Dynamically query assets purchased since Jan 1st of the current year
     Instant startOfYear = LocalDate.of(currentYear, Month.JANUARY, 1).atStartOfDay(ZoneOffset.UTC).toInstant();
     List<Asset> assets = assetRepository.findAllByPurchaseDateGreaterThanEqual(startOfYear);
+    LocalDate lastSnapshotDate = LocalDate.of(currentYear, maxMonth, 1)
+      .with(TemporalAdjusters.lastDayOfMonth());
 
+    Set<UUID> productIds = assets.stream()
+      .map(Asset::getProductId)
+      .collect(Collectors.toSet());
+
+    Map<UUID, TreeMap<LocalDate, BigDecimal>> pricesByProduct = new HashMap<>();
+    if (!productIds.isEmpty()) {
+      for (com.indivaragroup.jdt17wms.models.ProductPrice pp :
+        productPriceRepository.findAllByProductIdInAndRecordedDateLessThanEqual(productIds, lastSnapshotDate)) {
+        pricesByProduct
+          .computeIfAbsent(pp.getProductId(), k -> new TreeMap<>())
+          .put(pp.getRecordedDate(), pp.getPrice());
+      }
+    }
     List<AumTrendDTO> trend = new ArrayList<>();
 
     for (int m = 1; m <= maxMonth; m++) {
@@ -93,10 +106,9 @@ public class DashboardService {
           continue;
         }
 
-        BigDecimal price = productPriceRepository
-          .findFirstByProductIdAndRecordedDateLessThanEqualOrderByRecordedDateDesc(asset.getProductId(), snapshotDate)
-          .map(com.indivaragroup.jdt17wms.models.ProductPrice::getPrice)
-          .orElse(BigDecimal.ZERO);
+        TreeMap<LocalDate, BigDecimal> history = pricesByProduct.get(asset.getProductId());
+        Map.Entry<LocalDate, BigDecimal> priceEntry = history != null ? history.floorEntry(snapshotDate) : null;
+        BigDecimal price = priceEntry != null ? priceEntry.getValue() : BigDecimal.ZERO;
 
         monthlyAum = monthlyAum.add(asset.getUnits().multiply(price));
       }
@@ -157,6 +169,24 @@ public class DashboardService {
   private List<PerformanceDTO> createUserPerformanceTrend(java.util.UUID userId) {
     List<Asset> assets = assetRepository.findAllByUserId(userId);
 
+    LocalDate today0 = LocalDate.now(ZoneOffset.UTC);
+    LocalDate lastSnapshotDate = LocalDate.of(today0.getYear(), today0.getMonthValue(), 1)
+      .with(TemporalAdjusters.lastDayOfMonth());
+
+    Set<UUID> productIds = assets.stream()
+      .map(Asset::getProductId)
+      .collect(Collectors.toSet());
+
+    Map<UUID, TreeMap<LocalDate, BigDecimal>> pricesByProduct = new HashMap<>();
+    if (!productIds.isEmpty()) {
+      for (com.indivaragroup.jdt17wms.models.ProductPrice pp :
+        productPriceRepository.findAllByProductIdInAndRecordedDateLessThanEqual(productIds, lastSnapshotDate)) {
+        pricesByProduct
+          .computeIfAbsent(pp.getProductId(), k -> new TreeMap<>())
+          .put(pp.getRecordedDate(), pp.getPrice());
+      }
+    }
+
     List<PerformanceDTO> trend = new ArrayList<>();
     LocalDate today = LocalDate.now(ZoneOffset.UTC);
     int maxMonth = today.getMonthValue();
@@ -172,10 +202,9 @@ public class DashboardService {
           continue;
         }
 
-        BigDecimal price = productPriceRepository
-          .findFirstByProductIdAndRecordedDateLessThanEqualOrderByRecordedDateDesc(asset.getProductId(), snapshotDate)
-          .map(com.indivaragroup.jdt17wms.models.ProductPrice::getPrice)
-          .orElse(BigDecimal.ZERO);
+        TreeMap<LocalDate, BigDecimal> history = pricesByProduct.get(asset.getProductId());
+        Map.Entry<LocalDate, BigDecimal> priceEntry = history != null ? history.floorEntry(snapshotDate) : null;
+        BigDecimal price = priceEntry != null ? priceEntry.getValue() : BigDecimal.ZERO;
 
         monthlyValue = monthlyValue.add(asset.getUnits().multiply(price));
       }

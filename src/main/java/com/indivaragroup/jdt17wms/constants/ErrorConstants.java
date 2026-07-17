@@ -3,7 +3,9 @@ package com.indivaragroup.jdt17wms.constants;
 import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
 
 public final class ErrorConstants {
-    private ErrorConstants() {}
+    private ErrorConstants() {
+      // Prevent Instantiation
+    }
 
     public static final ErrorResponseDTO ERROR_UNAUTHORIZED = ErrorResponseDTO.builder()
             .error("Unauthorized")

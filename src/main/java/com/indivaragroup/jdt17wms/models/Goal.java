@@ -33,7 +33,7 @@ public class Goal {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "type")
+    @Column(name = "type", nullable = false)
     private String type;
 
     @Column(name = "target_amount", nullable = false, precision = 18, scale = 4)

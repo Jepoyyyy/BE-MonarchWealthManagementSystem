@@ -5,10 +5,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface ProductPriceRepository extends JpaRepository<ProductPrice, UUID> {
     Optional<ProductPrice> findFirstByProductIdAndRecordedDateLessThanEqualOrderByRecordedDateDesc(UUID productId, LocalDate recordedDate);
+
+  List<ProductPrice> findAllByProductIdInAndRecordedDateLessThanEqual(Collection<UUID> productIds, LocalDate recordedDate);
+
 }

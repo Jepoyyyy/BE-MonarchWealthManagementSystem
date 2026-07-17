@@ -28,9 +28,6 @@ public class FinancialProfile {
     @Column(name = "monthly_income", precision = 18, scale = 4,  nullable = false)
     private BigDecimal monthlyIncome;
 
-    @Column(name = "default_return", precision = 18, scale = 4,  nullable = false)
-    private BigDecimal defaultReturn;
-
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;

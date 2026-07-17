@@ -41,6 +41,8 @@ public class AssetsManagementService implements VerifiedUserProvider {
     private final RecommendationRepository recommendationRepository;
     private final AssetTransactionService assetTransactionService;
 
+    private static final int BY_FOUR = 4;
+
     public AssetsManagementService(AssetRepository assetRepository,
                                    UserRepository userRepository,
                                    TransactionHistoryRepository transactionHistoryRepository,
@@ -98,7 +100,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         Asset savedAsset = assetRepository.save(asset);
 
         // Record BUY transaction log
-        BigDecimal pricePerUnit = dto.getAmount().divide(dto.getUnits(), 4, RoundingMode.HALF_UP);
+        BigDecimal pricePerUnit = dto.getAmount().divide(dto.getUnits(), BY_FOUR, RoundingMode.HALF_UP);
 
         TransactionHistory buyHistory = TransactionHistory.builder()
                 .userId(user.getId())
@@ -153,7 +155,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         // Record SELL transaction log
         BigDecimal pricePerUnit = BigDecimal.ZERO;
         if (Objects.requireNonNullElse(asset.getUnits(), BigDecimal.ZERO).compareTo(BigDecimal.ZERO) > 0) {
-            pricePerUnit = asset.getAmount().divide(asset.getUnits(), 4, RoundingMode.HALF_UP);
+            pricePerUnit = asset.getAmount().divide(asset.getUnits(), BY_FOUR, RoundingMode.HALF_UP);
         }
 
         TransactionHistory sellHistory = TransactionHistory.builder()
@@ -165,7 +167,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
                 .units(asset.getUnits())
                 .totalAmount(asset.getAmount())
                 .transactionDate(Instant.now())
-                .notes("Asset sold via deletion")
+                .notes(asset.getNotes())
                 .build();
 
         transactionHistoryRepository.save(sellHistory);

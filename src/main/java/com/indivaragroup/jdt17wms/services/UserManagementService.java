@@ -1,21 +1,18 @@
 package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
+import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 
 import java.util.UUID;
 
 
 @Service
-@Validated
 public class UserManagementService {
 
     private final UserRepository userRepository;
@@ -28,15 +25,10 @@ public class UserManagementService {
         return userRepository.findAll(pageable);
     }
 
-  public User updateUserStatus(
-    UUID id,
-    @NotNull(message = "Status cannot be null")
-    @Pattern(regexp = "^(active|disabled)$", message = "Invalid status value")
-    String status
-    ) {
+    public User updateUserStatus(UUID id, UserStatusUpdateDTO userStatusUpdateDTO) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
-        user.setStatus(status);
+        user.setStatus(userStatusUpdateDTO.getStatus());
         return userRepository.save(user);
     }
 }

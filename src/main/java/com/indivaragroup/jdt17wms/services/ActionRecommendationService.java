@@ -5,8 +5,7 @@ import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import static com.indivaragroup.jdt17wms.constants.GoalConstants.*;
 import static com.indivaragroup.jdt17wms.constants.PriorityConstants.*;
 import static com.indivaragroup.jdt17wms.constants.ProductConstants.*;
-import static com.indivaragroup.jdt17wms.constants.RiskConstants.MAX_RISK_LEVELS;
-import static com.indivaragroup.jdt17wms.constants.RiskConstants.RISK_TARGETS;
+import static com.indivaragroup.jdt17wms.constants.RiskConstants.*;
 
 import com.indivaragroup.jdt17wms.dto.response.ComponentDTO;
 import com.indivaragroup.jdt17wms.dto.response.HealthDTO;
@@ -30,6 +29,73 @@ import java.util.stream.Collectors;
 @Service
 public class ActionRecommendationService {
 
+    // ── Emergency Fund Constants ──
+    private static final int EMERGENCY_FUND_EXPENSES_MULTIPLIER = 6;
+    private static final double EMERGENCY_FUND_THRESHOLD_RATIO = 0.8;
+    private static final int EMERGENCY_FUND_MAX_RISK_LEVEL = 2;
+
+    // ── Health Score Constants ──
+    private static final int MAX_TOTAL_SCORE = 100;
+    private static final int MAX_COMPONENT_SCORE = 25;
+    private static final int MIDPOINT_COMPONENT_SCORE = 12;
+
+    // ── Health Status Thresholds ──
+    private static final int EXCELLENT_SCORE_THRESHOLD = 80;
+    private static final int GOOD_SCORE_THRESHOLD = 60;
+    private static final int FAIR_SCORE_THRESHOLD = 40;
+
+    // ── Risk Alignment Difference Thresholds ──
+    private static final double RISK_DIFF_THRESHOLD_VERY_LOW = 0.5;
+    private static final double RISK_DIFF_THRESHOLD_LOW = 1.0;
+    private static final double RISK_DIFF_THRESHOLD_MEDIUM = 1.5;
+    private static final double RISK_DIFF_THRESHOLD_HIGH = 2.0;
+
+    // ── Risk Alignment Component Scores ──
+    private static final int RISK_ALIGNMENT_SCORE_EXCELLENT = 25;
+    private static final int RISK_ALIGNMENT_SCORE_GOOD = 20;
+    private static final int RISK_ALIGNMENT_SCORE_FAIR = 14;
+    private static final int RISK_ALIGNMENT_SCORE_MARGINAL = 8;
+    private static final int RISK_ALIGNMENT_SCORE_POOR = 4;
+
+    // ── Portfolio & Surplus Constants ──
+    private static final double CONCENTRATION_LIMIT = 0.65;
+    private static final int FIVE_YEAR_PROJECTION_MONTHS = 60;
+    private static final int PERCENTAGE_MULTIPLIER = 100;
+
+    // ── Priority Sorting Weights ──
+    private static final int PRIORITY_WEIGHT_HIGH = 0;
+    private static final int PRIORITY_WEIGHT_MEDIUM = 1;
+    private static final int PRIORITY_WEIGHT_LOW = 2;
+    private static final int PRIORITY_WEIGHT_DEFAULT = 3;
+
+    // ── Risk Profile Default Max Risk ──
+    private static final int DEFAULT_MAX_RISK_LEVEL = 5;
+
+    // ── Health Score Component Names & Labels ──
+    private static final String COMPONENT_EMERGENCY_NAME = "emergency";
+    private static final String COMPONENT_EMERGENCY_LABEL = "Emergency Fund";
+    private static final String COMPONENT_DIVERSIFICATION_NAME = "diversification";
+    private static final String COMPONENT_DIVERSIFICATION_LABEL = "Diversification";
+    private static final String COMPONENT_GOAL_COVERAGE_NAME = "goalCoverage";
+    private static final String COMPONENT_GOAL_COVERAGE_LABEL = "Goal Coverage";
+    private static final String COMPONENT_RISK_ALIGNMENT_NAME = "riskAlignment";
+    private static final String COMPONENT_RISK_ALIGNMENT_LABEL = "Risk Alignment";
+
+    // ── Health Status Labels ──
+    private static final String STATUS_EXCELLENT = "Excellent";
+    private static final String STATUS_GOOD = "Good";
+    private static final String STATUS_FAIR = "Fair";
+    private static final String STATUS_POOR = "Poor";
+
+    // ── Risk Profile Strings ──
+    private static final String RISK_PROFILE_RISK_AVERSE_LABEL = "risk-averse";
+    private static final String RISK_PROFILE_RISK_TAKER_LABEL = "risk-taker";
+    private static final String RISK_PROFILE_MODERATE_DEFAULT = "moderate";
+
+    // ── Rule Key and Formatting Fallbacks ──
+    private static final String RULE_KEY_DELIMITER = ":";
+    private static final String RULE_KEY_NONE_PLACEHOLDER = "none";
+    private static final String FORMAT_ZERO_FALLBACK = "0";
 
     private final RecommendationRepository recommendationRepository;
     private final UserRepository userRepository;
@@ -100,7 +166,7 @@ public class ActionRecommendationService {
         // ── Max risk level for user's profile ──
         String riskProfile = Optional.ofNullable(user.getRiskProfile())
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
-        int maxRiskLv = MAX_RISK_LEVELS.getOrDefault(riskProfile.toLowerCase(), 5);
+        int maxRiskLv = MAX_RISK_LEVELS.getOrDefault(riskProfile.toLowerCase(), DEFAULT_MAX_RISK_LEVEL);
 
         // Product lookup by ID for O(1) access
         Map<UUID, Product> productMap = products.stream()
@@ -110,16 +176,16 @@ public class ActionRecommendationService {
         // COMPONENT 1: Emergency Fund (25 pts)
         // Target = 6× monthly expenses in liquid assets (money_market, deposit)
         // ══════════════════════════════════════════════════════════════
-        BigDecimal emergencyTarget = monthlyExpenses.multiply(BigDecimal.valueOf(6));
+        BigDecimal emergencyTarget = monthlyExpenses.multiply(BigDecimal.valueOf(EMERGENCY_FUND_EXPENSES_MULTIPLIER));
 
         BigDecimal liquidValue = calcLiquidValue(assets, productMap);
 
         int emergency;
         if (emergencyTarget.compareTo(BigDecimal.ZERO) > 0) {
             double ratio = liquidValue.doubleValue() / emergencyTarget.doubleValue();
-            emergency = Math.min(25, (int) Math.round(ratio * 25));
+            emergency = Math.min(MAX_COMPONENT_SCORE, (int) Math.round(ratio * MAX_COMPONENT_SCORE));
         } else {
-            emergency = 12; // No expenses → midpoint score
+            emergency = MIDPOINT_COMPONENT_SCORE; // No expenses → midpoint score
         }
 
         // ══════════════════════════════════════════════════════════════
@@ -138,8 +204,8 @@ public class ActionRecommendationService {
 
         int diversification;
         if (!eligibleTypes.isEmpty()) {
-            diversification = Math.min(25,
-                    (int) Math.round((double) ownedTypes.size() / eligibleTypes.size() * 25));
+            diversification = Math.min(MAX_COMPONENT_SCORE,
+                    (int) Math.round((double) ownedTypes.size() / eligibleTypes.size() * MAX_COMPONENT_SCORE));
         } else {
             diversification = 0;
         }
@@ -150,7 +216,7 @@ public class ActionRecommendationService {
         // ══════════════════════════════════════════════════════════════
         int goalCoverage;
         if (goals.isEmpty()) {
-            goalCoverage = 12; // No goals → midpoint score
+            goalCoverage = MIDPOINT_COMPONENT_SCORE; // No goals → midpoint score
         } else {
             long coveredGoals = goals.stream()
                     .filter(g -> {
@@ -161,14 +227,14 @@ public class ActionRecommendationService {
                                 .anyMatch(t -> ownedTypes.contains(t.toLowerCase()));
                     })
                     .count();
-            goalCoverage = (int) Math.round((double) coveredGoals / goals.size() * 25);
+            goalCoverage = (int) Math.round((double) coveredGoals / goals.size() * MAX_COMPONENT_SCORE);
         }
 
         // ══════════════════════════════════════════════════════════════
         // COMPONENT 4: Risk Alignment (25 pts)
         // Weighted avg portfolio risk vs. profile target
         // ══════════════════════════════════════════════════════════════
-        int riskAlignment = 12; // default midpoint
+        int riskAlignment = MIDPOINT_COMPONENT_SCORE; // default midpoint
         if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
             double avgRisk = assets.stream()
                     .mapToDouble(a -> {
@@ -183,16 +249,16 @@ public class ActionRecommendationService {
             double target = RISK_TARGETS.get(riskProfile.toLowerCase());
             double diff = Math.abs(avgRisk - target);
 
-            if (diff <= 0.5) {
-                riskAlignment = 25;
-            } else if (diff <= 1.0) {
-                riskAlignment = 20;
-            } else if (diff <= 1.5) {
-                riskAlignment = 14;
-            } else if (diff <= 2.0) {
-                riskAlignment = 8;
+            if (diff <= RISK_DIFF_THRESHOLD_VERY_LOW) {
+                riskAlignment = RISK_ALIGNMENT_SCORE_EXCELLENT;
+            } else if (diff <= RISK_DIFF_THRESHOLD_LOW) {
+                riskAlignment = RISK_ALIGNMENT_SCORE_GOOD;
+            } else if (diff <= RISK_DIFF_THRESHOLD_MEDIUM) {
+                riskAlignment = RISK_ALIGNMENT_SCORE_FAIR;
+            } else if (diff <= RISK_DIFF_THRESHOLD_HIGH) {
+                riskAlignment = RISK_ALIGNMENT_SCORE_MARGINAL;
             } else {
-                riskAlignment = 4;
+                riskAlignment = RISK_ALIGNMENT_SCORE_POOR;
             }
         }
 
@@ -204,47 +270,47 @@ public class ActionRecommendationService {
 
         // ── Status label derived from total score ──
         String status;
-        if (totalScore >= 80) {
-            status = "Excellent";
-        } else if (totalScore >= 60) {
-            status = "Good";
-        } else if (totalScore >= 40) {
-            status = "Fair";
+        if (totalScore >= EXCELLENT_SCORE_THRESHOLD) {
+            status = STATUS_EXCELLENT;
+        } else if (totalScore >= GOOD_SCORE_THRESHOLD) {
+            status = STATUS_GOOD;
+        } else if (totalScore >= FAIR_SCORE_THRESHOLD) {
+            status = STATUS_FAIR;
         } else {
-            status = "Poor";
+            status = STATUS_POOR;
         }
 
         // ── Build component DTOs ──
         List<ComponentDTO> components = List.of(
                 ComponentDTO.builder()
-                        .componentName("emergency")
-                        .label("Emergency Fund")
+                        .componentName(COMPONENT_EMERGENCY_NAME)
+                        .label(COMPONENT_EMERGENCY_LABEL)
                         .score(emergency)
-                        .maxScore(25)
+                        .maxScore(MAX_COMPONENT_SCORE)
                         .build(),
                 ComponentDTO.builder()
-                        .componentName("diversification")
-                        .label("Diversification")
+                        .componentName(COMPONENT_DIVERSIFICATION_NAME)
+                        .label(COMPONENT_DIVERSIFICATION_LABEL)
                         .score(diversification)
-                        .maxScore(25)
+                        .maxScore(MAX_COMPONENT_SCORE)
                         .build(),
                 ComponentDTO.builder()
-                        .componentName("goalCoverage")
-                        .label("Goal Coverage")
+                        .componentName(COMPONENT_GOAL_COVERAGE_NAME)
+                        .label(COMPONENT_GOAL_COVERAGE_LABEL)
                         .score(goalCoverage)
-                        .maxScore(25)
+                        .maxScore(MAX_COMPONENT_SCORE)
                         .build(),
                 ComponentDTO.builder()
-                        .componentName("riskAlignment")
-                        .label("Risk Alignment")
+                        .componentName(COMPONENT_RISK_ALIGNMENT_NAME)
+                        .label(COMPONENT_RISK_ALIGNMENT_LABEL)
                         .score(riskAlignment)
-                        .maxScore(25)
+                        .maxScore(MAX_COMPONENT_SCORE)
                         .build()
         );
 
         return HealthDTO.builder()
                 .totalScore(totalScore)
-                .maxScore(100)
+                .maxScore(MAX_TOTAL_SCORE)
                 .status(status)
                 .portofolioValue(totalValue)
                 .availableSurplus(availableSurplus)
@@ -304,7 +370,7 @@ public class ActionRecommendationService {
             throw new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER);
         }
         String riskProfile = user.getRiskProfile();
-        int maxRiskLv = MAX_RISK_LEVELS.getOrDefault(riskProfile.toLowerCase(), 5);
+        int maxRiskLv = MAX_RISK_LEVELS.getOrDefault(riskProfile.toLowerCase(), DEFAULT_MAX_RISK_LEVEL);
 
         Map<UUID, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p));
@@ -317,12 +383,12 @@ public class ActionRecommendationService {
         // ─────────────────────────────────────────
         // Rule 1: Emergency fund shortfall
         // ─────────────────────────────────────────
-        BigDecimal emergencyTarget = monthlyExpenses.multiply(BigDecimal.valueOf(6));
+        BigDecimal emergencyTarget = monthlyExpenses.multiply(BigDecimal.valueOf(EMERGENCY_FUND_EXPENSES_MULTIPLIER));
         BigDecimal liquidValue = calcLiquidValue(assets, productMap);
-        BigDecimal emergencyThreshold = emergencyTarget.multiply(BigDecimal.valueOf(0.8));
+        BigDecimal emergencyThreshold = emergencyTarget.multiply(BigDecimal.valueOf(EMERGENCY_FUND_THRESHOLD_RATIO));
 
         if (liquidValue.compareTo(emergencyThreshold) < 0) {
-            Product p = bestOf(products, List.of(MONEY_MARKET, DEPOSIT), 2, null);
+            Product p = bestOf(products, List.of(MONEY_MARKET, DEPOSIT), EMERGENCY_FUND_MAX_RISK_LEVEL, null);
             BigDecimal suggested = null;
             if (p != null) {
                 BigDecimal gap = emergencyTarget.subtract(liquidValue);
@@ -330,10 +396,10 @@ public class ActionRecommendationService {
             }
 
             int pct = emergencyTarget.compareTo(BigDecimal.ZERO) > 0
-                    ? (int) Math.round(liquidValue.doubleValue() / emergencyTarget.doubleValue() * 100)
+                    ? (int) Math.round(liquidValue.doubleValue() / emergencyTarget.doubleValue() * PERCENTAGE_MULTIPLIER)
                     : 0;
 
-            freshRecs.add(buildRecommendation(HIGH_PRIORITY, "emergency",
+            freshRecs.add(buildRecommendation(HIGH_PRIORITY, COMPONENT_EMERGENCY_NAME,
                     "Build your emergency fund",
                     String.format("You have %s in liquid assets — only %d%% of the recommended 6-month buffer (%s). "
                                     + "Without this, a crisis could force you to liquidate long-term investments at a loss.",
@@ -359,7 +425,7 @@ public class ActionRecommendationService {
 
             if (top != null) {
                 double concentration = top.getValue().doubleValue() / totalValue.doubleValue();
-                if (concentration > 0.65) {
+                if (concentration > CONCENTRATION_LIMIT) {
                     Product topProduct = productMap.get(top.getKey());
                     String topType = topProduct != null && topProduct.getType() != null
                             ? topProduct.getType().toLowerCase() : "";
@@ -371,7 +437,7 @@ public class ActionRecommendationService {
                     Product complement = bestOf(products, complementTypes, maxRiskLv, ownedIds);
 
                     String topName = topProduct != null ? topProduct.getName() : "One position";
-                    int pct = (int) Math.round(concentration * 100);
+                    int pct = (int) Math.round(concentration * PERCENTAGE_MULTIPLIER);
 
                     freshRecs.add(buildRecommendation( HIGH_PRIORITY, "rebalance",
                             String.format("%s is %d%% of your portfolio", topName, pct),
@@ -466,7 +532,7 @@ public class ActionRecommendationService {
             if (!ownedTypes.contains(type)) {
                 Product p = bestOf(products, List.of(type), maxRiskLv, null);
                 if (p != null && !usedProductIds.contains(p.getId())) {
-                    freshRecs.add(buildRecommendation(MEDIUM_PRIORITY, "diversification",
+                    freshRecs.add(buildRecommendation(MEDIUM_PRIORITY, COMPONENT_DIVERSIFICATION_NAME,
                             String.format("Add %s exposure", TYPE_LABELS.getOrDefault(type, type)),
                             String.format("You hold no %s products. %s returns %s%% p.a. and fits within your %s profile "
                                             + "— adding it reduces single-category concentration.",
@@ -516,7 +582,7 @@ public class ActionRecommendationService {
 
             if (undeployed.compareTo(SURPLUS_THRESHOLD) > 0) {
                 // Rough 5-year simple projection: monthly × 12 × 5
-                BigDecimal fiveYearTotal = undeployed.multiply(BigDecimal.valueOf(60));
+                BigDecimal fiveYearTotal = undeployed.multiply(BigDecimal.valueOf(FIVE_YEAR_PROJECTION_MONTHS));
 
                 freshRecs.add(buildRecommendation( LOW_PRIORITY, "surplus",
                         String.format("%s/mo is not yet allocated", fmt(undeployed)),
@@ -592,9 +658,13 @@ public class ActionRecommendationService {
         }
 
         // ── Sort by priority weight (high → medium → low) and return as DTOs ──
-        Map<String, Integer> priorityWeight = Map.of(HIGH_PRIORITY, 0, MEDIUM_PRIORITY, 1, LOW_PRIORITY, 2);
+        Map<String, Integer> priorityWeight = Map.of(
+                HIGH_PRIORITY, PRIORITY_WEIGHT_HIGH,
+                MEDIUM_PRIORITY, PRIORITY_WEIGHT_MEDIUM,
+                LOW_PRIORITY, PRIORITY_WEIGHT_LOW
+        );
         toReturn.sort(Comparator.comparingInt(r ->
-                priorityWeight.getOrDefault(r.getPriority(), 3)));
+                priorityWeight.getOrDefault(r.getPriority(), PRIORITY_WEIGHT_DEFAULT)));
 
         return toReturn.stream().map(this::toRecommendationDTO).toList();
     }
@@ -609,8 +679,8 @@ public class ActionRecommendationService {
      */
     private static String ruleKey(Recommendation r) {
         return r.getCategory()
-                + ":" + (r.getProductId() != null ? r.getProductId() : "none")
-                + ":" + (r.getGoalId() != null ? r.getGoalId() : "none");
+                + RULE_KEY_DELIMITER + (r.getProductId() != null ? r.getProductId() : RULE_KEY_NONE_PLACEHOLDER)
+                + RULE_KEY_DELIMITER + (r.getGoalId() != null ? r.getGoalId() : RULE_KEY_NONE_PLACEHOLDER);
     }
 
     /**
@@ -703,7 +773,7 @@ public class ActionRecommendationService {
 
     /** Formats a BigDecimal as a readable currency string (e.g., "1,000,000"). */
     private static String fmt(BigDecimal value) {
-        if (value == null) return "0";
+        if (value == null) return FORMAT_ZERO_FALLBACK;
         BigDecimal truncated = value.setScale(0, java.math.RoundingMode.DOWN);
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.US);
         nf.setMaximumFractionDigits(0);
@@ -712,10 +782,10 @@ public class ActionRecommendationService {
 
     /** Human-readable label for a risk profile string. */
     private static String riskLabel(String riskProfile) {
-        if (riskProfile == null) return "moderate";
+        if (riskProfile == null) return RISK_PROFILE_MODERATE_DEFAULT;
         return switch (riskProfile.toLowerCase()) {
-            case "risk_averse" -> "risk-averse";
-            case "risk_taker" -> "risk-taker";
+          case RISK_AVERSE -> RISK_PROFILE_RISK_AVERSE_LABEL;
+          case RISK_TAKER -> RISK_PROFILE_RISK_TAKER_LABEL;
             default -> riskProfile.toLowerCase();
         };
     }

@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
+import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
@@ -63,7 +64,8 @@ class UserManagementServiceTest {
         when(userRepository.findById(id)).thenReturn(java.util.Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        User updatedUser = userManagementService.updateUserStatus(id, "active");
+        UserStatusUpdateDTO dto = UserStatusUpdateDTO.builder().status("active").build();
+        User updatedUser = userManagementService.updateUserStatus(id, dto);
 
         assertNotNull(updatedUser);
         assertEquals("active", updatedUser.getStatus());
@@ -74,8 +76,9 @@ class UserManagementServiceTest {
         UUID id = UUID.randomUUID();
         when(userRepository.findById(id)).thenReturn(java.util.Optional.empty());
 
+        UserStatusUpdateDTO dto = UserStatusUpdateDTO.builder().status("active").build();
         assertThrows(CoreThrowHandler.class, () -> {
-            userManagementService.updateUserStatus(id, "active");
+            userManagementService.updateUserStatus(id, dto);
         });
     }
 }
