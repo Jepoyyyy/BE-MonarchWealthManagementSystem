@@ -32,11 +32,6 @@ public class AssetRegistrationDTO {
     @DecimalMin(value = "0.0", inclusive = false, message = "Must be at least positive")
     private BigDecimal amount;
 
-    @JsonProperty("current_value")
-    @NotNull(message = "Must not be null")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Must be at least positive")
-    private BigDecimal currentValue;
-
     @JsonProperty("purchase_date")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @NotNull(message = "Must not be null")

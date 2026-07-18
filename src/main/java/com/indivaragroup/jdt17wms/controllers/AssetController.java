@@ -104,4 +104,10 @@ public class AssetController {
         return ApiResponse.success(ApiSuccess.ASSETS_FETCHED,
                 pnLCalculationService.computePnLForAsset(asset));
     }
+
+    @GetMapping("/{assetId}/transactions")
+    public ApiResponse<List<TransactionHistory>> getAssetTransactions(@PathVariable UUID assetId) {
+        return ApiResponse.success(ApiSuccess.TRANSACTION_LOGS_FETCHED,
+                assetsManagementService.getTransactionHistoryForAsset(assetId));
+    }
 }

@@ -27,7 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class GoalsProjectionService {
+public class
+
+
+
+GoalsProjectionService {
 
     private final GoalRepository goalRepository;
     private final UserRepository userRepository;

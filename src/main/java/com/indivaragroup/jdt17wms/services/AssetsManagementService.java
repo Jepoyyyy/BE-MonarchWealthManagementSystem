@@ -73,6 +73,18 @@ public class AssetsManagementService implements VerifiedUserProvider {
         return transactionHistoryRepository.findAllByUserId(user.getId());
     }
 
+    public List<TransactionHistory> getTransactionHistoryForAsset(UUID assetId) {
+        User user = getVerifiedUser();
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+        
+        if (!asset.getUserId().equals(user.getId())) {
+            throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
+        }
+        
+        return transactionHistoryRepository.findAllByAssetIdOrderByTransactionDateDesc(assetId);
+    }
+
     @Transactional
     public Asset createAssetForUser(AssetRegistrationDTO dto) {
         User user = getVerifiedUser();
@@ -90,12 +102,16 @@ public class AssetsManagementService implements VerifiedUserProvider {
 
         Instant purchaseInstant = dto.getPurchaseDate().atZone(ZoneId.systemDefault()).toInstant();
 
+        // Calculate current_value based on current product price
+        BigDecimal currentPrice = product.getCurrentPrice();
+        BigDecimal calculatedCurrentValue = dto.getUnits().multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
+
         Asset asset = Asset.builder()
                 .userId(user.getId())
                 .productId(product.getId())
                 .units(dto.getUnits())
                 .amount(dto.getAmount())
-                .currentValue(dto.getCurrentValue())
+                .currentValue(calculatedCurrentValue) // CALCULATED, not from DTO
                 .purchaseDate(purchaseInstant)
                 .platform(dto.getPlatform())
                 .notes(dto.getNotes())

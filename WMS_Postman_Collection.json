@@ -447,7 +447,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"units\": 10.5,\n  \"amount\": 5000000,\n  \"current_value\": 5250000,\n  \"purchase_date\": \"2024-01-15 09:00:00\",\n  \"platform\": \"Bibit\",\n  \"notes\": \"Testing via Postman\"\n}"
+              "raw": "{\n  \"product_id\": \"{{productId}}\",\n  \"units\": 10.5,\n  \"amount\": 5000000,\n  \"purchase_date\": \"2024-01-15 09:00:00\",\n  \"platform\": \"Bibit\",\n  \"notes\": \"Testing via Postman (current_value auto-calculated)\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/api/v1/me/assets", "host": ["{{baseUrl}}"], "path": ["api","v1","me","assets"] }
           }

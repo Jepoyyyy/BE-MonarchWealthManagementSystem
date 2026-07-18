@@ -142,13 +142,13 @@ class AssetsManagementServiceTest {
         Product product = Product.builder()
                 .id(UUID.randomUUID())
                 .visible(true)
+                .currentPrice(new BigDecimal("11.0")) // 10 units × 11 = 110
                 .build();
 
         AssetRegistrationDTO dto = AssetRegistrationDTO.builder()
                 .productId(product.getId())
                 .units(new BigDecimal("10.0"))
                 .amount(new BigDecimal("100.0"))
-                .currentValue(new BigDecimal("110.0"))
                 .purchaseDate(LocalDateTime.of(2024, Month.MAY, 20, 10, 0, 0))
                 .platform("Bibit")
                 .notes("New investment")

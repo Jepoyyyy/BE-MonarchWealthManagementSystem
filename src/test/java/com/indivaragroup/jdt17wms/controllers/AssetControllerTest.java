@@ -46,7 +46,7 @@ class AssetControllerTest extends BaseControllerTest {
 
         mockMvc.perform(post("/api/v1/me/assets")
                         .contentType("application/json")
-                        .content("{\"product_id\":\"" + productId + "\",\"units\":10.5,\"amount\":100.0,\"current_value\":110.0,\"purchase_date\":\"2023-01-01 00:00:00\"}"))
+                        .content("{\"product_id\":\"" + productId + "\",\"units\":10.5,\"amount\":100.0,\"purchase_date\":\"2023-01-01 00:00:00\"}"))
                 .andExpect(status().isOk());
     }
 
@@ -57,7 +57,7 @@ class AssetControllerTest extends BaseControllerTest {
         // units are negative -> invalid
         mockMvc.perform(post("/api/v1/me/assets")
                         .contentType("application/json")
-                        .content("{\"product_id\":\"" + productId + "\",\"units\":-10.5,\"amount\":100.0,\"current_value\":110.0,\"purchase_date\":\"2023-01-01 00:00:00\"}"))
+                        .content("{\"product_id\":\"" + productId + "\",\"units\":-10.5,\"amount\":100.0,\"purchase_date\":\"2023-01-01 00:00:00\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("INVALID FIELD VALUES"))
                 .andExpect(jsonPath("$.error.fields[0].field").value("units"))
@@ -72,7 +72,7 @@ class AssetControllerTest extends BaseControllerTest {
 
         mockMvc.perform(post("/api/v1/me/assets")
                         .contentType("application/json")
-                        .content("{\"product_id\":\"" + productId + "\",\"units\":10.5,\"amount\":100.0,\"current_value\":110.0,\"purchase_date\":\"2023-01-01 00:00:00\"}"))
+                        .content("{\"product_id\":\"" + productId + "\",\"units\":10.5,\"amount\":100.0,\"purchase_date\":\"2023-01-01 00:00:00\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Can’t track delisted products"))
                 .andExpect(jsonPath("$.code").value(409));

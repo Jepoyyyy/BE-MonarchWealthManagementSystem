@@ -44,15 +44,25 @@ public class InterestAccrualService {
                     .divide(BigDecimal.valueOf(12), 6, RoundingMode.HALF_UP)
                     .divide(BigDecimal.valueOf(100), 6, RoundingMode.HALF_UP);
 
-            BigDecimal monthlyReturn = asset.getCurrentValue()
+            // Interest accrues on PRINCIPAL (amount), not market value
+            BigDecimal monthlyReturn = asset.getAmount()
                     .multiply(monthlyRate)
                     .setScale(4, RoundingMode.HALF_UP);
 
-            BigDecimal newValue = asset.getCurrentValue().add(monthlyReturn);
-            asset.setCurrentValue(newValue);
+            // Update the principal (amount) — this is the cost basis that grows
+            BigDecimal newAmount = asset.getAmount().add(monthlyReturn);
+            asset.setAmount(newAmount);
+
+            // Recalculate current_value based on units × current price
+            BigDecimal currentPrice = product.getCurrentPrice();
+            BigDecimal newCurrentValue = asset.getUnits().multiply(currentPrice)
+                    .setScale(4, RoundingMode.HALF_UP);
+            asset.setCurrentValue(newCurrentValue);
+
             assetRepository.save(asset);
 
-            log.info("Accrued interest for asset {}: +{} (new value: {})", asset.getId(), monthlyReturn, newValue);
+            log.info("Accrued interest for asset {}: +{} (new amount: {}, new value: {})",
+                    asset.getId(), monthlyReturn, newAmount, newCurrentValue);
         }
     }
 }
