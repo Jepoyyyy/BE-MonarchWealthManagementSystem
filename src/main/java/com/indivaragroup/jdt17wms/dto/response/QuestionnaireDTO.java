@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.dto.response;
 
+import com.indivaragroup.jdt17wms.dto.utils.OptionDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

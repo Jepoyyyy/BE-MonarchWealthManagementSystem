@@ -1,7 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.constants.RiskConstants;
-import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.dto.request.RiskProfilerDTO;
 import com.indivaragroup.jdt17wms.dto.response.QuestionnaireDTO;
 import com.indivaragroup.jdt17wms.dto.response.RiskProfilerResponseDTO;
@@ -12,14 +11,21 @@ import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.repositories.FinancialProfileRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,8 +46,20 @@ class RiskProfilerAssessmentServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    private static final UUID TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     @InjectMocks
     private RiskProfilerAssessmentService riskProfilerAssessmentService;
+
+    @BeforeEach
+    void setUp() {
+        UserDTO userDTO = UserDTO.builder()
+                .id(TEST_USER_ID)
+                .email("test@example.com")
+                .build();
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDTO, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
 
     @Test
     void serviceShouldBeInitialized() {
@@ -85,12 +103,12 @@ class RiskProfilerAssessmentServiceTest {
         com.indivaragroup.jdt17wms.dto.request.Answer answer2 = com.indivaragroup.jdt17wms.dto.request.Answer.builder().score(2).build();
         RiskProfilerDTO request = new RiskProfilerDTO(List.of(answer1, answer2)); // sum = 3
 
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).build();
+        User user = User.builder().id(TEST_USER_ID).build();
         when(questionnaireDataDTO.getData()).thenReturn(List.of(
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build()
         ));
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RiskProfilerResponseDTO response = riskProfilerAssessmentService.updateProfilerAssessment(request);
@@ -109,14 +127,14 @@ class RiskProfilerAssessmentServiceTest {
         com.indivaragroup.jdt17wms.dto.request.Answer answer4 = com.indivaragroup.jdt17wms.dto.request.Answer.builder().score(1).build(); // sum = 7
         RiskProfilerDTO request = new RiskProfilerDTO(List.of(answer1, answer2, answer3, answer4));
 
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).build();
+        User user = User.builder().id(TEST_USER_ID).build();
         when(questionnaireDataDTO.getData()).thenReturn(List.of(
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build()
         ));
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RiskProfilerResponseDTO response = riskProfilerAssessmentService.updateProfilerAssessment(request);
@@ -135,14 +153,14 @@ class RiskProfilerAssessmentServiceTest {
         com.indivaragroup.jdt17wms.dto.request.Answer answer4 = com.indivaragroup.jdt17wms.dto.request.Answer.builder().score(2).build(); // sum = 8
         RiskProfilerDTO request = new RiskProfilerDTO(List.of(answer1, answer2, answer3, answer4));
 
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).build();
+        User user = User.builder().id(TEST_USER_ID).build();
         when(questionnaireDataDTO.getData()).thenReturn(List.of(
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build(),
                 QuestionnaireItem.builder().build()
         ));
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RiskProfilerResponseDTO response = riskProfilerAssessmentService.updateProfilerAssessment(request);
@@ -198,8 +216,8 @@ class RiskProfilerAssessmentServiceTest {
                 com.indivaragroup.jdt17wms.dto.request.Answer.builder().score(0).build());
         RiskProfilerDTO request = new RiskProfilerDTO(answers);
 
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).build();
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        User user = User.builder().id(TEST_USER_ID).build();
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         RiskProfilerResponseDTO response = riskProfilerAssessmentService.updateProfilerAssessment(request);

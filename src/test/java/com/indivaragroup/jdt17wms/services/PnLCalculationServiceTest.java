@@ -1,6 +1,5 @@
 package com.indivaragroup.jdt17wms.services;
 
-import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.dto.response.AssetsPnLResponseDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
@@ -12,6 +11,10 @@ import com.indivaragroup.jdt17wms.repositories.AssetRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.TransactionHistoryRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
+import com.indivaragroup.jdt17wms.dto.response.UserDTO;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +44,8 @@ class PnLCalculationServiceTest {
     @Mock
     private UserRepository userRepository;
 
+    private static final UUID TEST_USER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     @InjectMocks
     private PnLCalculationService pnLCalculationService;
 
@@ -51,6 +56,13 @@ class PnLCalculationServiceTest {
 
     @BeforeEach
     void setUp() {
+        UserDTO userDTO = UserDTO.builder()
+                .id(TEST_USER_ID)
+                .email("test@example.com")
+                .build();
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDTO, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
         product = Product.builder()
                 .id(productId)
                 .name("Test Stock")
@@ -70,8 +82,8 @@ class PnLCalculationServiceTest {
 
     @Test
     void testComputePnLForAllAssets_success() {
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).build();
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        User user = User.builder().id(TEST_USER_ID).build();
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findAllByUserId(user.getId())).thenReturn(List.of(asset));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
         when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(assetId, TransactionAction.BUY))
@@ -88,7 +100,7 @@ class PnLCalculationServiceTest {
 
     @Test
     void testComputePnLForAllAssets_userNotFound_throwsNotFoundException() {
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.empty());
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> pnLCalculationService.computePnLForAllAssets());
         assertEquals("User Not Found", ex.getMessage());

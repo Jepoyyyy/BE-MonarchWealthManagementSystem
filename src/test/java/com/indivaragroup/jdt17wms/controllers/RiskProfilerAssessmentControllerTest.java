@@ -1,7 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.dto.request.RiskProfilerDTO;
-import com.indivaragroup.jdt17wms.dto.response.OptionDTO;
+import com.indivaragroup.jdt17wms.dto.utils.OptionDTO;
 import com.indivaragroup.jdt17wms.dto.response.QuestionnaireDTO;
 import com.indivaragroup.jdt17wms.dto.response.RiskProfilerResponseDTO;
 import com.indivaragroup.jdt17wms.services.RiskProfilerAssessmentService;

@@ -27,5 +27,5 @@ public class ApiPath {
     public static final String BASE_PROFILER_PATH = "/api/v1/me/profiler";
 
     //users
-    public static final String BASE_USERS_PATH = "/api/v2/users";
+    public static final String BASE_USERS_PATH = "/api/v1/users";
 }

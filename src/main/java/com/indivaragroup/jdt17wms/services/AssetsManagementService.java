@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
@@ -42,6 +43,9 @@ public class AssetsManagementService implements VerifiedUserProvider {
     private final AssetTransactionService assetTransactionService;
 
     private static final int BY_FOUR = 4;
+
+    @Override
+    public UserRepository userRepository() { return userRepository; }
 
     public AssetsManagementService(AssetRepository assetRepository,
                                    UserRepository userRepository,
@@ -228,11 +232,6 @@ public class AssetsManagementService implements VerifiedUserProvider {
             throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
         }
         return asset;
-    }
-
-    @Override
-    public UserRepository userRepository() {
-        return this.userRepository;
     }
 
     @Override

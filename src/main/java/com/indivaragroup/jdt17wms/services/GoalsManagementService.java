@@ -39,6 +39,9 @@ public class GoalsManagementService implements VerifiedUserProvider {
     private final AssetRepository assetRepository;
     private final Clock clock;
 
+    @Override
+    public UserRepository userRepository() { return userRepository; }
+
     public GoalsManagementService(GoalRepository goalRepository, UserRepository userRepository, FinancialProfileRepository financialProfileRepository, AssetRepository assetRepository, Clock clock) {
         this.goalRepository = goalRepository;
         this.userRepository = userRepository;
@@ -242,11 +245,6 @@ public class GoalsManagementService implements VerifiedUserProvider {
         }
 
         goalRepository.delete(goal);
-    }
-
-    @Override
-    public UserRepository userRepository() {
-        return this.userRepository;
     }
 
     @Override
