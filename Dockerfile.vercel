@@ -43,8 +43,8 @@ RUN chown -R wmsuser:wmsgroup /app
 USER wmsuser
 
 # EXPOSE PORT INFO:
-# Vercel injects a dynamic $PORT environment variable (which usually defaults to 80,
-# but can be any port assigned by Vercel's sandboxed network).
+# Vercel injects a dynamic $PORT environment variable (which usually defaults to 80, 
+# but can be any port assigned by Vercel's sandboxed network). 
 # We expose 8080 as a local fallback, but Spring Boot will run on whatever $PORT is passed.
 EXPOSE 8080
 
@@ -52,12 +52,12 @@ EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=local
 
 # Database Connection (Defaulting directly to the Supabase URL configuration)
-ENV DB_URL="jdbc:postgresql://aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0"
+ENV DB_URL=jdbc:postgresql://aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0
 ENV DB_USERNAME=postgres.vhssovcozxdwpmsvrvhr
-ENV DB_PASSWORD=
+ENV DB_PASSWORD=HXrfUmI15vxDsXrm
 
 # JWT Config (Left blank for runtime injection)
-ENV JWT_SECRET="9ezm9+w5YmX0nHpA1iuOgvYiXKvr0Dw7FsQmkMZaEAVzOZ0AzQzIqu3kqKABNvBqtVZfyUCxTarobzXm8eSzjg=="
+ENV JWT_SECRET=""
 ENV JWT_ACCESS_EXPIRATION_MS=9000000
 ENV JWT_REFRESH_EXPIRATION_MS=604800000
 
@@ -71,4 +71,6 @@ ENV TZ=UTC
 # Command to bootstrap application:
 # CRITICAL VERCEL CONFIGURATION: Pass the dynamic $PORT environment variable using
 # -Dserver.port=${PORT:-8080} to ensure Spring Boot listens on Vercel's routed port.
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]
+# NOTE: We use the absolute path /opt/java/openjdk/bin/java because Vercel overrides
+# the system PATH variable, which breaks relative 'java' lookup in JRE Alpine.
+ENTRYPOINT ["sh", "-c", "/opt/java/openjdk/bin/java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]

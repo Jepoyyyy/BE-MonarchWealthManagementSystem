@@ -71,4 +71,6 @@ ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+UseG1GC"
 ENV TZ=UTC
 
 # Command to bootstrap application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# NOTE: We use the absolute path /opt/java/openjdk/bin/java because some target environments
+# override the PATH environment variable, which breaks relative 'java' command lookup.
+ENTRYPOINT ["sh", "-c", "/opt/java/openjdk/bin/java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]
