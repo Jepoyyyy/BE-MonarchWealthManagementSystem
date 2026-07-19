@@ -33,6 +33,7 @@ public class UserManagementService {
                 .questionnaireCompleted(u.getQuestionnaireCompleted())
                 .createdAt(u.getCreatedAt())
                 .updatedAt(u.getUpdatedAt())
+
                 .build();
     }
 

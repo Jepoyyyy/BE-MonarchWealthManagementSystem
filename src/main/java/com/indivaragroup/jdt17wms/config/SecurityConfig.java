@@ -52,6 +52,7 @@ public class SecurityConfig {
         .requestMatchers(HttpMethod.GET, BASE_PRODUCTS_PATH).hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
         .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_PATH + "/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/admin/dashboard").hasRole(UserRole.ADMIN.name())
+        .requestMatchers("/api/v1/admin/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/audit", "/api/v1/audit/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/users", "/api/v1/users/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/me/**", "/me/**").hasRole(UserRole.USER.name())
