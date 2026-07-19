@@ -20,8 +20,8 @@ public class HealthDTO {
     private Integer maxScore;
     private String status;
 
-    @JsonProperty("portofolio-value")
-    private BigDecimal portofolioValue;
+    @JsonProperty("portfolio-value")
+    private BigDecimal portfolioValue;
 
     @JsonProperty("available-surplus")
     private BigDecimal availableSurplus;

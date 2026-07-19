@@ -36,11 +36,15 @@ public class RecommendationDTO {
     @JsonProperty("product_id")
     private UUID productId;
 
+    private ProductResponseDTO product;
+
     @JsonProperty("suggested_amount")
     private BigDecimal suggestedAmount;
 
     @JsonProperty("goal_id")
     private UUID goalId;
+
+    private GoalDTO goal;
 
     @JsonProperty("recommended_allocation")
     private Map<String, Object> recommendedAllocation;

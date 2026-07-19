@@ -8,7 +8,9 @@ import static com.indivaragroup.jdt17wms.constants.ProductConstants.*;
 import static com.indivaragroup.jdt17wms.constants.RiskConstants.*;
 
 import com.indivaragroup.jdt17wms.dto.response.ComponentDTO;
+import com.indivaragroup.jdt17wms.dto.response.GoalDTO;
 import com.indivaragroup.jdt17wms.dto.response.HealthDTO;
+import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.response.RecommendationDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.*;
@@ -312,7 +314,7 @@ public class ActionRecommendationService {
                 .totalScore(totalScore)
                 .maxScore(MAX_TOTAL_SCORE)
                 .status(status)
-                .portofolioValue(totalValue)
+                .portfolioValue(totalValue)
                 .availableSurplus(availableSurplus)
                 .components(components)
                 .build();
@@ -694,7 +696,7 @@ public class ActionRecommendationService {
                 .collect(Collectors.toSet());
 
         return products.stream()
-                .filter(p ->  p.getVisible()
+                .filter(p ->  Boolean.TRUE.equals(p.getVisible())
                         && lowerTypes.contains(p.getType().toLowerCase())
                         && p.getRiskLevel() <= maxRisk
                         && (excludeIds == null || !excludeIds.contains(p.getId())))
@@ -753,6 +755,22 @@ public class ActionRecommendationService {
 
     /** Maps Recommendation entity → RecommendationDTO. */
     private RecommendationDTO toRecommendationDTO(Recommendation r) {
+        // Hydrate product object if productId exists
+        ProductResponseDTO productDTO = null;
+        if (r.getProductId() != null) {
+            productDTO = productRepository.findById(r.getProductId())
+                    .map(ProductResponseDTO::fromEntity)
+                    .orElse(null);
+        }
+
+        // Hydrate goal object if goalId exists
+        GoalDTO goalDTO = null;
+        if (r.getGoalId() != null) {
+            goalDTO = goalRepository.findById(r.getGoalId())
+                    .map(this::toGoalDTO)
+                    .orElse(null);
+        }
+
         return RecommendationDTO.builder()
                 .id(r.getId())
                 .userId(r.getUserId())
@@ -761,13 +779,34 @@ public class ActionRecommendationService {
                 .title(r.getTitle())
                 .reason(r.getReason())
                 .productId(r.getProductId())
+                .product(productDTO)
                 .suggestedAmount(r.getSuggestedAmount())
                 .goalId(r.getGoalId())
+                .goal(goalDTO)
                 .status(r.getStatus())
                 .createdAt(r.getCreatedAt())
                 .updatedAt(r.getUpdatedAt())
                 .resolvedAt(r.getResolvedAt())
                 .resolvedByAssetId(r.getResolvedByAssetId())
+                .build();
+    }
+
+    /** Maps Goal entity → GoalDTO. */
+    private GoalDTO toGoalDTO(Goal g) {
+        return GoalDTO.builder()
+                .id(g.getId())
+                .userId(g.getUserId())
+                .name(g.getName())
+                .type(g.getType())
+                .targetAmount(g.getTargetAmount())
+                .monthlyContribution(g.getMonthlyContribution())
+                .currentAmount(g.getCurrentAmount())
+                .targetDate(g.getTargetDate())
+                .isPriority(g.getIsPriority())
+                .notes(g.getNotes())
+                .status(g.getStatus())
+                .createdAt(g.getCreatedAt())
+                .updatedAt(g.getUpdatedAt())
                 .build();
     }
 

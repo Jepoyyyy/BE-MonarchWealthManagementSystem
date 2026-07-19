@@ -128,7 +128,7 @@ class ActionRecommendationServiceTest {
         assertNotNull(health);
         assertEquals("Excellent", health.getStatus());
         assertTrue(health.getTotalScore() >= 80);
-        assertEquals(BigDecimal.valueOf(1000000), health.getPortofolioValue());
+        assertEquals(BigDecimal.valueOf(1000000), health.getPortfolioValue());
         assertEquals(BigDecimal.valueOf(10000), health.getAvailableSurplus());
 
         // Check components are calculated
