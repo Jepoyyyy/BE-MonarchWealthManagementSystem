@@ -60,6 +60,12 @@ public class ExpensesService {
         }
 
         fp.setMonthlyIncome(dto.getMonthlyIncome());
+        if (dto.getAutoAllocationEnabled() != null) {
+            fp.setAutoAllocationEnabled(dto.getAutoAllocationEnabled());
+        }
+        if (dto.getPriorityAllocationPercentage() != null) {
+            fp.setPriorityAllocationPercentage(dto.getPriorityAllocationPercentage());
+        }
         fp.setUpdatedAt(Instant.now(clock));
         fp = financialProfileRepository.save(fp);
 

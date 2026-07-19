@@ -24,4 +24,10 @@ public class FinancialProfileDTO {
     @NotNull(message = "Must not be null")
     @Valid
     private ExpenseDTO expenseDTO;
+
+    @JsonProperty("auto_allocation_enabled")
+    private Boolean autoAllocationEnabled;
+
+    @JsonProperty("priority_allocation_percentage")
+    private Integer priorityAllocationPercentage;
 }
