@@ -29,24 +29,17 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Security Best Practice: Create non-root system user and group (UID/GID 10001)
-RUN addgroup -g 10001 -S wmsgroup && \
-    adduser -u 10001 -S wmsuser -G wmsgroup
-
 # Copy the compiled JAR artifact from Stage 1
 COPY --from=builder /app/target/jdt17wms-*.jar app.jar
 
-# Adjust ownership of application directory to the non-root user
-RUN chown -R wmsuser:wmsgroup /app
+# NOTE ON USER SECURITY FOR VERCEL:
+# Typically we run under a non-root user (wmsuser). However, Vercel requires the
+# container to listen directly on port 80 (passed via $PORT). Linux restricts
+# binding to ports below 1024 to the 'root' user.
+# Therefore, we run as root on Vercel so the container has permission to bind to port 80.
 
-# Run subsequent commands and executable under the non-privileged user context
-USER wmsuser
-
-# EXPOSE PORT INFO:
-# Vercel injects a dynamic $PORT environment variable (which usually defaults to 80, 
-# but can be any port assigned by Vercel's sandboxed network). 
-# We expose 8080 as a local fallback, but Spring Boot will run on whatever $PORT is passed.
-EXPOSE 8080
+# EXPOSE PORT INFO
+EXPOSE 80
 
 # Environment configurations - Spring Boot Active Profile
 ENV SPRING_PROFILES_ACTIVE=local
@@ -70,7 +63,5 @@ ENV TZ=UTC
 
 # Command to bootstrap application:
 # CRITICAL VERCEL CONFIGURATION: Pass the dynamic $PORT environment variable using
-# -Dserver.port=${PORT:-8080} to ensure Spring Boot listens on Vercel's routed port.
-# NOTE: We use the absolute path /opt/java/openjdk/bin/java because Vercel overrides
-# the system PATH variable, which breaks relative 'java' lookup in JRE Alpine.
-ENTRYPOINT ["sh", "-c", "/opt/java/openjdk/bin/java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar app.jar"]
+# -Dserver.port=${PORT:-80} to ensure Spring Boot listens on Vercel's routed port (usually 80).
+ENTRYPOINT ["sh", "-c", "/opt/java/openjdk/bin/java $JAVA_OPTS -Dserver.port=${PORT:-80} -jar app.jar"]
