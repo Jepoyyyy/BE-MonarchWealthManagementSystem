@@ -59,7 +59,7 @@ public class AuthService {
         User user = userRepository.findByEmail(dto.getLoginRequestEmail())
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST,"Email Or Password Invalid"));
 
-        if(!ActiveStatus.ACTIVE.name().equals(user.getStatus())){
+        if (user.getStatus() == null || !"active".equalsIgnoreCase(user.getStatus())) {
             throw new CoreThrowHandler(ApiError.UNAUTHORIZED,"Account is Not active. Please Contact Admin");
         }
 
