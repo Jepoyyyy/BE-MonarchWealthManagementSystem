@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+
 @Service
 public class AuditTrailManagementService {
 
@@ -25,5 +27,16 @@ public class AuditTrailManagementService {
               0, AuditConstants.ADMIN_SUMMARY_AUDIT_LOG_LIMIT, Sort.by(Sort.Direction.DESC, SORT_BY_TIMESTAMP)));
         }
         return auditLogRepository.findAll(pageable);
+    }
+
+    public Page<AuditLog> getFilteredAuditLogs(
+            String category,
+            String search,
+            Instant from,
+            Instant to,
+            Pageable pageable) {
+        String cat = (category != null && !category.isBlank()) ? category : null;
+        String srch = (search != null && !search.isBlank()) ? search : null;
+        return auditLogRepository.findFiltered(cat, srch, from, to, pageable);
     }
 }

@@ -13,9 +13,11 @@ import com.indivaragroup.jdt17wms.services.AuditTrailManagementService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RestController
@@ -38,6 +40,17 @@ public class AdminController {
             Pageable pageable) {
         return ApiResponse.success(ApiSuccess.AUDIT_LOGS_FETCHED,
                 auditTrailManagementService.getAuditLogs(headView, pageable));
+    }
+
+    @GetMapping("/audit/search")
+    public ApiResponse<Page<AuditLog>> searchAuditLogs(
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
+            Pageable pageable) {
+        return ApiResponse.success(ApiSuccess.AUDIT_LOGS_FETCHED,
+                auditTrailManagementService.getFilteredAuditLogs(category, search, from, to, pageable));
     }
 
     @GetMapping("/products")
