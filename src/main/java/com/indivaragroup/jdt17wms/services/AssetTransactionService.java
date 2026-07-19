@@ -88,7 +88,15 @@ public class AssetTransactionService {
         // Update asset
         asset.setUnits(asset.getUnits().add(unitsToBuy));
         asset.setAmount(asset.getAmount().add(totalAmount));
-        asset.setCurrentValue(asset.getUnits().multiply(currentPrice).setScale(4, RoundingMode.HALF_UP));
+
+        // currentValue = available (unsold) units × current price
+        List<TransactionHistory> soldTxs = transactionHistoryRepository
+                .findAllByAssetIdAndActionOrderByTransactionDateAsc(asset.getId(), TransactionAction.SELL);
+        BigDecimal totalSold = soldTxs.stream()
+                .map(TransactionHistory::getUnits)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal availableAfterBuy = asset.getUnits().subtract(totalSold);
+        asset.setCurrentValue(availableAfterBuy.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP));
         assetRepository.save(asset);
 
         // Create BUY transaction record
@@ -183,7 +191,7 @@ public class AssetTransactionService {
         Instant txInstant = (dto.getTransactionDate() != null)
                 ? dto.getTransactionDate().atZone(ZoneId.systemDefault()).toInstant()
                 : Instant.now();
-
+//
         TransactionHistory tx = TransactionHistory.builder()
                 .userId(user.getId())
                 .productId(product.getId())
