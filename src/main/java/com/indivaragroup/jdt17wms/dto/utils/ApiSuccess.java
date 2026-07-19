@@ -36,6 +36,7 @@ public enum ApiSuccess {
     GOAL_UPDATED(HttpStatus.OK.value(), "Goal updated successfully"),
     GOAL_DELETED(HttpStatus.OK.value(), "Goal deleted successfully"),
     GOAL_PROJECTIONS_FETCHED(HttpStatus.OK.value(), "Goal projections retrieved successfully"),
+    GOAL_PROGRESS_FETCHED(HttpStatus.OK.value(), "Goal progress fetched successfully"),
 
     // Assets
     ASSETS_FETCHED(HttpStatus.OK.value(), "Assets retrieved successfully"),

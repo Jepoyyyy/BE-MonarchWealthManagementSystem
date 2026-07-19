@@ -4,6 +4,7 @@ import com.indivaragroup.jdt17wms.dto.request.GoalRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.response.GoalDTO;
 import com.indivaragroup.jdt17wms.services.GoalsManagementService;
 import com.indivaragroup.jdt17wms.services.GoalsProjectionService;
+import com.indivaragroup.jdt17wms.services.GoalProgressService;
 import java.time.Month;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,9 @@ class GoalControllerTest extends BaseControllerTest {
 
     @MockBean
     private GoalsProjectionService goalsProjectionService;
+
+    @MockBean
+    private GoalProgressService goalProgressService;
 
     @Test
     void getGoals_shouldReturnOk() throws Exception {

@@ -6,9 +6,11 @@ import com.indivaragroup.jdt17wms.dto.request.GoalRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.GoalDTO;
+import com.indivaragroup.jdt17wms.dto.response.GoalProgressResponseDTO;
 import com.indivaragroup.jdt17wms.dto.response.GoalProjectionDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
 import com.indivaragroup.jdt17wms.services.GoalsManagementService;
+import com.indivaragroup.jdt17wms.services.GoalProgressService;
 import com.indivaragroup.jdt17wms.services.GoalsProjectionService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -22,11 +24,14 @@ public class GoalController {
 
     private final GoalsManagementService goalsManagementService;
     private final GoalsProjectionService goalsProjectionService;
+    private final GoalProgressService goalProgressService;
 
     public GoalController(GoalsManagementService goalsManagementService,
-                          GoalsProjectionService goalsProjectionService) {
+                          GoalsProjectionService goalsProjectionService,
+                          GoalProgressService goalProgressService) {
         this.goalsManagementService = goalsManagementService;
         this.goalsProjectionService = goalsProjectionService;
+        this.goalProgressService = goalProgressService;
     }
 
     @GetMapping
@@ -68,5 +73,11 @@ public class GoalController {
     public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam("percentage") int percentage) {
         return ApiResponse.success(ApiSuccess.GOALS_FETCHED,
                 goalsManagementService.autoAllocateGoalsForUser(percentage));
+    }
+
+    @GetMapping("/progress")
+    public ApiResponse<List<GoalProgressResponseDTO>> getGoalProgress() {
+        return ApiResponse.success(ApiSuccess.GOAL_PROGRESS_FETCHED,
+                goalProgressService.getGoalProgressForUser());
     }
 }
