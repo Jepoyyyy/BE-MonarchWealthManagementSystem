@@ -62,4 +62,11 @@ public class GoalController {
         return ApiResponse.success(ApiSuccess.GOAL_PROJECTIONS_FETCHED,
                 goalsProjectionService.getProjectionsForUser());
     }
+
+    @PostMapping("/auto-allocate")
+    @AuditLogged(action = "AUTO_ALLOCATE_GOALS", category = "GOAL")
+    public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam("percentage") int percentage) {
+        return ApiResponse.success(ApiSuccess.GOALS_FETCHED,
+                goalsManagementService.autoAllocateGoalsForUser(percentage));
+    }
 }

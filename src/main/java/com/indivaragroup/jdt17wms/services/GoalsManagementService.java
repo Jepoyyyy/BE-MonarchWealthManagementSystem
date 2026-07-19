@@ -16,10 +16,13 @@ import com.indivaragroup.jdt17wms.repositories.GoalRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.repositories.FinancialProfileRepository;
 import com.indivaragroup.jdt17wms.repositories.AssetRepository;
+import com.indivaragroup.jdt17wms.repositories.ExpenseRepository;
 import com.indivaragroup.jdt17wms.dto.request.GoalEditingDTO;
+import com.indivaragroup.jdt17wms.models.Expense;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -37,16 +40,18 @@ public class GoalsManagementService implements VerifiedUserProvider {
     private final UserRepository userRepository;
     private final FinancialProfileRepository financialProfileRepository;
     private final AssetRepository assetRepository;
+    private final ExpenseRepository expenseRepository;
     private final Clock clock;
 
     @Override
     public UserRepository userRepository() { return userRepository; }
 
-    public GoalsManagementService(GoalRepository goalRepository, UserRepository userRepository, FinancialProfileRepository financialProfileRepository, AssetRepository assetRepository, Clock clock) {
+    public GoalsManagementService(GoalRepository goalRepository, UserRepository userRepository, FinancialProfileRepository financialProfileRepository, AssetRepository assetRepository, ExpenseRepository expenseRepository, Clock clock) {
         this.goalRepository = goalRepository;
         this.userRepository = userRepository;
         this.financialProfileRepository = financialProfileRepository;
         this.assetRepository = assetRepository;
+        this.expenseRepository = expenseRepository;
         this.clock = clock;
     }
 
@@ -126,6 +131,9 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .build();
 
     goal = goalRepository.save(goal);
+    
+    // Auto-allocate if needed after creating new goal
+    autoAllocateIfNeeded(user.getId());
 
     return GoalDTO.builder()
       .id(goal.getId())
@@ -250,6 +258,98 @@ public class GoalsManagementService implements VerifiedUserProvider {
         }
 
         goalRepository.delete(goal);
+        
+        // Auto-allocate if needed after deleting goal
+        autoAllocateIfNeeded(user.getId());
+    }
+
+    @Transactional
+    @RiskProfileAssessmentRequired
+    public List<GoalDTO> autoAllocateGoalsForUser(int percentage) {
+        User user = getVerifiedUser();
+        UUID userId = user.getId();
+
+        List<Goal> goals = goalRepository.findAllByUserId(userId);
+        if (goals.isEmpty()) {
+            return List.of();
+        }
+
+        // Calculate investable surplus
+        BigDecimal monthlyIncome = financialProfileRepository.findByUserId(userId)
+                .map(FinancialProfile::getMonthlyIncome)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal monthlyExpenses = financialProfileRepository.findByUserId(userId)
+                .flatMap(fp -> expenseRepository.findByFinancialProfileId(fp.getId()))
+                .map(Expense::getTotalExpenses)
+                .orElse(BigDecimal.ZERO);
+
+        BigDecimal surplus = monthlyIncome.subtract(monthlyExpenses).max(BigDecimal.ZERO);
+
+        // Find priority goal
+        Goal priorityGoal = goals.stream()
+                .filter(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS)
+                .findFirst()
+                .orElse(null);
+
+        long otherCount = goals.stream()
+                .filter(g -> !Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS)
+                .count();
+
+        BigDecimal primaryAmt = BigDecimal.ZERO;
+        BigDecimal eachOther = BigDecimal.ZERO;
+
+        if (surplus.compareTo(BigDecimal.ZERO) > 0) {
+            if (priorityGoal != null) {
+                // Priority goal gets percentage of surplus
+                primaryAmt = surplus.multiply(BigDecimal.valueOf(percentage))
+                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+                
+                BigDecimal remaining = surplus.subtract(primaryAmt).max(BigDecimal.ZERO);
+                if (otherCount > 0) {
+                    eachOther = remaining.divide(BigDecimal.valueOf(otherCount), 4, RoundingMode.HALF_UP);
+                }
+            }
+        }
+
+        // Update all active goals
+        for (Goal g : goals) {
+            if (g.getStatus() == GoalStatus.IN_PROGRESS) {
+                if (Boolean.TRUE.equals(g.getIsPriority())) {
+                    g.setMonthlyContribution(primaryAmt);
+                } else {
+                    g.setMonthlyContribution(eachOther);
+                }
+                goalRepository.save(g);
+            }
+        }
+
+        return getGoalsForUser();
+    }
+
+    private void autoAllocateIfNeeded(UUID userId) {
+        // Check if auto-allocation is enabled
+        FinancialProfile profile = financialProfileRepository.findByUserId(userId).orElse(null);
+        if (profile == null || !Boolean.TRUE.equals(profile.getAutoAllocationEnabled())) {
+            return;
+        }
+
+        List<Goal> goals = goalRepository.findAllByUserId(userId);
+        long activeGoals = goals.stream()
+                .filter(g -> g.getStatus() == GoalStatus.IN_PROGRESS)
+                .count();
+
+        boolean hasPriorityGoal = goals.stream()
+                .anyMatch(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS);
+
+        // Only auto-allocate if we have 2+ active goals and a priority goal
+        if (activeGoals >= 2 && hasPriorityGoal) {
+            Integer percentage = profile.getPriorityAllocationPercentage();
+            if (percentage == null) {
+                percentage = 50; // Default fallback
+            }
+            autoAllocateGoalsForUser(percentage);
+        }
     }
 
     @Override

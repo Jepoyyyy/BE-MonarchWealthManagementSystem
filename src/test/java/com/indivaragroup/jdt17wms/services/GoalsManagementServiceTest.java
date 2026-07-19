@@ -14,6 +14,7 @@ import com.indivaragroup.jdt17wms.dto.request.GoalEditingDTO;
 import com.indivaragroup.jdt17wms.repositories.FinancialProfileRepository;
 import com.indivaragroup.jdt17wms.models.FinancialProfile;
 import com.indivaragroup.jdt17wms.repositories.AssetRepository;
+import com.indivaragroup.jdt17wms.repositories.ExpenseRepository;
 import com.indivaragroup.jdt17wms.models.Asset;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,12 +54,15 @@ class GoalsManagementServiceTest {
     @Mock
     private AssetRepository assetRepository;
 
+    @Mock
+    private ExpenseRepository expenseRepository;
+
     private GoalsManagementService goalsManagementService;
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-13T10:00:00Z"), ZoneOffset.UTC);
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        goalsManagementService = new GoalsManagementService(goalRepository, userRepository, financialProfileRepository, assetRepository, clock);
+        goalsManagementService = new GoalsManagementService(goalRepository, userRepository, financialProfileRepository, assetRepository, expenseRepository, clock);
     }
 
     @Test
