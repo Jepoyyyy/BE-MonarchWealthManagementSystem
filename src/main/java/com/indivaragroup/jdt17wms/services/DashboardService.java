@@ -140,11 +140,8 @@ public class DashboardService {
       Product product = productRepository.findById(asset.getProductId())
         .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
 
-      BigDecimal units = Optional.ofNullable(asset.getUnits())
-        .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST, "Asset " + asset.getId() + " has null units — data corrupt"));
-      BigDecimal currentPrice = Optional.ofNullable(product.getCurrentPrice())
-        .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST, "Product " + product.getId() + " has null currentPrice — data corrupt"));
-      BigDecimal assetValue = units.multiply(currentPrice);
+      BigDecimal assetValue = Optional.ofNullable(asset.getCurrentValue())
+        .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST, "Asset " + asset.getId() + " has null currentValue — data corrupt"));
       totalValue = totalValue.add(assetValue);
       totalInvested = totalInvested.add(asset.getAmount());
 
