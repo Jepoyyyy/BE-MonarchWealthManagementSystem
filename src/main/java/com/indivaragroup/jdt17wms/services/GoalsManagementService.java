@@ -63,11 +63,13 @@ public class GoalsManagementService implements VerifiedUserProvider {
                         .name(goal.getName())
                         .type(goal.getType())
                         .targetAmount(goal.getTargetAmount())
+                        .currentAmount(goal.getCurrentAmount())
                         .monthlyContribution(goal.getMonthlyContribution())
                         .targetDate(goal.getTargetDate())
                         .isPriority(goal.getIsPriority())
                         .notes(goal.getNotes())
                         .status(goal.getStatus())
+                        .currentAmount(goal.getCurrentAmount())
                         .createdAt(goal.getCreatedAt())
                         .updatedAt(goal.getUpdatedAt())
                         .build())
@@ -115,7 +117,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .name(dto.getName())
       .type(type)
       .targetAmount(dto.getTargetAmount())
-      .currentAmount(BigDecimal.ZERO)
+      .currentAmount(dto.getCurrentAmount() != null ? dto.getCurrentAmount() : BigDecimal.ZERO)
       .monthlyContribution(dto.getMonthlyContribution())
       .targetDate(targetDate)
       .isPriority(dto.getIsPriority())
@@ -131,6 +133,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .name(goal.getName())
       .type(goal.getType())
       .targetAmount(goal.getTargetAmount())
+      .currentAmount(goal.getCurrentAmount())
       .monthlyContribution(goal.getMonthlyContribution())
       .targetDate(goal.getTargetDate())
       .isPriority(goal.getIsPriority())
@@ -205,6 +208,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
     goal.setName(dto.getName());
     goal.setTargetAmount(dto.getTargetAmount());
     goal.setMonthlyContribution(dto.getMonthlyContribution());
+    if (dto.getCurrentAmount() != null) goal.setCurrentAmount(dto.getCurrentAmount());
     goal.setTargetDate(targetDate);
     goal.setIsPriority(isDtoPriority); // Reuses the boolean evaluated above
     goal.setNotes(dto.getNotes());
@@ -217,6 +221,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .name(goal.getName())
       .type(goal.getType())
       .targetAmount(goal.getTargetAmount())
+      .currentAmount(goal.getCurrentAmount())
       .monthlyContribution(goal.getMonthlyContribution())
       .targetDate(goal.getTargetDate())
       .isPriority(goal.getIsPriority())

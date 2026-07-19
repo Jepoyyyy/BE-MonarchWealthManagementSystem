@@ -36,6 +36,10 @@ public class GoalRegistrationDTO {
     @DecimalMin(value = "0.0", message = "Must not be negative")
     private BigDecimal monthlyContribution;
 
+    @JsonProperty("current_amount")
+    @DecimalMin(value = "0.0", message = "Must not be negative")
+    private BigDecimal currentAmount;
+
     @JsonProperty("target_date")
     @JsonFormat(pattern = "yyyy-MM-dd")
     @NotNull(message = "Must not be null")

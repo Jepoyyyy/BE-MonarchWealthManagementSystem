@@ -35,6 +35,9 @@ public class GoalDTO {
     @JsonProperty("monthly_contribution")
     private BigDecimal monthlyContribution;
 
+    @JsonProperty("current_amount")
+    private BigDecimal currentAmount;
+
     @JsonProperty("target_date")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate targetDate;
