@@ -25,6 +25,7 @@ public enum ApiSuccess {
     USER_FETCHED(HttpStatus.OK.value(), "User data retrieved successfully"),
     USER_UPDATED(HttpStatus.OK.value(), "User updated successfully"),
     USERS_FETCHED(HttpStatus.OK.value(), "Users retrieved successfully"),
+    USER_DETAIL_FETCHED(HttpStatus.OK.value(), "User detail retrieved successfully"),
     AUDIT_LOGS_FETCHED(HttpStatus.OK.value(), "Audit logs retrieved successfully"),
 
     // Dashboard

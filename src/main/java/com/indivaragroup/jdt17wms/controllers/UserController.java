@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
@@ -25,9 +26,18 @@ public class UserController {
     }
 
     @GetMapping
-    public ApiResponse<Page<User>> getAllUsers(Pageable pageable) {
+    public ApiResponse<Page<AdminUserDTO>> getAllUsers(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String status,
+            Pageable pageable) {
         return ApiResponse.success(ApiSuccess.USERS_FETCHED,
-                userManagementService.getAllUsers(pageable));
+                userManagementService.getAllUsers(search, status, pageable));
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<AdminUserDTO> getUser(@PathVariable UUID id) {
+        return ApiResponse.success(ApiSuccess.USER_DETAIL_FETCHED,
+                userManagementService.getUserById(id));
     }
 
     @PutMapping("/{id}")

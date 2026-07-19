@@ -9,6 +9,7 @@ import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.models.User;
+import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.repositories.AssetRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
@@ -66,7 +67,9 @@ public class DashboardService {
         return AdminDashboardDTO.builder()
                 .aum(assetRepository.sumTotalAmount())
                 .userCount(userRepository.count())
+                .activeUserCount(userRepository.countByStatusAndRole("active", UserRole.USER.name().toLowerCase()))
                 .productCount(productRepository.count())
+                .activeProductCount(productRepository.countByVisible(true))
                 .totalAuditEvents(auditLogRepository.count())
                 .riskProfiles(riskProfiles)
                 .aumTrend(createAumTrend())

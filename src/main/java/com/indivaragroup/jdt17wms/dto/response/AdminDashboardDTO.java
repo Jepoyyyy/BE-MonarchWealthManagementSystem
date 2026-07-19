@@ -21,8 +21,14 @@ public class AdminDashboardDTO {
     @JsonProperty("user_count")
     private Long userCount;
 
+    @JsonProperty("active_user_count")
+    private Long activeUserCount;
+
     @JsonProperty("product_count")
     private Long productCount;
+
+    @JsonProperty("active_product_count")
+    private Long activeProductCount;
 
     @JsonProperty("total_audit_events")
     private Long totalAuditEvents;

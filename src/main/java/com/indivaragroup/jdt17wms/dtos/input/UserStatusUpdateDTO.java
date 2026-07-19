@@ -15,6 +15,6 @@ import lombok.Setter;
 @Builder
 public class UserStatusUpdateDTO {
     @NotNull(message = "Status cannot be null")
-    @Pattern(regexp = "^(active|disabled)$", message = "Invalid status value")
+    @Pattern(regexp = "^(active|suspended|disabled)$", message = "Invalid status value")
     private String status;
 }
