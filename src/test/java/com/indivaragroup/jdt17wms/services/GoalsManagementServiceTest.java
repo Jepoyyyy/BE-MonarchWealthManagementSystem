@@ -39,6 +39,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -166,7 +167,7 @@ class GoalsManagementServiceTest {
 
 
     @Test
-    void createGoalForUser_shouldThrowDuplicatePriorityGoalExceptionWhenPriorityGoalAlreadyExists() {
+    void createGoalForUser_shouldDemotePriorityWhenAnotherPriorityGoalAlreadyExists() {
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -174,18 +175,27 @@ class GoalsManagementServiceTest {
         GoalRegistrationDTO request = GoalRegistrationDTO.builder()
                 .type("savings")
                 .targetDate(LocalDate.of(2026, Month.AUGUST, 13))
+                .monthlyContribution(new BigDecimal("500.00"))
                 .isPriority(true)
                 .build();
 
         Goal existingGoal = Goal.builder()
+                .id(UUID.randomUUID())
+                .userId(SecurityUtils.STATIC_USER_ID)
                 .isPriority(true)
                 .status(com.indivaragroup.jdt17wms.models.enums.GoalStatus.IN_PROGRESS)
                 .build();
 
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(existingGoal));
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(FinancialProfile.builder().monthlyIncome(new BigDecimal("5000.00")).build()));
+        when(goalRepository.save(any(Goal.class))).thenReturn(existingGoal);
 
-        assertThrows(CoreThrowHandler.class, () -> goalsManagementService.createGoalForUser(request));
+        GoalDTO result = goalsManagementService.createGoalForUser(request);
+
+        assertNotNull(result);
+        assertThat(existingGoal.getIsPriority()).isFalse();
+        verify(goalRepository).save(existingGoal);
     }
 
     @Test
@@ -278,7 +288,7 @@ class GoalsManagementServiceTest {
     }
 
     @Test
-    void updateGoalForUser_shouldThrowDuplicatePriorityGoalExceptionWhenPriorityGoalAlreadyExists() {
+    void updateGoalForUser_shouldDemoteExistingPriorityWhenPromotingAnother() {
         mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         UUID goalId = UUID.randomUUID();
         User user = User.builder()
@@ -290,6 +300,7 @@ class GoalsManagementServiceTest {
                 .userId(SecurityUtils.STATIC_USER_ID)
                 .type("savings")
                 .isPriority(false)
+                .monthlyContribution(new BigDecimal("200.00"))
                 .status(com.indivaragroup.jdt17wms.models.enums.GoalStatus.IN_PROGRESS)
                 .build();
         Goal otherGoal = Goal.builder()
@@ -297,6 +308,7 @@ class GoalsManagementServiceTest {
                 .userId(SecurityUtils.STATIC_USER_ID)
                 .type("savings")
                 .isPriority(true)
+                .monthlyContribution(new BigDecimal("100.00"))
                 .status(com.indivaragroup.jdt17wms.models.enums.GoalStatus.IN_PROGRESS)
                 .build();
 
@@ -312,8 +324,14 @@ class GoalsManagementServiceTest {
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(goalRepository.findById(goalId)).thenReturn(Optional.of(existingGoal));
         when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(existingGoal, otherGoal));
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(FinancialProfile.builder().monthlyIncome(new BigDecimal("5000.00")).build()));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThrows(CoreThrowHandler.class, () -> goalsManagementService.updateGoalForUser(goalId, request));
+        GoalDTO result = goalsManagementService.updateGoalForUser(goalId, request);
+
+        assertNotNull(result);
+        assertThat(otherGoal.getIsPriority()).isFalse();
+        verify(goalRepository).save(otherGoal);
     }
 
     @Test

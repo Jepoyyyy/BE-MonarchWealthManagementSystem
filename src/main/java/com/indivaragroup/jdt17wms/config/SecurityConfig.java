@@ -47,11 +47,7 @@ public class SecurityConfig {
                 BASE_AUTH_PATH + LOGIN_PATH,
                 BASE_AUTH_PATH + REGISTER_PATH,
                 BASE_AUTH_PATH + REFRESH_TOKEN_PATH,
-                "/error",
-                "/swagger-ui/**",
-                "/swagger-ui.html",
-                "/v3/api-docs/**",
-                "/api-docs/**"
+                "/error"
         ).permitAll()
         .requestMatchers(HttpMethod.GET, BASE_PRODUCTS_PATH).hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
         .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_PATH + "/**").hasRole(UserRole.ADMIN.name())

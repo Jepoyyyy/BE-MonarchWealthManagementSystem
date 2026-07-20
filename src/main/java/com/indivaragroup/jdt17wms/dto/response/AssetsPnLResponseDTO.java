@@ -11,7 +11,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AssetsPnLResponseDTO {
+public class
+AssetsPnLResponseDTO {
     private UUID assetId;
     private UUID productId;
     private String productName;

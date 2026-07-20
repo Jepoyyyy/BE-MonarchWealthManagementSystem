@@ -45,5 +45,7 @@ public class GoalEditingDTO {
     @JsonProperty("is_priority")
     private Boolean isPriority;
 
+    private String type;
+
     private String notes;
 }

@@ -115,7 +115,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
     }
 
     @Transactional
-    public Asset createAssetForUser(AssetRegistrationDTO dto) {
+    public AssetDTO createAssetForUser(AssetRegistrationDTO dto) {
         User user = getVerifiedUser();
 
         Product product = productRepository.findById(dto.getProductId())
@@ -165,11 +165,11 @@ public class AssetsManagementService implements VerifiedUserProvider {
 
         transactionHistoryRepository.save(buyHistory);
 
-        return savedAsset;
+        return toAssetDTO(savedAsset);
     }
 
     @Transactional
-    public Asset updateAssetForUser(UUID assetId, GoalSettingDTO dto) {
+    public AssetDTO updateAssetForUser(UUID assetId, GoalSettingDTO dto) {
         User user = getVerifiedUser();
 
         Asset asset = assetRepository.findById(assetId)
@@ -187,7 +187,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
             asset.setGoalId(null);
         }
 
-        return assetRepository.save(asset);
+        return toAssetDTO(assetRepository.save(asset));
     }
 
     @Transactional
@@ -264,9 +264,9 @@ public class AssetsManagementService implements VerifiedUserProvider {
     }
 
     @Transactional
-    public Asset updateAssetValue(UUID assetId, AssetValueUpdateDTO dto) {
+    public AssetDTO updateAssetValue(UUID assetId, AssetValueUpdateDTO dto) {
         User user = getVerifiedUser();
-        return assetTransactionService.updateAssetCurrentValue(assetId, dto.getCurrentValue(), dto.getNotes(), user);
+        return toAssetDTO(assetTransactionService.updateAssetCurrentValue(assetId, dto.getCurrentValue(), dto.getNotes(), user));
     }
 
     public Asset findAssetByIdAndUser(UUID assetId) {

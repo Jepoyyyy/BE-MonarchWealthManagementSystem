@@ -28,6 +28,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -107,13 +108,15 @@ public class GoalsManagementService implements VerifiedUserProvider {
       throw new CoreThrowHandler(ApiError.VALIDATION,errors);
     }
 
-    // 3. Check duplicate priority (Enforced non-null by DTO @NotNull)
+
     if (Boolean.TRUE.equals(dto.getIsPriority())) {
-      boolean hasPriorityGoal = goalRepository.findAllByUserId(user.getId()).stream()
-        .anyMatch(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS);
-      if (hasPriorityGoal) {
-        throw new CoreThrowHandler(ApiError.DUPLICATE_PRIORITY_GOALS);
-      }
+        Optional<Goal> exitingPriorityGoal = goalRepository.findAllByUserId(user.getId()).stream()
+                .filter(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS)
+                .findFirst();
+        exitingPriorityGoal.ifPresent(goals ->{
+            goals.setIsPriority(false);
+            goalRepository.save(goals);
+        });
     }
 
     Goal goal = Goal.builder()
@@ -187,15 +190,16 @@ public class GoalsManagementService implements VerifiedUserProvider {
     boolean isDtoPriority = Boolean.TRUE.equals(dto.getIsPriority());
     boolean isGoalPriority = Boolean.TRUE.equals(goal.getIsPriority());
 
-
     if (isDtoPriority && !isGoalPriority) {
-      boolean hasPriorityGoal = goalRepository.findAllByUserId(user.getId()).stream()
-        .anyMatch(g -> !g.getId().equals(goalId)
-          && Boolean.TRUE.equals(g.getIsPriority()) // not covered yet!
-          && g.getStatus() == GoalStatus.IN_PROGRESS);
-      if (hasPriorityGoal) {
-        throw new CoreThrowHandler(ApiError.DUPLICATE_PRIORITY_GOALS);
-      }
+        goalRepository.findAllByUserId(user.getId()).stream()
+            .filter(g -> !g.getId().equals(goalId)
+              && Boolean.TRUE.equals(g.getIsPriority())
+              && g.getStatus() == GoalStatus.IN_PROGRESS)
+            .findFirst()
+            .ifPresent(existingPriority -> {
+                existingPriority.setIsPriority(false);
+                goalRepository.save(existingPriority);
+            });
     }
 
     // 3. Financial validation (dto.getMonthlyContribution() is guaranteed non-null)
@@ -215,7 +219,9 @@ public class GoalsManagementService implements VerifiedUserProvider {
     goal.setName(dto.getName());
     goal.setTargetAmount(dto.getTargetAmount());
     goal.setMonthlyContribution(dto.getMonthlyContribution());
-    if (dto.getCurrentAmount() != null) goal.setCurrentAmount(dto.getCurrentAmount());
+    if (dto.getCurrentAmount() != null)
+        goal.setCurrentAmount(dto.getCurrentAmount());
+    goal.setType(dto.getType());
     goal.setTargetDate(targetDate);
     goal.setIsPriority(isDtoPriority); // Reuses the boolean evaluated above
     goal.setNotes(dto.getNotes());

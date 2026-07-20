@@ -1,7 +1,9 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
+import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
+import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.models.Asset;
@@ -42,7 +44,7 @@ class AssetControllerTest extends BaseControllerTest {
     void createAsset_shouldReturnOk() throws Exception {
         UUID productId = UUID.randomUUID();
         when(assetsManagementService.createAssetForUser(any(AssetRegistrationDTO.class)))
-                .thenReturn(new Asset());
+                .thenReturn(new AssetDTO());
 
         mockMvc.perform(post("/api/v1/me/assets")
                         .contentType("application/json")
@@ -121,12 +123,57 @@ class AssetControllerTest extends BaseControllerTest {
         UUID id = UUID.randomUUID();
         UUID goalId = UUID.randomUUID();
         when(assetsManagementService.updateAssetForUser(any(UUID.class), any(GoalSettingDTO.class)))
-                .thenReturn(new Asset());
+                .thenReturn(new AssetDTO());
 
         mockMvc.perform(put("/api/v1/me/assets/" + id)
                         .contentType("application/json")
                         .content("{\"goalId\":\"" + goalId + "\"}"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateAssetValue_shouldReturnOk() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        AssetDTO dto = AssetDTO.builder()
+                .id(assetId)
+                .currentValue(BigDecimal.valueOf(600000))
+                .build();
+        when(assetsManagementService.updateAssetValue(any(UUID.class), any(AssetValueUpdateDTO.class)))
+                .thenReturn(dto);
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
+                        .contentType("application/json")
+                        .content("{\"current_value\":600000}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.id").value(assetId.toString()))
+                .andExpect(jsonPath("$.result.current_value").value(600000));
+    }
+
+    @Test
+    void updateAssetValue_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.updateAssetValue(any(UUID.class), any(AssetValueUpdateDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
+                        .contentType("application/json")
+                        .content("{\"current_value\":600000}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void updateAssetValue_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.updateAssetValue(any(UUID.class), any(AssetValueUpdateDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
+                        .contentType("application/json")
+                        .content("{\"current_value\":600000}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Risk Profiler Assessment Required"))
+                .andExpect(jsonPath("$.code").value(403));
     }
 
     @Test

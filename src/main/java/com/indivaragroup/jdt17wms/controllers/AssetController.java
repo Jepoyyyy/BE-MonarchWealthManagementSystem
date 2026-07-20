@@ -37,7 +37,7 @@ public class AssetController {
 
     @PostMapping
     @AuditLogged(action = "CREATE_ASSET", category = "ASSET")
-    public ApiResponse<Asset> createAsset(@Valid @RequestBody AssetRegistrationDTO dto) {
+    public ApiResponse<AssetDTO> createAsset(@Valid @RequestBody AssetRegistrationDTO dto) {
         return ApiResponse.created(ApiSuccess.ASSET_CREATED,
                 assetsManagementService.createAssetForUser(dto));
     }
@@ -63,7 +63,7 @@ public class AssetController {
 
     @PutMapping("/{id}")
     @AuditLogged(action = "UPDATE_ASSET", category = "ASSET")
-    public ApiResponse<Asset> updateAsset(@PathVariable UUID id,
+    public ApiResponse<AssetDTO> updateAsset(@PathVariable UUID id,
                                            @Valid @RequestBody GoalSettingDTO goalSettingDTO) {
         return ApiResponse.success(ApiSuccess.ASSET_UPDATED,
                 assetsManagementService.updateAssetForUser(id, goalSettingDTO));
@@ -86,7 +86,7 @@ public class AssetController {
     }
 
     @PatchMapping("/{assetId}/value")
-    public ApiResponse<Asset> updateAssetValue(
+    public ApiResponse<AssetDTO> updateAssetValue(
             @PathVariable UUID assetId,
             @Valid @RequestBody AssetValueUpdateDTO dto) {
         return ApiResponse.success(ApiSuccess.ASSET_UPDATED,
