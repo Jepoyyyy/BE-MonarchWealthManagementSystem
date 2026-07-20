@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
@@ -61,9 +62,39 @@ public class AssetsManagementService implements VerifiedUserProvider {
         this.assetTransactionService = assetTransactionService;
     }
 
-    public List<Asset> getAssetsForUser() {
+    public List<AssetDTO> getAssetsForUser() {
         User user = getVerifiedUser();
-        return assetRepository.findAllByUserId(user.getId());
+        List<Asset> assets = assetRepository.findAllByUserId(user.getId());
+        return toAssetDTOList(assets);
+    }
+
+    private List<AssetDTO> toAssetDTOList(List<Asset> assets) {
+        return assets.stream()
+                .map(this::toAssetDTO)
+                .toList();
+    }
+
+    private AssetDTO toAssetDTO(Asset asset) {
+        AssetDTO.AssetDTOBuilder builder = AssetDTO.builder()
+                .id(asset.getId())
+                .userId(asset.getUserId())
+                .productId(asset.getProductId())
+                .goalId(asset.getGoalId())
+                .units(asset.getUnits())
+                .amount(asset.getAmount())
+                .currentValue(asset.getCurrentValue())
+                .purchaseDate(asset.getPurchaseDate())
+                .platform(asset.getPlatform())
+                .notes(asset.getNotes())
+                .updatedAt(asset.getUpdatedAt());
+
+        productRepository.findById(asset.getProductId()).ifPresent(product -> {
+            builder.assetsName(product.getName());
+            builder.assetsIssuer(product.getIssuer());
+            builder.assetsType(product.getType());
+        });
+
+        return builder.build();
     }
 
     public List<TransactionHistory> getTransactionLogsForUser() {

@@ -33,6 +33,15 @@ public class AssetDTO {
 
     private BigDecimal amount;
 
+    @JsonProperty("name")
+    private String assetsName;
+
+    @JsonProperty("issuer")
+    private String assetsIssuer;
+
+    @JsonProperty("type")
+    private String assetsType;
+
     @JsonProperty("current_value")
     private BigDecimal currentValue;
 

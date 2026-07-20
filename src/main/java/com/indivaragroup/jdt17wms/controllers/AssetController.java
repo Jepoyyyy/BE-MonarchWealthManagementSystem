@@ -7,6 +7,7 @@ import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
+import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetsPnLResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
@@ -42,7 +43,7 @@ public class AssetController {
     }
 
     @GetMapping
-    public ApiResponse<List<Asset>> getAssets() {
+    public ApiResponse<List<AssetDTO>> getAssets() {
         return ApiResponse.success(ApiSuccess.ASSETS_FETCHED,
                 assetsManagementService.getAssetsForUser());
     }

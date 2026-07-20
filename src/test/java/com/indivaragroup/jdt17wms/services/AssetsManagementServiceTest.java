@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
+import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
@@ -105,11 +106,11 @@ class AssetsManagementServiceTest {
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(asset));
 
-        List<Asset> result = assetsManagementService.getAssetsForUser();
+        List<AssetDTO> result = assetsManagementService.getAssetsForUser();
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(asset, result.getFirst());
+        assertEquals(asset.getId(), result.getFirst().getId());
     }
 
 
