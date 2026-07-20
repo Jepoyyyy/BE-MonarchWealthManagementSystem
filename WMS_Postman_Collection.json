@@ -380,6 +380,116 @@
       ]
     },
     {
+      "name": "💰 Finances",
+      "item": [
+        {
+          "name": "Get Finances",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [GET FINANCES] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data has monthlyIncome', () => pm.expect(pm.response.json().data).to.have.property('monthly_income'));",
+                  "pm.test('data has totalExpenses', () => pm.expect(pm.response.json().data).to.have.property('total_expenses'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/finances", "host": ["{{baseUrl}}"], "path": ["api","v1","me","finances"] }
+          }
+        },
+        {
+          "name": "Update Finances - Full",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [UPDATE FINANCES] Status:', pm.response.code);",
+                  "console.log('Body:', pm.response.text());",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('monthlyIncome matches', () => {",
+                  "  var data = pm.response.json().data;",
+                  "  var income = data.monthlyIncome || data.monthly_income;",
+                  "  pm.expect(Number(income)).to.equal(25000000);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthly_income\": 25000000,\n  \"auto_allocation_enabled\": true,\n  \"priority_allocation_percentage\": 60,\n  \"expense\": {\n    \"housing\": 5000000,\n    \"food\": 3000000,\n    \"transport\": 1500000,\n    \"utilities\": 1000000,\n    \"healthcare\": 800000,\n    \"entertainment\": 1200000,\n    \"insurance\": 1000000,\n    \"other\": 500000\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/me/finances", "host": ["{{baseUrl}}"], "path": ["api","v1","me","finances"] }
+          }
+        },
+        {
+          "name": "Update Finances - Income Only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [UPDATE FINANCES INCOME ONLY] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthly_income\": 30000000,\n  \"expense\": {\n    \"housing\": 5000000,\n    \"food\": 3000000,\n    \"transport\": 1500000,\n    \"utilities\": 1000000,\n    \"healthcare\": 800000,\n    \"entertainment\": 1200000,\n    \"insurance\": 1000000,\n    \"other\": 500000\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/me/finances", "host": ["{{baseUrl}}"], "path": ["api","v1","me","finances"] }
+          }
+        },
+        {
+          "name": "Update Finances - No Auth (401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [FINANCES NO AUTH] Status:', pm.response.code);",
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/finances", "host": ["{{baseUrl}}"], "path": ["api","v1","me","finances"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "🏦 Assets",
       "item": [
         {
@@ -596,6 +706,136 @@
       ]
     },
     {
+      "name": "🔄 Asset Transactions & Value",
+      "item": [
+        {
+          "name": "Execute Transaction (Buy/Sell)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [EXECUTE TRANSACTION] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data has message', () => pm.expect(pm.response.json().data).to.have.property('message'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"BUY\",\n  \"units\": 5,\n  \"price_per_unit\": 500000,\n  \"transaction_date\": \"2026-07-20 10:00:00\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/me/assets/{{assetId}}/transactions", "host": ["{{baseUrl}}"], "path": ["api","v1","me","assets","{{assetId}}","transactions"] }
+          }
+        },
+        {
+          "name": "Update Asset Value",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [UPDATE ASSET VALUE] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_value\": 5500000\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/me/assets/{{assetId}}/value", "host": ["{{baseUrl}}"], "path": ["api","v1","me","assets","{{assetId}}","value"] }
+          }
+        },
+        {
+          "name": "Update Asset Goal Link",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [UPDATE ASSET GOAL] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/assets/{{assetId}}/goal?goalId={{goalId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","me","assets","{{assetId}}","goal"],
+              "query": [{ "key": "goalId", "value": "{{goalId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Get Asset PnL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [ASSET PNL] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/assets/{{assetId}}/pnl", "host": ["{{baseUrl}}"], "path": ["api","v1","me","assets","{{assetId}}","pnl"] }
+          }
+        },
+        {
+          "name": "Get Asset Transactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [ASSET TRANSACTIONS] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/assets/{{assetId}}/transactions", "host": ["{{baseUrl}}"], "path": ["api","v1","me","assets","{{assetId}}","transactions"] }
+          }
+        }
+      ]
+    },
+    {
       "name": "🎯 Goals",
       "item": [
         {
@@ -805,6 +1045,55 @@
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": { "raw": "{{baseUrl}}/api/v1/me/goals/{{goalId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","me","goals","{{goalId}}"] }
           }
+        },
+        {
+          "name": "Auto-Allocate Goals",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [AUTO ALLOCATE] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/me/goals/auto-allocate?percentage=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","me","goals","auto-allocate"],
+              "query": [{ "key": "percentage", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Get Goal Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [GOAL PROGRESS] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data is array', () => pm.expect(pm.response.json().data).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/me/goals/progress", "host": ["{{baseUrl}}"], "path": ["api","v1","me","goals","progress"] }
+          }
         }
       ]
     },
@@ -968,6 +1257,28 @@
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": { "mode": "raw", "raw": "{\n  \"visibility\": true\n}" },
+            "url": { "raw": "{{baseUrl}}/api/v1/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","products","{{productId}}"] }
+          }
+        },
+        {
+          "name": "Get Product By ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [GET PRODUCT] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data has id', () => pm.expect(pm.response.json().data).to.have.property('id'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
             "url": { "raw": "{{baseUrl}}/api/v1/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","products","{{productId}}"] }
           }
         }
@@ -1251,6 +1562,114 @@
           }
         },
         {
+          "name": "Search Audit Logs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [AUDIT SEARCH] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('data.content exists', () => pm.expect(pm.response.json().data).to.have.property('content'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/audit/search?category=GOAL&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","admin","audit","search"],
+              "query": [{ "key": "category", "value": "GOAL" }, { "key": "size", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "List Admin Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [ADMIN PRODUCTS LIST] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('data.content is array', () => pm.expect(pm.response.json().data.content).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/products?size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api","v1","admin","products"],
+              "query": [{ "key": "size", "value": "10" }]
+            }
+          }
+        },
+        {
+          "name": "Create Admin Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [CREATE ADMIN PRODUCT] Status:', pm.response.code);",
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Product RD\",\n  \"type\": \"mutual_fund\",\n  \"description\": \"Reksa Dana test via Postman\",\n  \"risk_level\": \"moderate\",\n  \"expected_return\": 12.5,\n  \"min_investment\": 100000,\n  \"is_active\": true\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/products", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","products"] }
+          }
+        },
+        {
+          "name": "Update Admin Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [UPDATE ADMIN PRODUCT] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Product RD\",\n  \"expected_return\": 15.0\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","admin","products","{{productId}}"] }
+          }
+        },
+        {
           "name": "Get Audit Logs - headView=true",
           "event": [
             {
@@ -1300,7 +1719,7 @@
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
-            "url": { "raw": "{{baseUrl}}/api/v2/users/users", "host": ["{{baseUrl}}"], "path": ["api","v2","users","users"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/users", "host": ["{{baseUrl}}"], "path": ["api","v1","users"] }
           }
         },
         {
@@ -1327,7 +1746,7 @@
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"ACTIVE\"\n}" },
-            "url": { "raw": "{{baseUrl}}/api/v2/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v2","users","{{userId}}"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
           }
         },
         {
@@ -1352,7 +1771,29 @@
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": { "mode": "raw", "raw": "{\n  \"status\": \"SUSPENDED\"\n}" },
-            "url": { "raw": "{{baseUrl}}/api/v2/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v2","users","{{userId}}"] }
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
+          }
+        },
+        {
+          "name": "Get User By ID (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('=== [GET USER] Status:', pm.response.code);",
+                  "pm.test('Status 200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('success = true', () => pm.expect(pm.response.json().success).to.be.true);",
+                  "pm.test('data has id', () => pm.expect(pm.response.json().data).to.have.property('id'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": { "raw": "{{baseUrl}}/api/v1/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","v1","users","{{userId}}"] }
           }
         }
       ]

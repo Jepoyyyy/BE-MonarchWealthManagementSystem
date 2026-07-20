@@ -6,7 +6,6 @@ import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
-import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
 import com.indivaragroup.jdt17wms.models.Product;
@@ -41,7 +40,6 @@ public class AssetsManagementService implements VerifiedUserProvider {
     private final GoalRepository goalRepository;
     private final RecommendationRepository recommendationRepository;
     private final AssetTransactionService assetTransactionService;
-
     private static final int BY_FOUR = 4;
 
     @Override
@@ -77,11 +75,11 @@ public class AssetsManagementService implements VerifiedUserProvider {
         User user = getVerifiedUser();
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
-        
+
         if (!asset.getUserId().equals(user.getId())) {
             throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
         }
-        
+
         return transactionHistoryRepository.findAllByAssetIdOrderByTransactionDateDesc(assetId);
     }
 

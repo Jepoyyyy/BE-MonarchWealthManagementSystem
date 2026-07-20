@@ -25,6 +25,7 @@ public enum ApiSuccess {
     USER_FETCHED(HttpStatus.OK.value(), "User data retrieved successfully"),
     USER_UPDATED(HttpStatus.OK.value(), "User updated successfully"),
     USERS_FETCHED(HttpStatus.OK.value(), "Users retrieved successfully"),
+    USER_DETAIL_FETCHED(HttpStatus.OK.value(), "User detail retrieved successfully"),
     AUDIT_LOGS_FETCHED(HttpStatus.OK.value(), "Audit logs retrieved successfully"),
 
     // Dashboard
@@ -49,6 +50,9 @@ public enum ApiSuccess {
     PRODUCTS_FETCHED(HttpStatus.OK.value(), "Products retrieved successfully"),
     PRODUCT_UPDATED(HttpStatus.OK.value(), "Product updated successfully"),
     PRODUCT_FETCHED(HttpStatus.OK.value(), "Product retreived successfully"),
+    ADMIN_PRODUCTS_FETCHED(HttpStatus.OK.value(), "Admin products retrieved successfully"),
+    ADMIN_PRODUCT_CREATED(HttpStatus.CREATED.value(), "Admin product created successfully"),
+    ADMIN_PRODUCT_UPDATED(HttpStatus.OK.value(), "Admin product updated successfully"),
 
     // Risk Profiler
     PROFILER_FETCHED(HttpStatus.OK.value(), "Risk profile retrieved successfully"),

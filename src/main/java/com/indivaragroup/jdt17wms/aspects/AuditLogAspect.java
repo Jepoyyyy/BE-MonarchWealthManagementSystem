@@ -371,7 +371,8 @@ public class AuditLogAspect {
                     Field nameField = findUnderlyingField(arg.getClass(), "name");
                     if (nameField != null) {
                         nameField.setAccessible(true);
-                        name = (String) nameField.get(arg);
+                        Object val = nameField.get(arg);
+                        name = val != null ? (String) val : "";
                         break;
                     }
                 } catch (Exception e) {
@@ -380,20 +381,25 @@ public class AuditLogAspect {
             }
         }
 
-        if (name.isEmpty() && result instanceof ApiResponse<?> apiResponse && apiResponse.getRestApiResponseResult() != null) {
+        if ((name == null || name.isEmpty()) && result instanceof ApiResponse<?> apiResponse && apiResponse.getRestApiResponseResult() != null) {
             try {
                 Object body = apiResponse.getRestApiResponseResult();
                 Field nameField = findUnderlyingField(body.getClass(), "name");
                 if (nameField != null) {
                     nameField.setAccessible(true);
-                    name = (String) nameField.get(body);
+                    Object val = nameField.get(body);
+                    name = val != null ? (String) val : "";
                 }
             } catch (Exception e) {
                 // Ignore
             }
         }
 
-      String s = name.isEmpty() ? "" : ": " + name;
+        if (name == null) {
+            name = "";
+        }
+
+        String s = name.isEmpty() ? "" : ": " + name;
       return switch (action) {
         case "CREATE_ASSET" -> "Created Asset" + s;
         case "UPDATE_ASSET" -> "Updated Asset" + s + (entityId != null ? " (ID: " + entityId + ")" : "");

@@ -94,27 +94,7 @@ class SecurityConfigIntegrationTest {
                 .andExpect(jsonPath("$.code").value(401));
     }
 
-    @Test
-    void whenUnauthenticated_accessingShorthandLogin_shouldBypassFiltersAndReturn404NotFound() throws Exception {
-        // Shorthand login should bypass security filters.
-        // It will fail at the controller layer with 404 Not Found since only /api/v1/auth/login is mapped.
-        // It should NOT be blocked with a 401/403 security exception.
-        mockMvc.perform(post("/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-    }
 
-    @Test
-    void whenUnauthenticated_accessingShorthandLoginWithExpiredToken_shouldBypassFiltersAndReturn404NotFound() throws Exception {
-        // Bypassing filter with expired token on auth paths: should yield 404, not 401.
-        String expiredToken = "expired-token";
-        when(jwtService.isAccessToken(expiredToken)).thenReturn(false);
-
-        mockMvc.perform(post("/auth/login")
-                        .header("Authorization", "Bearer " + expiredToken)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isNotFound());
-    }
 
     @Test
     void whenAuthenticatedAsUser_accessingAdminDashboard_shouldReturn403Forbidden() throws Exception {

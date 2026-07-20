@@ -38,6 +38,9 @@ class ExpensesServiceTest {
     @Mock
     private ExpenseRepository expenseRepository;
 
+    @Mock
+    private GoalsManagementService goalsManagementService;
+
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-14T12:00:00Z"), ZoneOffset.UTC);
 
     private ExpensesService expensesService;
@@ -46,7 +49,7 @@ class ExpensesServiceTest {
 
     @BeforeEach
     void setUp() {
-        expensesService = new ExpensesService(financialProfileRepository, expenseRepository, clock);
+        expensesService = new ExpensesService(financialProfileRepository, expenseRepository,goalsManagementService, clock);
         UserDTO userDTO = UserDTO.builder()
                 .id(userId)
                 .email("test@example.com")
@@ -134,6 +137,7 @@ class ExpensesServiceTest {
         assertEquals(BigDecimal.valueOf(25000), result.getMonthlyIncome());
         verify(financialProfileRepository, times(1)).save(any(FinancialProfile.class));
         verify(expenseRepository, times(1)).save(any(Expense.class));
+        verify(goalsManagementService).autoAllocateIfNeeded(userId);
     }
 
     @Test
@@ -187,5 +191,6 @@ class ExpensesServiceTest {
         assertEquals(BigDecimal.valueOf(25000), result.getMonthlyIncome());
         verify(financialProfileRepository, times(1)).save(any(FinancialProfile.class));
         verify(expenseRepository, times(1)).save(any(Expense.class));
+        verify(goalsManagementService).autoAllocateIfNeeded(userId);
     }
 }

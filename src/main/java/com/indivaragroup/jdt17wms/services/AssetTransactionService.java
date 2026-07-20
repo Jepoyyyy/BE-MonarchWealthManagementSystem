@@ -21,6 +21,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -71,7 +72,7 @@ public class AssetTransactionService {
             unitsToBuy = dto.getUnits();
             totalAmount = unitsToBuy.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
         } else {
-            totalAmount = dto.getAmount();
+            totalAmount = dto.getAmount().setScale(4, RoundingMode.HALF_UP);
             unitsToBuy = totalAmount.divide(currentPrice, 6, RoundingMode.HALF_UP);
         }
 
@@ -159,7 +160,7 @@ public class AssetTransactionService {
                 .map(TransactionHistory::getUnits)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        BigDecimal availableUnits = asset.getUnits().subtract(totalSoldUnits);
+        BigDecimal availableUnits = Objects.requireNonNullElse(asset.getUnits(), BigDecimal.ZERO).subtract(totalSoldUnits);
         if (availableUnits.compareTo(BigDecimal.ZERO) <= 0) {
             throw new CoreThrowHandler(ApiError.BAD_REQUEST, "No units available to sell");
         }
@@ -175,7 +176,7 @@ public class AssetTransactionService {
             unitsToSell = dto.getUnits();
             actualAmount = unitsToSell.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
         } else {
-            actualAmount = dto.getAmount();
+            actualAmount = dto.getAmount().setScale(4, RoundingMode.HALF_UP);
             unitsToSell = actualAmount.divide(currentPrice, 6, RoundingMode.HALF_UP);
         }
 
@@ -257,7 +258,7 @@ public class AssetTransactionService {
         }
 
         // Stock-specific: sell by units only
-        if ("Stock".equals(type) && dto.getAction() == TransactionAction.SELL) {
+        if ("Stock".equalsIgnoreCase(type) && dto.getAction() == TransactionAction.SELL) {
             if (hasAmount && !hasUnits) {
                 throw new CoreThrowHandler(ApiError.BAD_REQUEST,
                         "Stocks can only be sold by units, not by amount");
@@ -273,7 +274,8 @@ public class AssetTransactionService {
         }
 
         // Lot size validation for stocks
-        if ("Stock".equals(type) && hasUnits && dto.getUnits().compareTo(BigDecimal.ZERO) > 0) {
+        if ("stock".equals(type) && !Boolean.TRUE.equals(product.getIsFractionalAllowed())
+                && hasUnits && dto.getUnits().compareTo(BigDecimal.ZERO) > 0) {
             int lotSize = product.getLotSize();
             BigDecimal remainder = dto.getUnits().remainder(BigDecimal.valueOf(lotSize));
             if (remainder.compareTo(BigDecimal.ZERO) != 0) {

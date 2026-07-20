@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.response.GoalProjectionDTO;
+import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.models.Goal;
@@ -12,10 +13,14 @@ import com.indivaragroup.jdt17wms.repositories.GoalRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.repositories.AssetRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -33,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -61,6 +67,20 @@ class GoalsProjectionServiceTest {
         goalsProjectionService = new GoalsProjectionService(goalRepository, userRepository, financialProfileRepository, assetRepository, productRepository, clock);
     }
 
+    private void mockAuthenticatedUser(UUID userId) {
+        UserDTO principal = UserDTO.builder().id(userId).build();
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(authentication.getPrincipal()).thenReturn(principal);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void serviceShouldBeInitialized() {
         assertNotNull(goalsProjectionService);
@@ -68,6 +88,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldReturnProjectionsWhenNoAssets() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -109,6 +130,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldReturnProjectionsWhenAssetsTied() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -157,6 +179,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldThrowNotFoundExceptionWhenUserNotFound() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.empty());
 
         assertThrows(CoreThrowHandler.class, () -> goalsProjectionService.getProjectionsForUser());
@@ -164,6 +187,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldUseTargetDateWhenTimelineIsEarlierThanMaxMonths() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -192,6 +216,7 @@ class GoalsProjectionServiceTest {
     }
     @Test
     void getProjectionsForUser_whenCannotGrow_returnsMaxSimulationMonths() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -225,6 +250,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_whenGrowthTooSmall_returnsMaxSimulationMonths() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -272,6 +298,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_whenBalanceAlreadyExceedsTarget_returnsZeroMonths() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)

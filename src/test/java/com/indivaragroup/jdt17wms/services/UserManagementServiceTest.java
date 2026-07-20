@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
@@ -43,15 +44,44 @@ class UserManagementServiceTest {
     void getAllUsers_shouldReturnPaginatedUsers() {
         Pageable pageable = PageRequest.of(0, 10);
         User user = new User();
+        user.setId(UUID.randomUUID());
+        user.setName("John Doe");
+        user.setEmail("john@example.com");
         Page<User> expectedPage = new PageImpl<>(List.of(user), pageable, 1);
 
-        when(userRepository.findAll(any(Pageable.class))).thenReturn(expectedPage);
+        when(userRepository.findByStatusAndSearch(any(), any(), any(Pageable.class))).thenReturn(expectedPage);
 
-        Page<User> actualPage = userManagementService.getAllUsers(pageable);
+        Page<AdminUserDTO> actualPage = userManagementService.getAllUsers(null, null, pageable);
 
         assertNotNull(actualPage);
         assertEquals(1, actualPage.getTotalElements());
-        assertEquals(user, actualPage.getContent().getFirst());
+        assertEquals("John Doe", actualPage.getContent().getFirst().getName());
+    }
+
+    @Test
+    void getUserById_shouldReturnUser_whenUserExists() {
+        UUID id = UUID.randomUUID();
+        User user = new User();
+        user.setId(id);
+        user.setName("John Doe");
+        user.setEmail("john@example.com");
+
+        when(userRepository.findById(id)).thenReturn(java.util.Optional.of(user));
+
+        AdminUserDTO actualUser = userManagementService.getUserById(id);
+
+        assertNotNull(actualUser);
+        assertEquals("John Doe", actualUser.getName());
+    }
+
+    @Test
+    void getUserById_shouldThrowNotFound_whenUserDoesNotExist() {
+        UUID id = UUID.randomUUID();
+        when(userRepository.findById(id)).thenReturn(java.util.Optional.empty());
+
+        assertThrows(CoreThrowHandler.class, () -> {
+            userManagementService.getUserById(id);
+        });
     }
 
     @Test

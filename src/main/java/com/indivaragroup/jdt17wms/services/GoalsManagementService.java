@@ -43,8 +43,6 @@ public class GoalsManagementService implements VerifiedUserProvider {
     private final ExpenseRepository expenseRepository;
     private final Clock clock;
 
-    @Override
-    public UserRepository userRepository() { return userRepository; }
 
     public GoalsManagementService(GoalRepository goalRepository, UserRepository userRepository, FinancialProfileRepository financialProfileRepository, AssetRepository assetRepository, ExpenseRepository expenseRepository, Clock clock) {
         this.goalRepository = goalRepository;
@@ -109,9 +107,10 @@ public class GoalsManagementService implements VerifiedUserProvider {
       throw new CoreThrowHandler(ApiError.VALIDATION,errors);
     }
 
+    // 3. Check duplicate priority (Enforced non-null by DTO @NotNull)
     if (Boolean.TRUE.equals(dto.getIsPriority())) {
       boolean hasPriorityGoal = goalRepository.findAllByUserId(user.getId()).stream()
-        .anyMatch(g -> g.getIsPriority() && g.getStatus() == GoalStatus.IN_PROGRESS); // not covered yet!
+        .anyMatch(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS);
       if (hasPriorityGoal) {
         throw new CoreThrowHandler(ApiError.DUPLICATE_PRIORITY_GOALS);
       }
@@ -131,7 +130,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .build();
 
     goal = goalRepository.save(goal);
-    
+
     // Auto-allocate if needed after creating new goal
     autoAllocateIfNeeded(user.getId());
 
@@ -192,7 +191,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
     if (isDtoPriority && !isGoalPriority) {
       boolean hasPriorityGoal = goalRepository.findAllByUserId(user.getId()).stream()
         .anyMatch(g -> !g.getId().equals(goalId)
-          && g.getIsPriority() // not covered yet!
+          && Boolean.TRUE.equals(g.getIsPriority()) // not covered yet!
           && g.getStatus() == GoalStatus.IN_PROGRESS);
       if (hasPriorityGoal) {
         throw new CoreThrowHandler(ApiError.DUPLICATE_PRIORITY_GOALS);
@@ -247,9 +246,9 @@ public class GoalsManagementService implements VerifiedUserProvider {
         Goal goal = goalRepository.findById(goalId)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
 
-      if (!goal.getUserId().equals(user.getId())) {
-          throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
-      }
+        if (!goal.getUserId().equals(user.getId())) {
+            throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
+        }
 
         List<Asset> assets = assetRepository.findAllByGoalId(goalId);
         for (Asset asset : assets) {
@@ -258,7 +257,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
         }
 
         goalRepository.delete(goal);
-        
+
         // Auto-allocate if needed after deleting goal
         autoAllocateIfNeeded(user.getId());
     }
@@ -304,7 +303,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
                 // Priority goal gets percentage of surplus
                 primaryAmt = surplus.multiply(BigDecimal.valueOf(percentage))
                         .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
-                
+
                 BigDecimal remaining = surplus.subtract(primaryAmt).max(BigDecimal.ZERO);
                 if (otherCount > 0) {
                     eachOther = remaining.divide(BigDecimal.valueOf(otherCount), 4, RoundingMode.HALF_UP);
@@ -327,33 +326,37 @@ public class GoalsManagementService implements VerifiedUserProvider {
         return getGoalsForUser();
     }
 
-    private void autoAllocateIfNeeded(UUID userId) {
-        // Check if auto-allocation is enabled
-        FinancialProfile profile = financialProfileRepository.findByUserId(userId).orElse(null);
-        if (profile == null || !Boolean.TRUE.equals(profile.getAutoAllocationEnabled())) {
-            return;
-        }
+  void autoAllocateIfNeeded(UUID userId) {
+    // Check if auto-allocation is enabled
+    FinancialProfile profile = financialProfileRepository.findByUserId(userId).orElse(null);
+    if (profile == null || !Boolean.TRUE.equals(profile.getAutoAllocationEnabled())) {
+      return;
+    }
 
-        List<Goal> goals = goalRepository.findAllByUserId(userId);
-        long activeGoals = goals.stream()
-                .filter(g -> g.getStatus() == GoalStatus.IN_PROGRESS)
-                .count();
+    List<Goal> goals = goalRepository.findAllByUserId(userId);
+    long activeGoals = goals.stream()
+      .filter(g -> g.getStatus() == GoalStatus.IN_PROGRESS)
+      .count();
 
-        boolean hasPriorityGoal = goals.stream()
-                .anyMatch(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS);
+    boolean hasPriorityGoal = goals.stream()
+      .anyMatch(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS);
 
-        // Only auto-allocate if we have 2+ active goals and a priority goal
-        if (activeGoals >= 2 && hasPriorityGoal) {
-            Integer percentage = profile.getPriorityAllocationPercentage();
-            if (percentage == null) {
-                percentage = 50; // Default fallback
-            }
-            autoAllocateGoalsForUser(percentage);
+    // Only auto-allocate if we have 2+ active goals and a priority goal
+    if (activeGoals >= 2 && hasPriorityGoal) {
+      Integer percentage = profile.getPriorityAllocationPercentage();
+      if (percentage == null) {
+        percentage = 50; // Default fallback
+      }
+      autoAllocateGoalsForUser(percentage);
         }
     }
 
     @Override
     public User getVerifiedUser() {
         return VerifiedUserProvider.super.getVerifiedUser();
+    }
+    @Override
+    public UserRepository userRepository() {
+        return this.userRepository;
     }
 }

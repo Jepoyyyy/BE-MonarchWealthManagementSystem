@@ -47,11 +47,16 @@ public class SecurityConfig {
                 BASE_AUTH_PATH + LOGIN_PATH,
                 BASE_AUTH_PATH + REGISTER_PATH,
                 BASE_AUTH_PATH + REFRESH_TOKEN_PATH,
-                "/error"
+                "/error",
+                "/swagger-ui/**",
+                "/swagger-ui.html",
+                "/v3/api-docs/**",
+                "/api-docs/**"
         ).permitAll()
         .requestMatchers(HttpMethod.GET, BASE_PRODUCTS_PATH).hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
         .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_PATH + "/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/admin/dashboard").hasRole(UserRole.ADMIN.name())
+        .requestMatchers("/api/v1/admin/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/audit", "/api/v1/audit/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/users", "/api/v1/users/**").hasRole(UserRole.ADMIN.name())
         .requestMatchers("/api/v1/me/**", "/me/**").hasRole(UserRole.USER.name())

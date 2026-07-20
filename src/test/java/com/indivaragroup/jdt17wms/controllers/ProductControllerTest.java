@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.controllers;
 
+import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
@@ -39,7 +40,7 @@ class ProductControllerTest extends BaseControllerTest {
 
     @Test
     void getAllProducts_shouldReturnOk() throws Exception {
-        Page<Product> expectedPage = new PageImpl<>(List.of());
+        Page<ProductResponseDTO> expectedPage = new PageImpl<>(List.of());
         when(productManagementService.getProductsForUser(any(ProductQueryDTO.class), any(Pageable.class))).thenReturn(expectedPage);
 
         mockMvc.perform(get("/api/v1/products"))
@@ -49,7 +50,7 @@ class ProductControllerTest extends BaseControllerTest {
     @Test
     void updateProduct_shouldReturnOk() throws Exception {
         UUID id = UUID.randomUUID();
-        Product product = new Product();
+        ProductResponseDTO product = ProductResponseDTO.builder().build();
         when(productManagementService.updateProductVisibility(any(UUID.class), any(Boolean.class)))
                 .thenReturn(product);
 

@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.dto.response;
 
 import com.indivaragroup.jdt17wms.models.Product;
 import lombok.Builder;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
 import java.math.BigDecimal;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 @Builder
 @Getter
+@EqualsAndHashCode
 public class ProductResponseDTO {
     private UUID id;
     private String code;

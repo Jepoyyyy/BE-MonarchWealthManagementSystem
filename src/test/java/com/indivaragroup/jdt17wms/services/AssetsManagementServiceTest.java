@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
+import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
@@ -18,12 +19,16 @@ import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.RecommendationRepository;
 import com.indivaragroup.jdt17wms.repositories.TransactionHistoryRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,6 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -67,6 +73,20 @@ class AssetsManagementServiceTest {
     @InjectMocks
     private AssetsManagementService assetsManagementService;
 
+    private void mockAuthenticatedUser(UUID userId) {
+        UserDTO principal = UserDTO.builder().id(userId).build();
+        Authentication authentication = mock(Authentication.class);
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(authentication.getPrincipal()).thenReturn(principal);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
     @Test
     void serviceShouldBeInitialized() {
         assertNotNull(assetsManagementService);
@@ -81,6 +101,7 @@ class AssetsManagementServiceTest {
 
         Asset asset = Asset.builder().id(UUID.randomUUID()).userId(SecurityUtils.STATIC_USER_ID).build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(asset));
 
@@ -95,6 +116,7 @@ class AssetsManagementServiceTest {
 
     @Test
     void getAssetsForUser_shouldThrowNotFoundExceptionWhenUserNotFound() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.empty());
 
         assertThrows(CoreThrowHandler.class, () -> {
@@ -111,6 +133,7 @@ class AssetsManagementServiceTest {
 
         TransactionHistory log = TransactionHistory.builder().id(UUID.randomUUID()).userId(SecurityUtils.STATIC_USER_ID).build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(transactionHistoryRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(log));
 
@@ -125,6 +148,7 @@ class AssetsManagementServiceTest {
 
     @Test
     void getTransactionLogsForUser_shouldThrowNotFoundExceptionWhenUserNotFound() {
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.empty());
 
         assertThrows(CoreThrowHandler.class, () -> {
@@ -160,6 +184,7 @@ class AssetsManagementServiceTest {
                 .productId(product.getId())
                 .build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
         when(assetRepository.save(any(Asset.class))).thenReturn(savedAsset);
@@ -187,7 +212,7 @@ class AssetsManagementServiceTest {
         AssetRegistrationDTO dto = AssetRegistrationDTO.builder()
                 .productId(product.getId())
                 .build();
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
 
@@ -206,7 +231,7 @@ class AssetsManagementServiceTest {
         AssetRegistrationDTO dto = AssetRegistrationDTO.builder()
                 .productId(UUID.randomUUID())
                 .build();
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
 
         assertThrows(CoreThrowHandler.class, () -> {
@@ -226,6 +251,7 @@ class AssetsManagementServiceTest {
                 .productId(productId)
                 .build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(productRepository.findById(productId)).thenReturn(Optional.empty());
 
@@ -255,6 +281,7 @@ class AssetsManagementServiceTest {
 
         Goal goal = Goal.builder().id(goalId).build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(goalRepository.findById(goalId)).thenReturn(Optional.of(goal));
@@ -285,6 +312,7 @@ class AssetsManagementServiceTest {
 
         GoalSettingDTO dto = GoalSettingDTO.builder().build(); // goalId null
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -314,7 +342,7 @@ class AssetsManagementServiceTest {
         GoalSettingDTO dto = GoalSettingDTO.builder()
                 .goalId(goalId)
                 .build();
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(goalRepository.findById(goalId)).thenReturn(Optional.empty());
@@ -334,6 +362,7 @@ class AssetsManagementServiceTest {
         UUID assetId = UUID.randomUUID();
         GoalSettingDTO dto = GoalSettingDTO.builder().build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.empty());
 
@@ -357,6 +386,7 @@ class AssetsManagementServiceTest {
                 .userId(UUID.randomUUID()) // different user
                 .build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
 
@@ -375,6 +405,7 @@ class AssetsManagementServiceTest {
         UUID assetId = UUID.randomUUID();
         GoalSettingDTO dto = GoalSettingDTO.builder().build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
 
         assertThrows(CoreThrowHandler.class, () -> {
@@ -402,7 +433,7 @@ class AssetsManagementServiceTest {
                 .id(UUID.randomUUID())
                 .resolvedByAssetId(assetId)
                 .build();
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(recommendationRepository.findAllByResolvedByAssetId(assetId)).thenReturn(List.of(recommendation));
@@ -422,7 +453,7 @@ class AssetsManagementServiceTest {
                 .build();
 
         UUID assetId = UUID.randomUUID();
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.empty());
 
@@ -453,6 +484,7 @@ class AssetsManagementServiceTest {
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(recommendationRepository.findAllByResolvedByAssetId(assetId)).thenReturn(List.of());
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         assetsManagementService.deleteAssetForUser(assetId);
 
         // Capture the TransactionHistory saved and verify pricePerUnit = amount / units
@@ -478,6 +510,7 @@ class AssetsManagementServiceTest {
                 .productId(UUID.randomUUID())
                 .build();
 
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(recommendationRepository.findAllByResolvedByAssetId(assetId)).thenReturn(List.of());
@@ -505,7 +538,7 @@ class AssetsManagementServiceTest {
 
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         assertThrows(CoreThrowHandler.class, () -> {
             assetsManagementService.deleteAssetForUser(assetId);
         });
@@ -519,7 +552,7 @@ class AssetsManagementServiceTest {
                 .build();
 
         UUID assetId = UUID.randomUUID();
-
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
 
         assertThrows(CoreThrowHandler.class, () -> {

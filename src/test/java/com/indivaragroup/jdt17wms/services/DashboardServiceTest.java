@@ -29,13 +29,16 @@ import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -95,6 +98,7 @@ class DashboardServiceTest {
                 .productId(productId)
                 .units(new BigDecimal("10.00"))
                 .amount(new BigDecimal("100.00"))
+                .currentValue(new BigDecimal("120.0000"))
                 .purchaseDate(Instant.parse("2026-01-10T10:00:00Z"))
                 .build();
 
@@ -107,14 +111,15 @@ class DashboardServiceTest {
         ProductPrice productPrice = ProductPrice.builder()
                 .productId(productId)
                 .price(new BigDecimal("11.50"))
+                .recordedDate(LocalDate.now())
                 .build();
 
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(asset));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(productPriceRepository.findFirstByProductIdAndRecordedDateLessThanEqualOrderByRecordedDateDesc(
-                eq(productId), any(LocalDate.class)))
-                .thenReturn(Optional.of(productPrice));
+        when(productPriceRepository.findAllByProductIdInAndRecordedDateLessThanEqual(
+                anySet(), any(LocalDate.class)))
+                .thenReturn(List.of(productPrice));
 
         UserDashboardDTO result = dashboardService.getUserDashboard();
 
@@ -140,6 +145,7 @@ class DashboardServiceTest {
                 .productId(productId)
                 .units(new BigDecimal("10.00"))
                 .amount(new BigDecimal("100.00"))
+                .currentValue(new BigDecimal("120.0000"))
                 .purchaseDate(Instant.parse("2026-12-10T10:00:00Z"))
                 .build();
 
@@ -173,6 +179,7 @@ class DashboardServiceTest {
                 .productId(productId)
                 .units(new BigDecimal("10.00"))
                 .amount(new BigDecimal("100.00"))
+                .currentValue(BigDecimal.ZERO)
                 .purchaseDate(Instant.parse("2026-01-10T10:00:00Z"))
                 .build();
 
@@ -185,9 +192,6 @@ class DashboardServiceTest {
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(assetRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(asset));
         when(productRepository.findById(productId)).thenReturn(Optional.of(product));
-        when(productPriceRepository.findFirstByProductIdAndRecordedDateLessThanEqualOrderByRecordedDateDesc(
-                eq(productId), any(LocalDate.class)))
-                .thenReturn(Optional.empty());
 
         UserDashboardDTO result = dashboardService.getUserDashboard();
 
@@ -231,9 +235,17 @@ class DashboardServiceTest {
 
     @Test
     void getAdminDashboard_shouldReturnDashboardStats() {
-        when(userRepository.findByRiskProfile("risk_averse")).thenReturn(List.of(new User(), new User()));
-        when(userRepository.findByRiskProfile("moderate")).thenReturn(List.of(new User()));
-        when(userRepository.findByRiskProfile("risk_taker")).thenReturn(List.of(new User(), new User(), new User()));
+        UserRepository.RiskProfileCount riskAverse = mock(UserRepository.RiskProfileCount.class);
+        when(riskAverse.getRiskProfile()).thenReturn("risk_averse");
+        when(riskAverse.getCount()).thenReturn(2L);
+        UserRepository.RiskProfileCount moderate = mock(UserRepository.RiskProfileCount.class);
+        when(moderate.getRiskProfile()).thenReturn("moderate");
+        when(moderate.getCount()).thenReturn(1L);
+        UserRepository.RiskProfileCount riskTaker = mock(UserRepository.RiskProfileCount.class);
+        when(riskTaker.getRiskProfile()).thenReturn("risk_taker");
+        when(riskTaker.getCount()).thenReturn(3L);
+
+        when(userRepository.countByRiskProfile()).thenReturn(List.of(riskAverse, moderate, riskTaker));
         when(assetRepository.sumTotalAmount()).thenReturn(new BigDecimal("10000.00"));
         when(userRepository.count()).thenReturn(6L);
         when(productRepository.count()).thenReturn(10L);
@@ -257,10 +269,11 @@ class DashboardServiceTest {
         ProductPrice productPrice = ProductPrice.builder()
                 .productId(productId)
                 .price(new BigDecimal("1.50"))
+                .recordedDate(LocalDate.now())
                 .build();
-        when(productPriceRepository.findFirstByProductIdAndRecordedDateLessThanEqualOrderByRecordedDateDesc(
-                eq(productId), any(LocalDate.class)))
-                .thenReturn(Optional.of(productPrice));
+        when(productPriceRepository.findAllByProductIdInAndRecordedDateLessThanEqual(
+                anySet(), any(LocalDate.class)))
+                .thenReturn(List.of(productPrice));
 
         AdminDashboardDTO result = dashboardService.getAdminDashboard();
 

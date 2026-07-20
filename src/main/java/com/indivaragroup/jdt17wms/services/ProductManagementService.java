@@ -7,11 +7,13 @@ import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.aspects.RiskProfileAssessmentRequired;
 import com.indivaragroup.jdt17wms.dto.request.ProductQueryDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
+import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class ProductManagementService {
 
@@ -36,12 +39,13 @@ public class ProductManagementService {
         return user != null && user.getRole() != UserRole.ADMIN;
     }
 
-    public Page<Product> getAllProducts(Pageable pageable) {
-        return productRepository.findAll(pageable);
+    public Page<ProductResponseDTO> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(ProductResponseDTO::fromEntity);
     }
 
     @RiskProfileAssessmentRequired
-    public Page<Product> getProductsForUser(
+    public Page<ProductResponseDTO> getProductsForUser(
             ProductQueryDTO queryDTO,
             Pageable pageable) {
 
@@ -51,7 +55,8 @@ public class ProductManagementService {
         Boolean showAll = dto.getShowAll();
         Boolean dashboardSummary = dto.getDashboardSummary();
 
-        User user = userRepository.findById(SecurityUtils.getCurrentUserId()).orElse(null);
+        User user = userRepository.findById(SecurityUtils.getCurrentUserId())
+                .orElse(null);
 
         List<Product> products = productRepository.findAll();
 
@@ -107,22 +112,28 @@ public class ProductManagementService {
             return new PageImpl<>(new ArrayList<>(), pageable, products.size());
         }
 
-        List<Product> pageContent = products.subList(start, end);
+        List<ProductResponseDTO> pageContent = products.subList(start, end).stream()
+                .map(ProductResponseDTO::fromEntity)
+                .toList();
         return new PageImpl<>(pageContent, pageable, products.size());
     }
 
     private static boolean containsIgnoreCase(String source, String query) {
+        if (source == null) {
+            log.warn("Product has null name or issuer");
+            return false;
+        }
         return source.toLowerCase().contains(query);
     }
 
-    public Product updateProductVisibility(UUID id, Boolean visibility) {
+    public ProductResponseDTO updateProductVisibility(UUID id, Boolean visibility) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
         product.setVisible(visibility);
-        return productRepository.save(product);
+        return ProductResponseDTO.fromEntity(productRepository.save(product));
     }
 
-    public Product getProductById(UUID id) {
+    public ProductResponseDTO getProductById(UUID id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
 
@@ -130,7 +141,7 @@ public class ProductManagementService {
             throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
         }
 
-        return product;
+        return ProductResponseDTO.fromEntity(product);
     }
 }
 

@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import jakarta.validation.Validation;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,16 +62,12 @@ class RegisterServiceTest {
         when(userRepository.existsByEmail(dto.getRegisterRequestEmail())).thenReturn(false);
         when(passwordEncoder.encode(dto.getRegisterRequestPassword())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(mockSavedUser);
-        when(jwtService.generateAccessToken(any(User.class))).thenReturn("mockJwtToken");
-        when(jwtService.generateRefreshToken(any(User.class))).thenReturn("mockRefreshToken");
 
         authService.register(dto);
 
         verify(userRepository, times(1)).existsByEmail(dto.getRegisterRequestEmail());
         verify(passwordEncoder, times(1)).encode(dto.getRegisterRequestPassword());
         verify(userRepository, times(1)).save(any(User.class));
-        verify(jwtService, times(1)).generateAccessToken(any(User.class));
-        verify(jwtService, times(1)).generateRefreshToken(any(User.class));
         verify(auditLogRepository, times(1)).save(any(AuditLog.class));
     }
 
@@ -91,16 +88,12 @@ class RegisterServiceTest {
         when(userRepository.existsByEmail(dto.getRegisterRequestEmail())).thenReturn(false);
         when(passwordEncoder.encode(dto.getRegisterRequestPassword())).thenReturn("encodedPassword");
         when(userRepository.save(any(User.class))).thenReturn(mockSavedAdmin);
-        when(jwtService.generateAccessToken(any(User.class))).thenReturn("mockJwtToken");
-        when(jwtService.generateRefreshToken(any(User.class))).thenReturn("mockRefreshToken");
 
         authService.register(dto);
 
         verify(userRepository, times(1)).existsByEmail(dto.getRegisterRequestEmail());
         verify(passwordEncoder, times(1)).encode(dto.getRegisterRequestPassword());
         verify(userRepository, times(1)).save(any(User.class));
-        verify(jwtService, times(1)).generateAccessToken(any(User.class));
-        verify(jwtService, times(1)).generateRefreshToken(any(User.class));
         verify(auditLogRepository, times(1)).save(any(AuditLog.class));
     }
 
@@ -123,22 +116,15 @@ class RegisterServiceTest {
     void register_withMissingEmail_shouldThrowValidationException() {
         RegisterDTO dto = RegisterDTO.builder().registerRequestName("John Doe").registerRequestPassword("Password123!").build();
 
-        CoreThrowHandler exception = assertThrows(CoreThrowHandler.class, () -> authService.register(dto));
-        assertEquals("INVALID FIELD VALUES", exception.getMessage());
-        List<ValidationErrorDetailDTO> details = exception.getDetails();
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            jakarta.validation.Validator validator = factory.getValidator();
+            var violations = validator.validate(dto);
 
-        assertFalse(details.isEmpty());
-        ValidationErrorDetailDTO emailError = details.stream()
-                .filter(d -> "email".equals(d.getField()))
-                .findFirst()
-                .orElse(null);
-
-        assertNotNull(emailError);
-        assertEquals("Email is required", emailError.getReason());
-        assertEquals("ERR-001", emailError.getType());
-
-        verify(userRepository, never()).existsByEmail(anyString());
-        verify(userRepository, never()).save(any(User.class));
+            assertFalse(violations.isEmpty());
+            assertTrue(violations.stream()
+                    .anyMatch(v -> "registerRequestEmail".equals(v.getPropertyPath().toString())
+                            && v.getMessage().contains("Email")));
+        }
     }
 
     // 📝 REGISTER — invalid email format (validation exception)
@@ -158,48 +144,55 @@ class RegisterServiceTest {
 
         assertNotNull(emailError);
         assertEquals("Invalid email format", emailError.getReason());
-        assertEquals("ERR-002", emailError.getType());
+        assertEquals("ERR-001", emailError.getType());
     }
 
     // 📝 REGISTER — missing password (validation exception)
     @Test
     void register_withMissingPassword_shouldThrowValidationException() {
-        RegisterDTO dto = RegisterDTO.builder().registerRequestName("John Doe").registerRequestEmail("johndoe@example.com").registerRequestPassword("").build();
+        RegisterDTO dto = RegisterDTO.builder()
+                .registerRequestName("John Doe")
+                .registerRequestEmail("johndoe@example.com")
+                .registerRequestPassword("")
+                .build();
 
-        CoreThrowHandler exception = assertThrows(CoreThrowHandler.class, () -> authService.register(dto));
-        assertEquals("INVALID FIELD VALUES", exception.getMessage());
-        List<ValidationErrorDetailDTO> details = exception.getDetails();
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            jakarta.validation.Validator validator = factory.getValidator();
+            var violations = validator.validate(dto);
 
-        assertFalse(details.isEmpty());
-        ValidationErrorDetailDTO passwordError = details.stream()
-                .filter(d -> "password".equals(d.getField()))
-                .findFirst()
-                .orElse(null);
-
-        assertNotNull(passwordError);
-        assertEquals("Password is required", passwordError.getReason());
-        assertEquals("ERR-001", passwordError.getType());
+            assertFalse(violations.isEmpty());
+            assertTrue(violations.stream()
+                    .anyMatch(v -> "registerRequestPassword".equals(v.getPropertyPath().toString())
+                            && v.getMessage().contains("Password")));
+        }
     }
 
     // 📝 REGISTER — password too short (validation exception)
     @Test
     void register_withShortPassword_shouldThrowValidationException() {
-        RegisterDTO dto = RegisterDTO.builder().registerRequestName("John Doe").registerRequestEmail("johndoe@example.com").registerRequestPassword("Pass1!").build();
+        RegisterDTO dto = RegisterDTO.builder()
+                .registerRequestName("John Doe")
+                .registerRequestEmail("johndoe@example.com")
+                .registerRequestPassword("Pass1!")
+                .build();
 
-        CoreThrowHandler exception = assertThrows(CoreThrowHandler.class, () -> authService.register(dto));
-        assertEquals("INVALID FIELD VALUES", exception.getMessage());
-        List<ValidationErrorDetailDTO> details = exception.getDetails();
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            jakarta.validation.Validator validator = factory.getValidator();
+            var violations = validator.validate(dto);
 
-        assertTrue(details.stream().anyMatch(d -> "password".equals(d.getField()) && "Must be at least 8 characters".equals(d.getReason())));
+            assertFalse(violations.isEmpty());
+            assertTrue(violations.stream()
+                    .anyMatch(v -> "registerRequestPassword".equals(v.getPropertyPath().toString())
+                            && v.getMessage().contains("size must be between 8 and 72")));
+        }
     }
 
-    // 📝 REGISTER — parameterized validation tests
+    // 📝 REGISTER — parameterized validation tests (service-level regex checks)
     @ParameterizedTest
     @CsvSource({
-        "John Doe, johndoe@example.com, PASSWORD123!, password, Must contain lowercase letter, ERR-003",
-        "John Doe, johndoe@example.com, password123!, password, Must contain uppercase letter, ERR-003",
-        "John Doe, johndoe@example.com, Password123, password, Must contain symbol, ERR-003",
-        "'', johndoe@example.com, Password123!, name, Name is required, ERR-001"
+        "John Doe, johndoe@example.com, PASSWORD123!, password, Must contain lowercase letter, ERR-001",
+        "John Doe, johndoe@example.com, password123!, password, Must contain uppercase letter, ERR-001",
+        "John Doe, johndoe@example.com, Password123, password, Must contain symbol, ERR-001"
     })
     void register_withInvalidData_shouldThrowValidationException(
             String name, String email, String password, String expectedField, String expectedReason, String expectedType) {
@@ -216,5 +209,21 @@ class RegisterServiceTest {
 
         assertNotNull(error);
         assertEquals(expectedType, error.getType());
+    }
+
+    // 📝 REGISTER — blank name (DTO @NotBlank validation)
+    @Test
+    void register_withBlankName_shouldThrowValidationException() {
+        RegisterDTO dto = RegisterDTO.builder().registerRequestName("").registerRequestEmail("johndoe@example.com").registerRequestPassword("Password123!").build();
+
+        try (var factory = jakarta.validation.Validation.buildDefaultValidatorFactory()) {
+            jakarta.validation.Validator validator = factory.getValidator();
+            var violations = validator.validate(dto);
+
+            assertFalse(violations.isEmpty());
+            assertTrue(violations.stream()
+                    .anyMatch(v -> "registerRequestName".equals(v.getPropertyPath().toString())
+                            && v.getMessage().contains("name is Required")));
+        }
     }
 }

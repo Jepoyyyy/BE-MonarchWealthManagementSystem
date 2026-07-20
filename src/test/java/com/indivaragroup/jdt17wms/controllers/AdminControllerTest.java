@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.controllers;
 
+import com.indivaragroup.jdt17wms.services.AdminProductManagementService;
 import com.indivaragroup.jdt17wms.services.AuditTrailManagementService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ class AdminControllerTest extends BaseControllerTest {
 
     @MockBean
     private AuditTrailManagementService auditTrailManagementService;
+
+    @MockBean
+    private AdminProductManagementService adminProductManagementService;
 
     @Test
     void getAuditLogs_shouldReturnOk() throws Exception {

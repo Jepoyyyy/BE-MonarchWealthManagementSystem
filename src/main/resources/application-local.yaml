@@ -23,6 +23,18 @@ jwt:
   access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION_MS}
   refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRATION_MS}
 
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+  paths-to-match: /api/**
+
 questionnaire:
   data:
     - id: 1

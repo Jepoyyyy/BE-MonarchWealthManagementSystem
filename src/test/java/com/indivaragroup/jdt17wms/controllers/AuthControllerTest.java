@@ -243,7 +243,7 @@ class AuthControllerTest extends BaseControllerTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("Refresh Token Required"));
+                .andExpect(jsonPath("$.message").value("Invalid Request Body"));
     }
 
     @Test
@@ -255,7 +255,8 @@ class AuthControllerTest extends BaseControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("Refresh Token Required"));
+                .andExpect(jsonPath("$.error.fields[?(@.field=='refreshToken')].reason")
+                .value("Refresh Token is Required"));
     }
 
     @Test
@@ -267,6 +268,7 @@ class AuthControllerTest extends BaseControllerTest {
                         .content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.message").value("Refresh Token Required"));
+                .andExpect(jsonPath("$.error.fields[?(@.field=='refreshToken')].reason")
+                        .value("Refresh Token is Required"));
     }
 }
