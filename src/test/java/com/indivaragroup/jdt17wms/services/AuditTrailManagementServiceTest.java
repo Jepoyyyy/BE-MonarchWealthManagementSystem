@@ -16,8 +16,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,6 +37,9 @@ class AuditTrailManagementServiceTest {
 
     @InjectMocks
     private AuditTrailManagementService auditTrailManagementService;
+
+    private final Clock clock = Clock.fixed(Instant.parse("2026-07-13T10:00:00Z"), ZoneOffset.UTC);
+
 
     @Test
     @DisplayName("serviceShouldBeInitialized")
@@ -139,5 +146,42 @@ class AuditTrailManagementServiceTest {
         assertNotNull(result);
         assertEquals(mockPage.getTotalElements(), result.getTotalElements());
         verify(auditLogRepository).findFiltered(null, null, null, null, pageable);
+    }
+
+    @Test
+    @DisplayName("getAuditLogs - should map AuditLog entity to AuditLogDTO correctly")
+    void getAuditLogs_shouldMapAuditLogToDTO() {
+        UUID id = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Instant now = Instant.now(clock);
+
+        AuditLog log = AuditLog.builder()
+                .id(id)
+                .userId(userId)
+                .userName("John Doe")
+                .action("LOGIN")
+                .details("Logged in successfully")
+                .category("SECURITY")
+                .timestamp(now)
+                .changedValue("status: active")
+                .build();
+
+        Page<AuditLog> mockPage = new PageImpl<>(List.of(log));
+        when(auditLogRepository.findAll(any(Pageable.class))).thenReturn(mockPage);
+
+        Page<AuditLogDTO> result = auditTrailManagementService.getAuditLogs(false, Pageable.unpaged());
+
+        assertNotNull(result);
+        assertEquals(1, result.getContent().size());
+
+        AuditLogDTO dto = result.getContent().getFirst();
+        assertEquals(id, dto.getId());
+        assertEquals(userId, dto.getUserId());
+        assertEquals("John Doe", dto.getUserName());
+        assertEquals("LOGIN", dto.getAction());
+        assertEquals("Logged in successfully", dto.getDetails());
+        assertEquals("SECURITY", dto.getCategory());
+        assertEquals(now, dto.getTimestamp());
+        assertEquals("status: active", dto.getChangedValue());
     }
 }
