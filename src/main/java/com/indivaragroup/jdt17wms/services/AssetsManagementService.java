@@ -21,21 +21,17 @@ import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.RecommendationRepository;
 import com.indivaragroup.jdt17wms.repositories.TransactionHistoryRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
-import org.hibernate.sql.results.graph.collection.internal.ListInitializerProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.indivaragroup.jdt17wms.constants.ProductConstants;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
-import java.util.Date;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -49,12 +45,8 @@ public class AssetsManagementService implements VerifiedUserProvider {
     private final RecommendationRepository recommendationRepository;
     private final AssetTransactionService assetTransactionService;
     private static final int BY_FOUR = 4;
-    private static final Set<String> TENOR_PRODUCT_TYPES = Set.of(
-            ProductConstants.SUKUK, ProductConstants.DEPOSIT, ProductConstants.BOND
-    );
-    private final ProductManagementService productManagementService;
 
-    @Override
+  @Override
     public UserRepository userRepository() { return userRepository; }
 
     public AssetsManagementService(AssetRepository assetRepository,
@@ -63,7 +55,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
                                    ProductRepository productRepository,
                                    GoalRepository goalRepository,
                                    RecommendationRepository recommendationRepository,
-                                   AssetTransactionService assetTransactionService, ProductManagementService productManagementService) {
+                                   AssetTransactionService assetTransactionService) {
         this.assetRepository = assetRepository;
         this.userRepository = userRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
@@ -71,7 +63,6 @@ public class AssetsManagementService implements VerifiedUserProvider {
         this.goalRepository = goalRepository;
         this.recommendationRepository = recommendationRepository;
         this.assetTransactionService = assetTransactionService;
-        this.productManagementService = productManagementService;
     }
 
     public List<AssetDTO> getAssetsForUser() {
@@ -172,7 +163,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         // Calculate maturity date if tenor is provided and product type supports it
         LocalDate maturityDate = null;
         if (dto.getTenor() != null) {
-            maturityDate = LocalDate.now().plusMonths(dto.getTenor());
+            maturityDate = LocalDate.now(ZoneOffset.UTC).plusMonths(dto.getTenor());
         }
         System.out.println(maturityDate);
 
