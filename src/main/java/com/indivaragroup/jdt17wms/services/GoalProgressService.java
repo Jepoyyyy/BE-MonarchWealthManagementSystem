@@ -57,7 +57,7 @@ public class GoalProgressService {
                         .anyMatch(asset -> asset.getId().equals(pnl.getAssetId())))
                 .toList();
 
-        BigDecimal initialAmount = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
+        BigDecimal initialAmount = goal.getCurrentAmount();
         BigDecimal currentSaved = goalPnlData.stream()
                 .map(AssetsPnLResponseDTO::getCurrentValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
