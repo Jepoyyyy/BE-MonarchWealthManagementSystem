@@ -1,16 +1,18 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
+import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
-import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
+import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
+import com.indivaragroup.jdt17wms.dto.response.AssetsPnLResponseDTO;
+import com.indivaragroup.jdt17wms.dto.response.TransactionHistoryDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
 import com.indivaragroup.jdt17wms.services.AssetsManagementService;
 import com.indivaragroup.jdt17wms.services.PnLCalculationService;
-import com.indivaragroup.jdt17wms.dto.response.AssetsPnLResponseDTO;
-import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -18,10 +20,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -132,6 +137,32 @@ class AssetControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void updateAsset_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(assetsManagementService.updateAssetForUser(any(UUID.class), any(GoalSettingDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+
+        mockMvc.perform(put("/api/v1/me/assets/" + id)
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void updateAsset_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(assetsManagementService.updateAssetForUser(any(UUID.class), any(GoalSettingDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(put("/api/v1/me/assets/" + id)
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
     void updateAssetValue_shouldReturnOk() throws Exception {
         UUID assetId = UUID.randomUUID();
         AssetDTO dto = AssetDTO.builder()
@@ -147,6 +178,18 @@ class AssetControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.id").value(assetId.toString()))
                 .andExpect(jsonPath("$.result.current_value").value(600000));
+    }
+
+    @Test
+    void updateAssetValue_shouldReturn400WhenFieldsAreInvalid() throws Exception {
+        UUID assetId = UUID.randomUUID();
+
+        // current_value is negative -> invalid
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
+                        .contentType("application/json")
+                        .content("{\"current_value\":-600000}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("INVALID FIELD VALUES"));
     }
 
     @Test
@@ -185,6 +228,28 @@ class AssetControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void deleteAsset_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND))
+                .when(assetsManagementService).deleteAssetForUser(id);
+
+        mockMvc.perform(delete("/api/v1/me/assets/" + id))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void deleteAsset_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID id = UUID.randomUUID();
+        doThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER))
+                .when(assetsManagementService).deleteAssetForUser(id);
+
+        mockMvc.perform(delete("/api/v1/me/assets/" + id))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
     void getAssetsPnL_shouldReturnOk() throws Exception {
         AssetsPnLResponseDTO pnl = AssetsPnLResponseDTO.builder()
                 .assetId(UUID.randomUUID())
@@ -196,4 +261,186 @@ class AssetControllerTest extends BaseControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result[0].currentValue").value(10));
     }
+
+    @Test
+    void getAssetsPnL_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        when(pnLCalculationService.computePnLForAllAssets())
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(get("/api/v1/me/assets/pnl"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
+    void executeTransaction_shouldReturnOk() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        AssetUpdateResponseDTO responseDTO = AssetUpdateResponseDTO.builder()
+                .assetId(assetId)
+                .build();
+        when(assetsManagementService.executeTransaction(eq(assetId), any(AssetTransactionDTO.class)))
+                .thenReturn(responseDTO);
+
+        mockMvc.perform(post("/api/v1/me/assets/" + assetId + "/transactions")
+                        .contentType("application/json")
+                        .content("{\"action\":\"BUY\",\"units\":10.0,\"amount\":100.0,\"transaction_date\":\"2023-01-01 00:00:00\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.assetId").value(assetId.toString()));
+    }
+
+    @Test
+    void executeTransaction_shouldReturn400WhenFieldsAreInvalid() throws Exception {
+        UUID assetId = UUID.randomUUID();
+
+        // units are negative -> invalid
+        mockMvc.perform(post("/api/v1/me/assets/" + assetId + "/transactions")
+                        .contentType("application/json")
+                        .content("{\"action\":\"BUY\",\"units\":-5.0,\"amount\":100.0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("INVALID FIELD VALUES"));
+    }
+
+    @Test
+    void executeTransaction_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.executeTransaction(eq(assetId), any(AssetTransactionDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+
+        mockMvc.perform(post("/api/v1/me/assets/" + assetId + "/transactions")
+                        .contentType("application/json")
+                        .content("{\"action\":\"BUY\",\"units\":10.0,\"amount\":100.0}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void executeTransaction_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.executeTransaction(eq(assetId), any(AssetTransactionDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(post("/api/v1/me/assets/" + assetId + "/transactions")
+                        .contentType("application/json")
+                        .content("{\"action\":\"BUY\",\"units\":10.0,\"amount\":100.0}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
+    void updateAssetGoal_shouldReturnOk() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        UUID goalId = UUID.randomUUID();
+        AssetDTO assetDTO = AssetDTO.builder().id(assetId).goalId(goalId).build();
+        when(assetsManagementService.updateAssetGoal(assetId, goalId)).thenReturn(assetDTO);
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal")
+                        .param("goalId", goalId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.id").value(assetId.toString()))
+                .andExpect(jsonPath("$.result.goal_id").value(goalId.toString()));
+    }
+
+    @Test
+    void updateAssetGoal_shouldReturnOkWhenGoalIdNull() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        AssetDTO assetDTO = AssetDTO.builder().id(assetId).build();
+        when(assetsManagementService.updateAssetGoal(assetId, null)).thenReturn(assetDTO);
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.id").value(assetId.toString()));
+    }
+
+    @Test
+    void updateAssetGoal_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.updateAssetGoal(assetId, null))
+                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void updateAssetGoal_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.updateAssetGoal(assetId, null))
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
+    void getAssetPnL_shouldReturnOk() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        Asset asset = Asset.builder().id(assetId).build();
+        AssetsPnLResponseDTO pnl = AssetsPnLResponseDTO.builder().assetId(assetId).build();
+
+        when(assetsManagementService.findAssetByIdAndUser(assetId)).thenReturn(asset);
+        when(pnLCalculationService.computePnLForAsset(asset)).thenReturn(pnl);
+
+        mockMvc.perform(get("/api/v1/me/assets/" + assetId + "/pnl"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.assetId").value(assetId.toString()));
+    }
+
+    @Test
+    void getAssetPnL_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.findAssetByIdAndUser(assetId))
+                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+
+        mockMvc.perform(get("/api/v1/me/assets/" + assetId + "/pnl"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void getAssetPnL_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.findAssetByIdAndUser(assetId))
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(get("/api/v1/me/assets/" + assetId + "/pnl"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
+
+    @Test
+    void getAssetTransactions_shouldReturnOk() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        TransactionHistoryDTO tx = TransactionHistoryDTO.builder().assetId(assetId).build();
+        when(assetsManagementService.getTransactionHistoryForAsset(assetId))
+                .thenReturn(List.of(tx));
+
+        mockMvc.perform(get("/api/v1/me/assets/" + assetId + "/transactions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result[0].asset_id").value(assetId.toString()));
+    }
+
+    @Test
+    void getAssetTransactions_shouldReturn404WhenAssetNotFound() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.getTransactionHistoryForAsset(assetId))
+                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+
+        mockMvc.perform(get("/api/v1/me/assets/" + assetId + "/transactions"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404));
+    }
+
+    @Test
+    void getAssetTransactions_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
+        UUID assetId = UUID.randomUUID();
+        when(assetsManagementService.getTransactionHistoryForAsset(assetId))
+                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        mockMvc.perform(get("/api/v1/me/assets/" + assetId + "/transactions"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403));
+    }
 }
+

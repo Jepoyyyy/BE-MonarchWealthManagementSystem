@@ -74,7 +74,7 @@ class AssetsManagementServiceTest {
     @InjectMocks
     private AssetsManagementService assetsManagementService;
 
-    private final Clock clock = Clock.fixed(Instant.parse("2026-07-13T10:00:00Z"), ZoneOffset.UTC);
+    private final Clock clock = Clock.fixed(Instant.parse("2026-07-21T10:00:00Z"), ZoneOffset.UTC);
 
 
   private void mockAuthenticatedUser() {

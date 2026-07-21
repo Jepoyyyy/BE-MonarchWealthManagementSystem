@@ -21,7 +21,6 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -152,63 +151,38 @@ class AuthControllerTest extends BaseControllerTest {
     }
 
     @Test
-    void logout_whenExtractionThrowsException_shouldReturnSuccess() throws Exception {
+    void logout_whenTokenParsingFails_shouldCatchExceptionAndReturnSuccess() throws Exception {
         LogoutSuccessDTO mockResponse = LogoutSuccessDTO.builder()
                 .success(true)
                 .message("Logout successful")
                 .build();
 
-        when(authService.logout(any(), any())).thenReturn(mockResponse);
+        when(jwtService.getEmailFromToken("invalid-token")).thenThrow(new RuntimeException("Token parse failed"));
+        when(authService.logout(null, null)).thenReturn(mockResponse);
 
         mockMvc.perform(post("/api/v1/auth/logout")
                         .header("Authorization", "Bearer invalid-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.success").value(true));
+                .andExpect(jsonPath("$.result.success").value(true))
+                .andExpect(jsonPath("$.result.message").value("Logout successful"));
     }
 
     @Test
-    void logout_whenEmailNull_shouldReturnSuccess() throws Exception {
+    void logout_whenGetUserIdFromTokenFails_shouldCatchExceptionAndReturnSuccess() throws Exception {
         LogoutSuccessDTO mockResponse = LogoutSuccessDTO.builder()
                 .success(true)
                 .message("Logout successful")
                 .build();
 
-        when(authService.logout(any(), any())).thenReturn(mockResponse);
+        when(jwtService.getEmailFromToken("token-bad-user")).thenReturn("test@example.com");
+        when(jwtService.getUserIdFromToken("token-bad-user")).thenThrow(new RuntimeException("Invalid User ID claim"));
+        when(authService.logout("test@example.com", null)).thenReturn(mockResponse);
 
         mockMvc.perform(post("/api/v1/auth/logout")
-                        .header("Authorization", "Bearer invalid-token"))
+                        .header("Authorization", "Bearer token-bad-user"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.success").value(true));
-    }
-
-    @Test
-    void logout_whenEmailEmpty_shouldReturnSuccess() throws Exception {
-        LogoutSuccessDTO mockResponse = LogoutSuccessDTO.builder()
-                .success(true)
-                .message("Logout successful")
-                .build();
-
-        when(authService.logout(any(), any())).thenReturn(mockResponse);
-
-        mockMvc.perform(post("/api/v1/auth/logout")
-                        .header("Authorization", "Bearer invalid-token"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.success").value(true));
-    }
-
-    @Test
-    void logout_whenUserIdNull_shouldReturnSuccess() throws Exception {
-        LogoutSuccessDTO mockResponse = LogoutSuccessDTO.builder()
-                .success(true)
-                .message("Logout successful")
-                .build();
-
-        when(authService.logout(any(), any())).thenReturn(mockResponse);
-
-        mockMvc.perform(post("/api/v1/auth/logout")
-                        .header("Authorization", "Bearer invalid-token"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.success").value(true));
+                .andExpect(jsonPath("$.result.success").value(true))
+                .andExpect(jsonPath("$.result.message").value("Logout successful"));
     }
 
     // --- REFRESH ---
