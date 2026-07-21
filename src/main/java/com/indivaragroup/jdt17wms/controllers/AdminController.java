@@ -73,6 +73,7 @@ public class AdminController {
     }
 
 
+    @PutMapping("/products/{id}")
     @AuditLogged(action = "UPDATE_PRODUCT", category = "PRODUCT")
     public ApiResponse<ProductResponseDTO> updateProduct(
             @PathVariable UUID id,
