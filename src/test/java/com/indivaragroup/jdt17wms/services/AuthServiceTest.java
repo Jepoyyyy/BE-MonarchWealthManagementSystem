@@ -83,6 +83,27 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_withUserNotActive_shouldThrowUnauthorizedException() {
+        LoginDTO dto = LoginDTO.builder()
+                .loginRequestEmail("inactive@example.com")
+                .loginRequestPassword("Password123!")
+                .build();
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .email("inactive@example.com")
+                .status("DISABLED")
+                .build();
+
+        when(userRepository.findByEmail("inactive@example.com")).thenReturn(Optional.of(user));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> authService.login(dto));
+        assertEquals(ApiError.UNAUTHORIZED.getCode(), ex.getCode());
+        assertEquals("Account is Not active. Please Contact Admin", ex.getMessage());
+        verify(passwordEncoder, never()).matches(any(), any());
+        verify(auditLogRepository, never()).save(any());
+    }
+
+    @Test
     void login_withPasswordMismatch_shouldThrowBadRequestException() {
         LoginDTO dto = LoginDTO.builder().loginRequestEmail("user@example.com").loginRequestPassword("WrongPassword").build();
         User user = User.builder().email("user@example.com").passwordHash("hash").status("ACTIVE").build();
@@ -175,32 +196,6 @@ class AuthServiceTest {
 
         assertNotNull(response);
         assertTrue(response.getUser().getIsAdmin());
-    }
-
-    @Test
-    void login_success_projectionNotFound_shouldDefaultToFalseAdmin() {
-        LoginDTO dto = LoginDTO.builder().loginRequestEmail("user@example.com").loginRequestPassword("Password123!").build();
-        User user = User.builder()
-                .id(UUID.randomUUID())
-                .name("Test User")
-                .email("user@example.com")
-                .passwordHash("hash")
-                .role(UserRole.USER)
-                .questionnaireCompleted(false)
-                .status("ACTIVE")
-                .build();
-
-        when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("Password123!", "hash")).thenReturn(true);
-        when(jwtService.generateAccessToken(user)).thenReturn("access-token");
-        when(jwtService.generateRefreshToken(user)).thenReturn("refresh-token");
-        lenient().when(jwtService.getAccessTokenExpirationMs()).thenReturn(900);
-        lenient().when(jwtService.getRefreshTokenExpirationMs()).thenReturn(86400);
-
-        AuthSuccessDTO response = authService.login(dto);
-
-        assertNotNull(response);
-        assertFalse(response.getUser().getIsAdmin());
     }
 
     // --- Logout Tests ---

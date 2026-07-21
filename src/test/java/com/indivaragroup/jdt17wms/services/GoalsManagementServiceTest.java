@@ -3,7 +3,6 @@ package com.indivaragroup.jdt17wms.services;
 import com.indivaragroup.jdt17wms.dto.response.GoalDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
-import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.models.Goal;
 import com.indivaragroup.jdt17wms.models.User;
@@ -17,6 +16,7 @@ import com.indivaragroup.jdt17wms.models.FinancialProfile;
 import com.indivaragroup.jdt17wms.repositories.AssetRepository;
 import com.indivaragroup.jdt17wms.repositories.ExpenseRepository;
 import com.indivaragroup.jdt17wms.models.Asset;
+import com.indivaragroup.jdt17wms.models.Expense;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,13 +39,15 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @org.mockito.junit.jupiter.MockitoSettings(strictness = Strictness.LENIENT)
@@ -957,4 +959,345 @@ class GoalsManagementServiceTest {
         assertEquals("Updated Savings", result.getName());
         assertEquals(true, result.getIsPriority());
     }
+
+    @Test
+    void createGoalForUser_withNonNullCurrentAmount_setsCurrentAmountFromDto() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        GoalRegistrationDTO request = GoalRegistrationDTO.builder()
+                .name("Savings")
+                .type("savings")
+                .targetAmount(new BigDecimal("10000.00"))
+                .currentAmount(new BigDecimal("2500.00"))
+                .monthlyContribution(new BigDecimal("500.00"))
+                .targetDate(LocalDate.now(clock).plusMonths(6))
+                .isPriority(false)
+                .build();
+
+        Goal savedGoal = Goal.builder()
+                .id(UUID.randomUUID())
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .name("Savings")
+                .type("savings")
+                .targetAmount(new BigDecimal("10000.00"))
+                .currentAmount(new BigDecimal("2500.00"))
+                .monthlyContribution(new BigDecimal("500.00"))
+                .targetDate(LocalDate.now(clock).plusMonths(6))
+                .isPriority(false)
+                .status(GoalStatus.IN_PROGRESS)
+                .build();
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID))
+                .thenReturn(Optional.of(FinancialProfile.builder().monthlyIncome(new BigDecimal("5000.00")).build()));
+        when(goalRepository.save(any(Goal.class))).thenReturn(savedGoal);
+
+        GoalDTO result = goalsManagementService.createGoalForUser(request);
+
+        assertNotNull(result);
+        assertEquals(new BigDecimal("2500.00"), result.getCurrentAmount());
+    }
+
+    @Test
+    void updateGoalForUser_withNonNullCurrentAmount_updatesCurrentAmountOnGoal() {
+        UUID goalId = UUID.randomUUID();
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        Goal existingGoal = Goal.builder()
+                .id(goalId)
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .type("savings")
+                .currentAmount(new BigDecimal("1000.00"))
+                .monthlyContribution(new BigDecimal("200.00"))
+                .isPriority(false)
+                .status(GoalStatus.IN_PROGRESS)
+                .build();
+
+        GoalEditingDTO request = GoalEditingDTO.builder()
+                .name("Updated Savings")
+                .targetAmount(new BigDecimal("5000.00"))
+                .currentAmount(new BigDecimal("3500.00"))
+                .monthlyContribution(new BigDecimal("200.00"))
+                .targetDate(LocalDate.now(clock).plusMonths(6))
+                .isPriority(false)
+                .build();
+
+        FinancialProfile profile = FinancialProfile.builder().monthlyIncome(new BigDecimal("5000.00")).build();
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(existingGoal));
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(existingGoal));
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(profile));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GoalDTO result = goalsManagementService.updateGoalForUser(goalId, request);
+
+        assertNotNull(result);
+        assertEquals(new BigDecimal("3500.00"), result.getCurrentAmount());
+    }
+
+    @Test
+    void autoAllocateGoalsForUser_whenUserHasNoGoals_returnsEmptyList() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of());
+
+        List<GoalDTO> result = goalsManagementService.autoAllocateGoalsForUser(50);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void autoAllocateGoalsForUser_whenUserHasGoals_allocatesSurplusCorrectly() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+
+        UUID priorityId = UUID.randomUUID();
+        UUID otherId1 = UUID.randomUUID();
+
+        Goal priorityGoal = Goal.builder()
+                .id(priorityId)
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .name("Priority House")
+                .type("property")
+                .isPriority(true)
+                .status(GoalStatus.IN_PROGRESS)
+                .monthlyContribution(BigDecimal.ZERO)
+                .build();
+
+        Goal otherGoal = Goal.builder()
+                .id(otherId1)
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .name("Other Car")
+                .type("savings")
+                .isPriority(false)
+                .status(GoalStatus.IN_PROGRESS)
+                .monthlyContribution(BigDecimal.ZERO)
+                .build();
+
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(priorityGoal, otherGoal));
+
+        UUID fpId = UUID.randomUUID();
+        FinancialProfile fp = FinancialProfile.builder().id(fpId).monthlyIncome(new BigDecimal("10000.00")).build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("4000.00")).build();
+
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(fp));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<GoalDTO> result = goalsManagementService.autoAllocateGoalsForUser(60);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(new BigDecimal("3600.0000"), priorityGoal.getMonthlyContribution());
+        assertEquals(new BigDecimal("2400.0000"), otherGoal.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateIfNeeded_whenProfileNullOrDisabled_doesNotAllocate() {
+        UUID userId = SecurityUtils.STATIC_USER_ID;
+
+        // Case A: Profile null
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        goalsManagementService.autoAllocateIfNeeded(userId);
+        verify(goalRepository, never()).findAllByUserId(any());
+        verify(goalRepository, never()).save(any());
+
+        // Case B: Auto-allocation disabled
+        FinancialProfile disabledProfile = FinancialProfile.builder().autoAllocationEnabled(false).build();
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.of(disabledProfile));
+        goalsManagementService.autoAllocateIfNeeded(userId);
+        verify(goalRepository, never()).findAllByUserId(any());
+        verify(goalRepository, never()).save(any());
+    }
+
+    @Test
+    void autoAllocateIfNeeded_whenActiveGoalsLessThanTwoOrNoPriorityGoal_doesNotAllocate() {
+        UUID userId = SecurityUtils.STATIC_USER_ID;
+        FinancialProfile profile = FinancialProfile.builder()
+                .autoAllocationEnabled(true)
+                .priorityAllocationPercentage(50)
+                .build();
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+
+        // Case A: Only 1 active goal
+        Goal singleGoal = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.IN_PROGRESS).build();
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(singleGoal));
+        goalsManagementService.autoAllocateIfNeeded(userId);
+        verify(goalRepository, never()).save(any());
+        assertNull(singleGoal.getMonthlyContribution());
+
+        // Case B: 2 active goals but neither is priority
+        Goal nonPriority1 = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        Goal nonPriority2 = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(nonPriority1, nonPriority2));
+        goalsManagementService.autoAllocateIfNeeded(userId);
+        verify(goalRepository, never()).save(any());
+        assertNull(nonPriority1.getMonthlyContribution());
+        assertNull(nonPriority2.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateIfNeeded_whenEnabledWithNullPercentage_usesDefaultFiftyPercent() {
+        UUID userId = SecurityUtils.STATIC_USER_ID;
+        UUID fpId = UUID.randomUUID();
+        FinancialProfile profile = FinancialProfile.builder()
+                .id(fpId)
+                .monthlyIncome(new BigDecimal("10000.00"))
+                .autoAllocationEnabled(true)
+                .priorityAllocationPercentage(null)
+                .build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("2000.00")).build();
+
+        Goal priorityGoal = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.IN_PROGRESS).build();
+        Goal otherGoal = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(priorityGoal, otherGoal));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        goalsManagementService.autoAllocateIfNeeded(userId);
+
+        // Surplus = 8000. 50% fallback -> priority gets 4000, other gets 4000
+        assertEquals(new BigDecimal("4000.0000"), priorityGoal.getMonthlyContribution());
+        assertEquals(new BigDecimal("4000.0000"), otherGoal.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateGoalsForUser_whenSurplusIsZero_doesNotAllocateAndSetsContributionsToZero() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+
+        Goal priorityGoal = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.IN_PROGRESS).build();
+        Goal otherGoal = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(priorityGoal, otherGoal));
+
+        UUID fpId = UUID.randomUUID();
+        // Income (2000) <= Expenses (3000) -> Surplus = 0
+        FinancialProfile fp = FinancialProfile.builder().id(fpId).monthlyIncome(new BigDecimal("2000.00")).build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("3000.00")).build();
+
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(fp));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<GoalDTO> result = goalsManagementService.autoAllocateGoalsForUser(50);
+
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, priorityGoal.getMonthlyContribution());
+        assertEquals(BigDecimal.ZERO, otherGoal.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateGoalsForUser_whenNoPriorityGoalExists_doesNotAllocateAndSetsContributionsToZero() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+
+        // Two IN_PROGRESS goals, but neither is marked priority -> priorityGoal == null
+        Goal nonPriority1 = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        Goal nonPriority2 = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(nonPriority1, nonPriority2));
+
+        UUID fpId = UUID.randomUUID();
+        FinancialProfile fp = FinancialProfile.builder().id(fpId).monthlyIncome(new BigDecimal("10000.00")).build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("2000.00")).build();
+
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(fp));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<GoalDTO> result = goalsManagementService.autoAllocateGoalsForUser(50);
+
+        assertNotNull(result);
+        assertEquals(BigDecimal.ZERO, nonPriority1.getMonthlyContribution());
+        assertEquals(BigDecimal.ZERO, nonPriority2.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateGoalsForUser_whenOnlyPriorityGoalExists_otherCountIsZero() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+
+        // Only 1 priority goal, 0 non-priority goals -> otherCount == 0
+        Goal priorityGoal = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.IN_PROGRESS).build();
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(priorityGoal));
+
+        UUID fpId = UUID.randomUUID();
+        FinancialProfile fp = FinancialProfile.builder().id(fpId).monthlyIncome(new BigDecimal("10000.00")).build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("5000.00")).build();
+
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(fp));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<GoalDTO> result = goalsManagementService.autoAllocateGoalsForUser(60);
+
+        assertNotNull(result);
+        // Surplus = 5000 * 60% = 3000
+        assertEquals(new BigDecimal("3000.0000"), priorityGoal.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateGoalsForUser_withAchievedAndInactiveGoals_coversStatusFiltersAndLoop() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+
+        Goal achievedPriority = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.ACHIEVED).build();
+        Goal nullPriority = Goal.builder().id(UUID.randomUUID()).isPriority(null).status(GoalStatus.IN_PROGRESS).build();
+        Goal activePriority = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.IN_PROGRESS).build();
+        Goal activeOther = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        Goal achievedOther = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.ACHIEVED).build();
+
+        // Placing achievedPriority and nullPriority BEFORE activePriority ensures findFirst & filter evaluate all branch combinations
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID))
+                .thenReturn(List.of(achievedPriority, nullPriority, activePriority, activeOther, achievedOther));
+
+        UUID fpId = UUID.randomUUID();
+        FinancialProfile fp = FinancialProfile.builder().id(fpId).monthlyIncome(new BigDecimal("10000.00")).build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("2000.00")).build();
+
+        when(financialProfileRepository.findByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(fp));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        List<GoalDTO> result = goalsManagementService.autoAllocateGoalsForUser(50);
+
+        assertNotNull(result);
+        // Active priority gets 4000, active other & nullPriority (both non-priority) get 2000 each
+        assertEquals(new BigDecimal("4000.0000"), activePriority.getMonthlyContribution());
+        assertEquals(new BigDecimal("2000.0000"), activeOther.getMonthlyContribution());
+    }
+
+    @Test
+    void autoAllocateIfNeeded_whenPercentageIsNotNull_usesConfiguredPercentage() {
+        UUID userId = SecurityUtils.STATIC_USER_ID;
+        UUID fpId = UUID.randomUUID();
+        // Configured percentage = 70 (non-null)
+        FinancialProfile profile = FinancialProfile.builder()
+                .id(fpId)
+                .monthlyIncome(new BigDecimal("10000.00"))
+                .autoAllocationEnabled(true)
+                .priorityAllocationPercentage(70)
+                .build();
+        Expense exp = Expense.builder().totalExpenses(new BigDecimal("0.00")).build();
+
+        Goal achievedPriority = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.ACHIEVED).build();
+        Goal activePriority = Goal.builder().id(UUID.randomUUID()).isPriority(true).status(GoalStatus.IN_PROGRESS).build();
+        Goal otherGoal = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.IN_PROGRESS).build();
+        Goal achievedGoal = Goal.builder().id(UUID.randomUUID()).isPriority(false).status(GoalStatus.ACHIEVED).build();
+
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.of(profile));
+        when(expenseRepository.findByFinancialProfileId(fpId)).thenReturn(Optional.of(exp));
+        // Placing achievedPriority BEFORE activePriority ensures anyMatch evaluates isPriority=true with status=ACHIEVED (false branch of status check)
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(achievedPriority, activePriority, otherGoal, achievedGoal));
+        when(goalRepository.save(any(Goal.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        goalsManagementService.autoAllocateIfNeeded(userId);
+
+        // Surplus = 10000. 70% to priority -> 7000, 30% to other -> 3000
+        assertEquals(new BigDecimal("7000.0000"), activePriority.getMonthlyContribution());
+        assertEquals(new BigDecimal("3000.0000"), otherGoal.getMonthlyContribution());
+    }
 }
+
+

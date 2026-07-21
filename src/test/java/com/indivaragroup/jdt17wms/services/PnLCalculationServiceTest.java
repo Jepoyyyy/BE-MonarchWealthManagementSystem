@@ -309,4 +309,57 @@ class PnLCalculationServiceTest {
         assertEquals(BigDecimal.valueOf(10000).setScale(2, RoundingMode.HALF_UP), result.getRealizedPnL());
         assertEquals(0, result.getRealizedPnLPercent().compareTo(BigDecimal.ZERO));
     }
+
+    @Test
+    void testComputePnL_whenUnitsNull_throwsBadRequestException() {
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        asset.setUnits(null);
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> pnLCalculationService.computePnLForAsset(asset));
+        assertEquals(com.indivaragroup.jdt17wms.dto.utils.ApiError.BAD_REQUEST.getCode(), ex.getCode());
+        assertTrue(ex.getMessage().contains("null units"));
+    }
+
+    @Test
+    void testComputePnL_whenRemainingUnitsNegative_throwsBadRequestException() {
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        TransactionHistory sellExcessive = TransactionHistory.builder()
+                .action(TransactionAction.SELL)
+                .units(BigDecimal.valueOf(150))
+                .totalAmount(BigDecimal.valueOf(750000))
+                .build();
+
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(assetId, TransactionAction.BUY))
+                .thenReturn(List.of());
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(assetId, TransactionAction.SELL))
+                .thenReturn(List.of(sellExcessive));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> pnLCalculationService.computePnLForAsset(asset));
+        assertEquals(com.indivaragroup.jdt17wms.dto.utils.ApiError.BAD_REQUEST.getCode(), ex.getCode());
+        assertTrue(ex.getMessage().contains("negative remaining units"));
+    }
+
+    @Test
+    void testComputePnL_whenCurrentPriceZero_skipsPotentialPnLCalculation() {
+        product.setCurrentPrice(BigDecimal.ZERO);
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        TransactionHistory buy = TransactionHistory.builder()
+                .action(TransactionAction.BUY)
+                .units(BigDecimal.valueOf(100))
+                .pricePerUnit(BigDecimal.valueOf(5000))
+                .totalAmount(BigDecimal.valueOf(500000))
+                .build();
+
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(assetId, TransactionAction.BUY))
+                .thenReturn(List.of(buy));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(assetId, TransactionAction.SELL))
+                .thenReturn(List.of());
+
+        AssetsPnLResponseDTO result = pnLCalculationService.computePnLForAsset(asset);
+
+        assertEquals(BigDecimal.ZERO, result.getPotentialPnL());
+        assertEquals(BigDecimal.ZERO, result.getPotentialPnLPercent());
+    }
 }

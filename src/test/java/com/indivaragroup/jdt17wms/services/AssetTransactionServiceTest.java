@@ -26,6 +26,7 @@ import org.mockito.quality.Strictness;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -168,7 +169,7 @@ class AssetTransactionServiceTest {
         AssetsPnLResponseDTO pnl = AssetsPnLResponseDTO.builder().assetId(assetId).build();
         when(pnLCalculationService.computePnLForAsset(any(Asset.class))).thenReturn(pnl);
 
-        LocalDateTime txDate = LocalDateTime.of(2026, 6, 15, 10, 30);
+        LocalDateTime txDate = LocalDateTime.of(2026, Month.JULY, 15, 10, 30);
         AssetTransactionDTO dto = AssetTransactionDTO.builder()
                 .units(BigDecimal.valueOf(5))
                 .transactionDate(txDate)
@@ -574,19 +575,21 @@ class AssetTransactionServiceTest {
 
     @Test
     void updateAssetCurrentValue_shouldThrowNotFound_whenAssetNotFound() {
+      BigDecimal assetValue = BigDecimal.valueOf(600000);
         when(assetRepository.findById(assetId)).thenReturn(Optional.empty());
 
         assertThrows(CoreThrowHandler.class,
-                () -> assetTransactionService.updateAssetCurrentValue(assetId, BigDecimal.valueOf(600000), "test", user));
+                () -> assetTransactionService.updateAssetCurrentValue(assetId, assetValue, "test", user));
     }
 
     @Test
     void updateAssetCurrentValue_shouldThrowNotFound_whenNotOwned() {
         User otherUser = User.builder().id(UUID.randomUUID()).build();
+        BigDecimal assetValue = BigDecimal.valueOf(600000);
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
 
         assertThrows(CoreThrowHandler.class,
-                () -> assetTransactionService.updateAssetCurrentValue(assetId, BigDecimal.valueOf(600000), "test", otherUser));
+                () -> assetTransactionService.updateAssetCurrentValue(assetId, assetValue, "test", otherUser));
     }
 
     // ==========================================
@@ -647,5 +650,294 @@ class AssetTransactionServiceTest {
                 .build();
 
         assertDoesNotThrow(() -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
+    }
+
+    @Test
+    void executeBuyTransaction_withoutTransactionDate_shouldUseCurrentInstant() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssetsPnLResponseDTO pnl = AssetsPnLResponseDTO.builder().assetId(assetId).build();
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class))).thenReturn(pnl);
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(5))
+                .transactionDate(null)
+                .build();
+
+        assetTransactionService.executeBuyTransaction(assetId, dto, user);
+
+        ArgumentCaptor<TransactionHistory> txCaptor = ArgumentCaptor.forClass(TransactionHistory.class);
+        verify(transactionHistoryRepository).save(txCaptor.capture());
+        assertNotNull(txCaptor.getValue().getTransactionDate());
+    }
+
+    @Test
+    void executeBuyTransaction_whenMinInvestmentIsZero_shouldSkipMinInvestmentCheck() {
+        product.setMinInvestment(BigDecimal.ZERO);
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(1))
+                .build();
+
+        assertDoesNotThrow(() -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
+    }
+
+    @Test
+    void executeSellTransaction_withTransactionDate_shouldUseProvidedDate() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        LocalDateTime txDate = LocalDateTime.of(2026, Month.JULY, 1, 12, 0);
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(10))
+                .transactionDate(txDate)
+                .build();
+
+        assetTransactionService.executeSellTransaction(assetId, dto, user);
+
+        ArgumentCaptor<TransactionHistory> txCaptor = ArgumentCaptor.forClass(TransactionHistory.class);
+        verify(transactionHistoryRepository).save(txCaptor.capture());
+        assertNotNull(txCaptor.getValue().getTransactionDate());
+    }
+
+    @Test
+    void executeSellTransaction_withoutTransactionDate_shouldUseCurrentInstant() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(10))
+                .transactionDate(null)
+                .build();
+
+        assetTransactionService.executeSellTransaction(assetId, dto, user);
+
+        ArgumentCaptor<TransactionHistory> txCaptor = ArgumentCaptor.forClass(TransactionHistory.class);
+        verify(transactionHistoryRepository).save(txCaptor.capture());
+        assertNotNull(txCaptor.getValue().getTransactionDate());
+    }
+
+    @Test
+    void executeSellTransaction_whenAssetUnitsIsNull_shouldDefaultToZeroAndThrowNoUnitsAvailable() {
+        asset.setUnits(null);
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(10))
+                .build();
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> assetTransactionService.executeSellTransaction(assetId, dto, user));
+        assertEquals("No units available to sell", ex.getMessage());
+    }
+
+    @Test
+    void executeBuyTransaction_whenUnitsIsZero_shouldEvaluateHasUnitsAsFalseAndThrowEitherUnitsOrAmountRequired() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.ZERO)
+                .amount(null)
+                .build();
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
+        assertEquals("Either units or amount must be provided", ex.getMessage());
+    }
+
+    @Test
+    void executeBuyTransaction_whenAmountIsZero_shouldEvaluateHasAmountAsFalseAndThrowEitherUnitsOrAmountRequired() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(null)
+                .amount(BigDecimal.ZERO)
+                .build();
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
+        assertEquals("Either units or amount must be provided", ex.getMessage());
+    }
+
+    @Test
+    void executeBuyTransaction_whenUnitsZeroAndAmountPositive_shouldBuyByAmount() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.ZERO)
+                .amount(BigDecimal.valueOf(100000))
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeBuyTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(100000).setScale(4, RoundingMode.HALF_UP), response.getAmountTransacted());
+    }
+
+    @Test
+    void executeBuyTransaction_whenUnitsPositiveAndAmountZero_shouldBuyByUnits() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(10))
+                .amount(BigDecimal.ZERO)
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeBuyTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(10), response.getUnitsTransacted());
+    }
+
+    @Test
+    void executeSellTransaction_whenUnitsZeroAndAmountPositive_shouldSellByAmount() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        product.setType("bond");
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.ZERO)
+                .amount(BigDecimal.valueOf(100000))
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeSellTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(100000).setScale(4, RoundingMode.HALF_UP), response.getAmountTransacted());
+    }
+
+    @Test
+    void executeSellTransaction_whenUnitsPositiveAndAmountZero_shouldSellByUnits() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(10))
+                .amount(BigDecimal.ZERO)
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeSellTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(10), response.getUnitsTransacted());
+    }
+
+    @Test
+    void executeSellTransaction_stockSellByUnitsWithSellAction_shouldPassStockCheckAndSucceed() {
+        product.setType("Stock");
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .action(TransactionAction.SELL)
+                .units(BigDecimal.valueOf(10))
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeSellTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(10), response.getUnitsTransacted());
+    }
+
+    @Test
+    void executeSellTransaction_nonFractionalProductWithWholeUnits_shouldPassFractionalCheckAndSucceed() {
+        product.setIsFractionalAllowed(false);
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(new BigDecimal("10.00"))
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeSellTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(new BigDecimal("10.00"), response.getUnitsTransacted());
+    }
+
+    @Test
+    void executeBuyTransaction_stockBuyByAmountWithNonFractionalProduct_shouldPassLotSizeCheckAndSucceed() {
+        product.setType("stock");
+        product.setIsFractionalAllowed(false);
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class)))
+                .thenReturn(AssetsPnLResponseDTO.builder().assetId(assetId).build());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .amount(BigDecimal.valueOf(100000))
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeBuyTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(100000).setScale(4, RoundingMode.HALF_UP), response.getAmountTransacted());
     }
 }

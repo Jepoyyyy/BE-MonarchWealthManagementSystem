@@ -1264,5 +1264,134 @@ class ActionRecommendationServiceTest {
         assertEquals(1, recs.size());
         assertEquals("emergency", recs.get(0).getCategory());
     }
+
+    @Test
+    void getHealthScore_whenAssetReferencesMissingProduct_handlesNullProductInRiskAlignment() {
+        User user = User.builder().id(userId).riskProfile("moderate").questionnaireCompleted(true).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        Product pDeposit = Product.builder().id(UUID.randomUUID()).type("deposit").riskLevel(1).visible(true).build();
+        when(productRepository.findAll()).thenReturn(List.of(pDeposit));
+
+        // Asset 1 references a valid product; Asset 2 references a non-existent product ID
+        Asset aValid = Asset.builder().productId(pDeposit.getId()).currentValue(BigDecimal.valueOf(50000)).build();
+        Asset aMissingProd = Asset.builder().productId(UUID.randomUUID()).currentValue(BigDecimal.valueOf(50000)).build();
+        when(assetRepository.findAllByUserId(userId)).thenReturn(List.of(aValid, aMissingProd));
+        when(goalRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        HealthDTO health = actionRecommendationService.getHealthScore();
+
+        assertNotNull(health);
+        assertEquals(BigDecimal.valueOf(100000), health.getPortfolioValue());
+    }
+
+    @Test
+    void generateRecommendations_whenEmergencyTargetIsZeroAndLiquidValueNegative_evaluatesTernaryFalseBranch() {
+        User user = User.builder().id(userId).riskProfile("moderate").questionnaireCompleted(true).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        Product pDeposit = Product.builder()
+                .id(UUID.randomUUID())
+                .name("Liquid Deposit")
+                .type("deposit")
+                .riskLevel(1)
+                .visible(true)
+                .annualReturn(BigDecimal.valueOf(4.0))
+                .minInvestment(BigDecimal.valueOf(1000))
+                .build();
+        when(productRepository.findAll()).thenReturn(List.of(pDeposit));
+
+        // Negative liquid value, so liquidValue (-100) < emergencyThreshold (0) is true
+        Asset aNegative = Asset.builder()
+                .productId(pDeposit.getId())
+                .currentValue(BigDecimal.valueOf(-100))
+                .build();
+        when(assetRepository.findAllByUserId(userId)).thenReturn(List.of(aNegative));
+
+        // Financial profile with 0 expenses -> emergencyTarget = 0
+        FinancialProfile fp = FinancialProfile.builder().id(UUID.randomUUID()).monthlyIncome(BigDecimal.ZERO).build();
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.of(fp));
+        Expense exp = Expense.builder().totalExpenses(BigDecimal.ZERO).build();
+        when(expenseRepository.findByFinancialProfileId(fp.getId())).thenReturn(Optional.of(exp));
+        when(goalRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
+
+        when(recommendationRepository.findAllByUserIdAndStatus(userId, RecommendationStatus.PENDING))
+                .thenReturn(Collections.emptyList());
+        when(recommendationRepository.saveAllAndFlush(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<RecommendationDTO> recs = actionRecommendationService.generateRecommendations();
+
+        assertNotNull(recs);
+        RecommendationDTO emergencyRec = recs.stream()
+                .filter(r -> "emergency".equals(r.getCategory()))
+                .findFirst().orElse(null);
+        assertNotNull(emergencyRec);
+        assertTrue(emergencyRec.getReason().contains("0% of the recommended"));
+    }
+
+    @Test
+    void generateRecommendations_hydratesGoalDTOViaToGoalDTO() {
+        User user = User.builder().id(userId).riskProfile("moderate").questionnaireCompleted(true).build();
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        UUID goalId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+
+        Product pBond = Product.builder()
+                .id(productId)
+                .name("Government Bond")
+                .type("bond")
+                .riskLevel(2)
+                .visible(true)
+                .annualReturn(BigDecimal.valueOf(6.0))
+                .minInvestment(BigDecimal.valueOf(1000))
+                .build();
+        when(productRepository.findAll()).thenReturn(List.of(pBond));
+        when(assetRepository.findAllByUserId(userId)).thenReturn(Collections.emptyList());
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+
+        Goal priorityGoal = Goal.builder()
+                .id(goalId)
+                .userId(userId)
+                .name("Retirement Goal")
+                .type("retirement")
+                .targetAmount(BigDecimal.valueOf(500000))
+                .monthlyContribution(BigDecimal.valueOf(5000))
+                .currentAmount(BigDecimal.valueOf(100000))
+                .targetDate(LocalDate.now(clock).plusYears(5))
+                .isPriority(true)
+                .notes("Priority goal notes")
+                .status(com.indivaragroup.jdt17wms.models.enums.GoalStatus.IN_PROGRESS)
+                .createdAt(Instant.now(clock))
+                .updatedAt(Instant.now(clock))
+                .build();
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(priorityGoal));
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(priorityGoal));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(pBond));
+
+        when(recommendationRepository.findAllByUserIdAndStatus(userId, RecommendationStatus.PENDING))
+                .thenReturn(Collections.emptyList());
+        when(recommendationRepository.saveAllAndFlush(anyList()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<RecommendationDTO> recs = actionRecommendationService.generateRecommendations();
+
+        assertNotNull(recs);
+        RecommendationDTO goalRec = recs.stream()
+                .filter(r -> "goal".equals(r.getCategory()))
+                .findFirst().orElse(null);
+        assertNotNull(goalRec);
+        assertNotNull(goalRec.getGoal());
+        assertEquals(goalId, goalRec.getGoal().getId());
+        assertEquals("Retirement Goal", goalRec.getGoal().getName());
+        assertEquals("retirement", goalRec.getGoal().getType());
+        assertEquals(BigDecimal.valueOf(500000), goalRec.getGoal().getTargetAmount());
+        assertEquals(BigDecimal.valueOf(5000), goalRec.getGoal().getMonthlyContribution());
+        assertEquals(BigDecimal.valueOf(100000), goalRec.getGoal().getCurrentAmount());
+        assertTrue(goalRec.getGoal().getIsPriority());
+        assertEquals("Priority goal notes", goalRec.getGoal().getNotes());
+    }
 }
 

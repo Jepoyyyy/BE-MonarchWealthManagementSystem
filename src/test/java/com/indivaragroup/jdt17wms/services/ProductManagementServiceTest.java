@@ -339,4 +339,72 @@ class ProductManagementServiceTest {
         assertEquals(1, result.getTotalElements());
         assertEquals(ProductResponseDTO.fromEntity(product), result.getContent().getFirst());
     }
+
+    @Test
+    void getProductById_shouldReturnProduct_whenProductExistsAndIsVisible() {
+        UUID productId = UUID.randomUUID();
+        Product product = Product.builder()
+                .id(productId)
+                .name("Test Product")
+                .visible(true)
+                .build();
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        ProductResponseDTO result = productManagementService.getProductById(productId);
+
+        assertNotNull(result);
+        assertEquals(productId, result.getId());
+        assertEquals("Test Product", result.getName());
+        assertTrue(result.getVisible());
+    }
+
+    @Test
+    void getProductById_shouldThrowException_whenProductDoesNotExist() {
+        UUID productId = UUID.randomUUID();
+        when(productRepository.findById(productId)).thenReturn(Optional.empty());
+
+        assertThrows(CoreThrowHandler.class, () -> productManagementService.getProductById(productId));
+    }
+
+    @Test
+    void getProductById_shouldThrowException_whenProductIsNotVisible() {
+        UUID productId = UUID.randomUUID();
+        Product product = Product.builder()
+                .id(productId)
+                .name("Hidden Product")
+                .visible(false)
+                .build();
+
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        assertThrows(CoreThrowHandler.class, () -> productManagementService.getProductById(productId));
+    }
+
+    @Test
+    void getProductsForUser_shouldHandleNullNameOrIssuer_whenSearching() {
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .role(UserRole.USER)
+                .questionnaireCompleted(true)
+                .riskProfile("risk_taker")
+                .build();
+
+        Product productWithNullName = Product.builder().name(null).issuer("Issuer").visible(true).build();
+        Product productWithNullIssuer = Product.builder().name("Name").issuer(null).visible(true).build();
+
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(productRepository.findAll()).thenReturn(List.of(productWithNullName, productWithNullIssuer));
+
+        Page<ProductResponseDTO> result = productManagementService.getProductsForUser(
+                new ProductQueryDTO("searchQuery", null, false, false),
+                PageRequest.of(0, 10)
+        );
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalElements());
+    }
 }
+

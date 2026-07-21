@@ -107,4 +107,77 @@ class AssetValueUpdateSchedulerTest {
                 a.getCurrentValue().compareTo(new BigDecimal("1500.00")) == 0
         ));
     }
+
+    @Test
+    void updateAllAssetValues_shouldSkipAssetWhenProductNotFound() {
+        UUID assetId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        Asset asset = Asset.builder().id(assetId).productId(productId).units(new BigDecimal("10.0")).build();
+
+        when(assetRepository.findAll()).thenReturn(List.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.empty());
+
+        scheduler.updateAllAssetValues();
+
+        verify(assetRepository, never()).save(any(Asset.class));
+    }
+
+    @Test
+    void updateAllAssetValues_shouldSkipAssetWhenCurrentPriceIsNull() {
+        UUID assetId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+        Product product = Product.builder().id(productId).currentPrice(null).build();
+        Asset asset = Asset.builder().id(assetId).productId(productId).units(new BigDecimal("10.0")).build();
+
+        when(assetRepository.findAll()).thenReturn(List.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+
+        scheduler.updateAllAssetValues();
+
+        verify(assetRepository, never()).save(any(Asset.class));
+    }
+
+    @Test
+    void updateAllAssetValues_shouldSkipAssetWhenCurrentPriceIsZeroOrNegative() {
+        UUID assetId1 = UUID.randomUUID();
+        UUID productId1 = UUID.randomUUID();
+        Product zeroPriceProduct = Product.builder().id(productId1).currentPrice(BigDecimal.ZERO).build();
+        Asset asset1 = Asset.builder().id(assetId1).productId(productId1).units(new BigDecimal("10.0")).build();
+
+        UUID assetId2 = UUID.randomUUID();
+        UUID productId2 = UUID.randomUUID();
+        Product negativePriceProduct = Product.builder().id(productId2).currentPrice(new BigDecimal("-10.00")).build();
+        Asset asset2 = Asset.builder().id(assetId2).productId(productId2).units(new BigDecimal("10.0")).build();
+
+        when(assetRepository.findAll()).thenReturn(List.of(asset1, asset2));
+        when(productRepository.findById(productId1)).thenReturn(Optional.of(zeroPriceProduct));
+        when(productRepository.findById(productId2)).thenReturn(Optional.of(negativePriceProduct));
+
+        scheduler.updateAllAssetValues();
+
+        verify(assetRepository, never()).save(any(Asset.class));
+    }
+
+    @Test
+    void updateAllAssetValues_shouldHandleExceptionDuringAssetProcessingAndContinue() {
+        UUID assetId1 = UUID.randomUUID();
+        UUID productId1 = UUID.randomUUID();
+        Asset asset1 = Asset.builder().id(assetId1).productId(productId1).units(new BigDecimal("10.0")).build();
+
+        UUID assetId2 = UUID.randomUUID();
+        UUID productId2 = UUID.randomUUID();
+        Product product2 = Product.builder().id(productId2).currentPrice(new BigDecimal("100.00")).build();
+        Asset asset2 = Asset.builder().id(assetId2).productId(productId2).units(new BigDecimal("5.0")).build();
+
+        when(assetRepository.findAll()).thenReturn(List.of(asset1, asset2));
+        when(productRepository.findById(productId1)).thenThrow(new RuntimeException("Database connection error"));
+        when(productRepository.findById(productId2)).thenReturn(Optional.of(product2));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(assetId2, TransactionAction.SELL))
+                .thenReturn(List.of());
+
+        scheduler.updateAllAssetValues();
+
+        verify(assetRepository, times(1)).save(asset2);
+    }
 }
+
