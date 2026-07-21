@@ -63,7 +63,6 @@ public class AssetTransactionService {
 
         // Determine units and amount
         boolean hasUnits = dto.getUnits() != null && dto.getUnits().compareTo(BigDecimal.ZERO) > 0;
-        boolean hasAmount = dto.getAmount() != null && dto.getAmount().compareTo(BigDecimal.ZERO) > 0;
 
         BigDecimal unitsToBuy;
         BigDecimal totalAmount;
@@ -167,7 +166,6 @@ public class AssetTransactionService {
 
         // Determine units to sell
         boolean hasUnits = dto.getUnits() != null && dto.getUnits().compareTo(BigDecimal.ZERO) > 0;
-        boolean hasAmount = dto.getAmount() != null && dto.getAmount().compareTo(BigDecimal.ZERO) > 0;
 
         BigDecimal unitsToSell;
         BigDecimal actualAmount;
@@ -258,24 +256,22 @@ public class AssetTransactionService {
         }
 
         // Stock-specific: sell by units only
-        if ("Stock".equalsIgnoreCase(type) && dto.getAction() == TransactionAction.SELL) {
-            if (hasAmount && !hasUnits) {
+        if ("Stock".equalsIgnoreCase(type) && dto.getAction() == TransactionAction.SELL && hasAmount) {
                 throw new CoreThrowHandler(ApiError.BAD_REQUEST,
                         "Stocks can only be sold by units, not by amount");
             }
-        }
 
-        // Fractional units validation
-        if (hasUnits && !Boolean.TRUE.equals(product.getIsFractionalAllowed())) {
-            if (dto.getUnits().stripTrailingZeros().scale() > 0) {
+
+      // Fractional units validation
+        if (hasUnits && !Boolean.TRUE.equals(product.getIsFractionalAllowed()) && dto.getUnits().stripTrailingZeros().scale() > 0) {
                 throw new CoreThrowHandler(ApiError.BAD_REQUEST,
                         "Fractional units not allowed for this product");
             }
-        }
 
-        // Lot size validation for stocks
+
+      // Lot size validation for stocks
         if ("stock".equals(type) && !Boolean.TRUE.equals(product.getIsFractionalAllowed())
-                && hasUnits && dto.getUnits().compareTo(BigDecimal.ZERO) > 0) {
+                && hasUnits) {
             int lotSize = product.getLotSize();
             BigDecimal remainder = dto.getUnits().remainder(BigDecimal.valueOf(lotSize));
             if (remainder.compareTo(BigDecimal.ZERO) != 0) {

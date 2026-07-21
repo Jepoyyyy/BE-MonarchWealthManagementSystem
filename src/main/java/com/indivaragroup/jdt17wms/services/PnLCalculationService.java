@@ -132,7 +132,7 @@ public class PnLCalculationService {
     private BigDecimal calculateAveragePrice(Asset asset, List<TransactionHistory> buyTransactions) {
         if (buyTransactions.isEmpty()) {
             // Fallback: use asset's stored amount and units
-            if (asset.getUnits().compareTo(BigDecimal.ZERO) > 0) {
+            if (asset.getUnits() != null && asset.getUnits().compareTo(BigDecimal.ZERO) > 0) {
                 return asset.getAmount()
                         .divide(asset.getUnits(), 4, RoundingMode.HALF_UP);
             }

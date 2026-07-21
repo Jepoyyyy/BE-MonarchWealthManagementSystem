@@ -66,10 +66,6 @@ GoalsProjectionService {
     User user = userRepository.findById(SecurityUtils.getCurrentUserId())
       .orElseThrow(() -> new CoreThrowHandler(ApiError.USER_NOT_FOUND));
 
-    if (!Boolean.TRUE.equals(user.getQuestionnaireCompleted())) {
-      throw new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER);
-    }
-
     double defaultMonthlyRate = 0.0; // Savings do not grow like assets do, so rate is 0.0
 
     List<Goal> goals = goalRepository.findAllByUserId(user.getId());
@@ -117,9 +113,6 @@ GoalsProjectionService {
         Product product = productRepository.findById(asset.getProductId())
           .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
 
-        if (product.getAnnualReturn() == null) {
-          throw new CoreThrowHandler(ApiError.BAD_REQUEST,"Missing Annual Return");
-        }
         rates[j] = product.getAnnualReturn().doubleValue() / ONE_HUNDRED_PERCENT / MONTHS_COUNT;
       }
 
