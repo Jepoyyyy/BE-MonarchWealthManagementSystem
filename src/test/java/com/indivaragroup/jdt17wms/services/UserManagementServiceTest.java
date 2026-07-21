@@ -155,7 +155,7 @@ class UserManagementServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         UserStatusUpdateDTO dto = UserStatusUpdateDTO.builder().status("active").build();
-        User updatedUser = userManagementService.updateUserStatus(id, dto);
+        AdminUserDTO updatedUser = userManagementService.updateUserStatus(id, dto);
 
         assertNotNull(updatedUser);
         assertEquals("active", updatedUser.getStatus());

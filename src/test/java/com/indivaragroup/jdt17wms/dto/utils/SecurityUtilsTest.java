@@ -55,4 +55,16 @@ class SecurityUtilsTest {
 
         assertEquals(expectedId, SecurityUtils.getCurrentUserId());
     }
+
+    @Test
+    void getCurrentUserId_whenUserDtoIdIsNull_shouldThrowCoreThrowHandler() {
+        UserDTO userDTO = UserDTO.builder()
+                .id(null)
+                .email("user@example.com")
+                .build();
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDTO, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        assertThrows(CoreThrowHandler.class, SecurityUtils::getCurrentUserId);
+    }
 }

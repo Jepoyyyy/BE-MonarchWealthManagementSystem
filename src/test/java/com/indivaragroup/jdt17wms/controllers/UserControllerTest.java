@@ -4,7 +4,6 @@ import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
-import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.services.UserManagementService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -79,7 +78,7 @@ class UserControllerTest extends BaseControllerTest {
     @Test
     void updateUser_shouldReturnOk() throws Exception {
         UUID id = UUID.randomUUID();
-        User user = new User();
+        AdminUserDTO user = AdminUserDTO.builder().build();
         when(userManagementService.updateUserStatus(any(UUID.class), any(UserStatusUpdateDTO.class)))
                 .thenReturn(user);
 
@@ -92,8 +91,7 @@ class UserControllerTest extends BaseControllerTest {
     @Test
     void updateUser_suspendedStatus_shouldReturnOk() throws Exception {
         UUID id = UUID.randomUUID();
-        User user = new User();
-        user.setStatus("suspended");
+        AdminUserDTO user = AdminUserDTO.builder().status("suspended").build();
         when(userManagementService.updateUserStatus(any(UUID.class), any(UserStatusUpdateDTO.class)))
                 .thenReturn(user);
 

@@ -157,7 +157,7 @@ class AssetsManagementServiceTest {
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(log, result.getFirst());
+        assertEquals(log.getId(), result.getFirst().getId());
     }
 
     @Test
@@ -182,11 +182,11 @@ class AssetsManagementServiceTest {
         when(transactionHistoryRepository.findAllByAssetIdOrderByTransactionDateDesc(assetId))
                 .thenReturn(List.of(log));
 
-        List<TransactionHistory> result = assetsManagementService.getTransactionHistoryForAsset(assetId);
+        List<TransactionHistoryDTO> result = assetsManagementService.getTransactionHistoryForAsset(assetId);
 
         assertNotNull(result);
         assertEquals(1, result.size());
-        assertEquals(log, result.getFirst());
+        assertEquals(log.getId(), result.getFirst().getId());
     }
 
     @Test
@@ -703,7 +703,7 @@ class AssetsManagementServiceTest {
         when(goalRepository.findById(goalId)).thenReturn(Optional.of(goal));
         when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Asset result = assetsManagementService.updateAssetGoal(assetId, goalId);
+        AssetDTO result = assetsManagementService.updateAssetGoal(assetId, goalId);
 
         assertNotNull(result);
         assertEquals(goalId, result.getGoalId());
@@ -722,7 +722,7 @@ class AssetsManagementServiceTest {
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(assetRepository.save(any(Asset.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Asset result = assetsManagementService.updateAssetGoal(assetId, null);
+        AssetDTO result = assetsManagementService.updateAssetGoal(assetId, null);
 
         assertNotNull(result);
         assertNull(result.getGoalId());
@@ -834,49 +834,5 @@ class AssetsManagementServiceTest {
         dto.setCurrentValue(BigDecimal.valueOf(600000));
 
         assertThrows(CoreThrowHandler.class, () -> assetsManagementService.updateAssetValue(assetId, dto));
-    }
-
-    @Test
-    @DisplayName("findAssetByIdAndUser - when valid asset and user, return Asset entity")
-    void findAssetByIdAndUser_whenValid_shouldReturnAsset() {
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
-        UUID assetId = UUID.randomUUID();
-        Asset asset = Asset.builder().id(assetId).userId(user.getId()).build();
-
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
-        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
-
-        Asset result = assetsManagementService.findAssetByIdAndUser(assetId);
-
-        assertNotNull(result);
-        assertEquals(assetId, result.getId());
-    }
-
-    @Test
-    @DisplayName("findAssetByIdAndUser - when asset not found, throw ITEM_NOT_FOUND exception")
-    void findAssetByIdAndUser_whenAssetNotFound_shouldThrowNotFoundException() {
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
-        UUID assetId = UUID.randomUUID();
-
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
-        when(assetRepository.findById(assetId)).thenReturn(Optional.empty());
-
-        assertThrows(CoreThrowHandler.class, () -> assetsManagementService.findAssetByIdAndUser(assetId));
-    }
-
-    @Test
-    @DisplayName("findAssetByIdAndUser - when asset belongs to another user, throw ITEM_NOT_FOUND exception")
-    void findAssetByIdAndUser_whenAssetDoesNotBelongToUser_shouldThrowNotFoundException() {
-        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
-        UUID assetId = UUID.randomUUID();
-        Asset asset = Asset.builder().id(assetId).userId(UUID.randomUUID()).build();
-
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
-        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
-        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
-
-        assertThrows(CoreThrowHandler.class, () -> assetsManagementService.findAssetByIdAndUser(assetId));
     }
 }

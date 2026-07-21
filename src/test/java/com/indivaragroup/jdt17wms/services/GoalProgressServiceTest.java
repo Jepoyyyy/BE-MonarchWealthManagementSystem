@@ -186,6 +186,7 @@ class GoalProgressServiceTest {
         goal.setName(name);
         goal.setType(type);
         goal.setTargetAmount(target);
+        goal.setCurrentAmount(BigDecimal.ZERO);
         goal.setMonthlyContribution(contribution);
         goal.setStatus(GoalStatus.IN_PROGRESS);
         goal.setIsPriority(false);

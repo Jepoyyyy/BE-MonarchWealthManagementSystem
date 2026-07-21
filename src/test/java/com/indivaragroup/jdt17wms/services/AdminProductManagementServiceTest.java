@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.request.AdminProductCreateDTO;
 import com.indivaragroup.jdt17wms.dto.request.AdminProductUpdateDTO;
+import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
@@ -45,10 +46,10 @@ class AdminProductManagementServiceTest {
         when(productRepository.findAllAdmin("gold", "MUTUAL_FUND", pageable))
                 .thenReturn(expectedPage);
 
-        Page<Product> result = adminProductManagementService.listProducts("gold", "MUTUAL_FUND", pageable);
+        Page<ProductResponseDTO> result = adminProductManagementService.listProducts("gold", "MUTUAL_FUND", pageable);
 
         assertNotNull(result);
-        assertEquals(expectedPage, result);
+        assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
         verify(productRepository).findAllAdmin("gold", "MUTUAL_FUND", pageable);
     }
 
@@ -61,10 +62,10 @@ class AdminProductManagementServiceTest {
         when(productRepository.findAllAdmin(null, null, pageable))
                 .thenReturn(expectedPage);
 
-        Page<Product> result = adminProductManagementService.listProducts("   ", "", pageable);
+        Page<ProductResponseDTO> result = adminProductManagementService.listProducts("   ", "", pageable);
 
         assertNotNull(result);
-        assertEquals(expectedPage, result);
+        assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
         verify(productRepository).findAllAdmin(null, null, pageable);
     }
 
@@ -77,10 +78,10 @@ class AdminProductManagementServiceTest {
         when(productRepository.findAllAdmin(null, null, pageable))
                 .thenReturn(expectedPage);
 
-        Page<Product> result = adminProductManagementService.listProducts(null, null, pageable);
+        Page<ProductResponseDTO> result = adminProductManagementService.listProducts(null, null, pageable);
 
         assertNotNull(result);
-        assertEquals(expectedPage, result);
+        assertEquals(expectedPage.getTotalElements(), result.getTotalElements());
         verify(productRepository).findAllAdmin(null, null, pageable);
     }
 
@@ -122,7 +123,7 @@ class AdminProductManagementServiceTest {
 
         when(productRepository.save(any(Product.class))).thenReturn(savedProduct);
 
-        Product result = adminProductManagementService.createProduct(dto);
+        ProductResponseDTO result = adminProductManagementService.createProduct(dto);
 
         assertNotNull(result);
         assertEquals(savedProduct.getId(), result.getId());
@@ -204,7 +205,7 @@ class AdminProductManagementServiceTest {
         when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Product result = adminProductManagementService.updateProduct(productId, dto);
+        ProductResponseDTO result = adminProductManagementService.updateProduct(productId, dto);
 
         assertNotNull(result);
         assertEquals("New Name", result.getName());
@@ -249,7 +250,7 @@ class AdminProductManagementServiceTest {
         when(productRepository.findById(productId)).thenReturn(Optional.of(existingProduct));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Product result = adminProductManagementService.updateProduct(productId, dto);
+        ProductResponseDTO result = adminProductManagementService.updateProduct(productId, dto);
 
         assertNotNull(result);
         assertEquals("Existing Name", result.getName());

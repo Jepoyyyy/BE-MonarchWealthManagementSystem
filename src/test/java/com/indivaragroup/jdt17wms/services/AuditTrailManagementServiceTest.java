@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.response.AuditLogDTO;
 import com.indivaragroup.jdt17wms.models.AuditLog;
 import com.indivaragroup.jdt17wms.repositories.AuditLogRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -45,7 +46,7 @@ class AuditTrailManagementServiceTest {
         Page<AuditLog> mockPage = new PageImpl<>(Collections.emptyList());
         when(auditLogRepository.findAll(any(Pageable.class))).thenReturn(mockPage);
 
-        Page<AuditLog> result = auditTrailManagementService.getAuditLogs(true, Pageable.unpaged());
+        Page<AuditLogDTO> result = auditTrailManagementService.getAuditLogs(true, Pageable.unpaged());
 
         assertNotNull(result);
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
@@ -66,7 +67,7 @@ class AuditTrailManagementServiceTest {
         when(auditLogRepository.findAll(any(Pageable.class))).thenReturn(mockPage);
 
         Pageable passedPageable = PageRequest.of(2, 10, Sort.by("action"));
-        Page<AuditLog> result = auditTrailManagementService.getAuditLogs(false, passedPageable);
+        Page<AuditLogDTO> result = auditTrailManagementService.getAuditLogs(false, passedPageable);
 
         assertNotNull(result);
         verify(auditLogRepository).findAll(passedPageable);
@@ -79,7 +80,7 @@ class AuditTrailManagementServiceTest {
         when(auditLogRepository.findAll(any(Pageable.class))).thenReturn(mockPage);
 
         Pageable passedPageable = PageRequest.of(1, 15);
-        Page<AuditLog> result = auditTrailManagementService.getAuditLogs(null, passedPageable);
+        Page<AuditLogDTO> result = auditTrailManagementService.getAuditLogs(null, passedPageable);
 
         assertNotNull(result);
         verify(auditLogRepository).findAll(passedPageable);
@@ -96,11 +97,11 @@ class AuditTrailManagementServiceTest {
         when(auditLogRepository.findFiltered("SECURITY", "LOGIN", from, to, pageable))
                 .thenReturn(mockPage);
 
-        Page<AuditLog> result = auditTrailManagementService.getFilteredAuditLogs(
+        Page<AuditLogDTO> result = auditTrailManagementService.getFilteredAuditLogs(
                 "SECURITY", "LOGIN", from, to, pageable);
 
         assertNotNull(result);
-        assertEquals(mockPage, result);
+        assertEquals(mockPage.getTotalElements(), result.getTotalElements());
         verify(auditLogRepository).findFiltered("SECURITY", "LOGIN", from, to, pageable);
     }
 
@@ -115,11 +116,11 @@ class AuditTrailManagementServiceTest {
         when(auditLogRepository.findFiltered(null, null, from, to, pageable))
                 .thenReturn(mockPage);
 
-        Page<AuditLog> result = auditTrailManagementService.getFilteredAuditLogs(
+        Page<AuditLogDTO> result = auditTrailManagementService.getFilteredAuditLogs(
                 "   ", "", from, to, pageable);
 
         assertNotNull(result);
-        assertEquals(mockPage, result);
+        assertEquals(mockPage.getTotalElements(), result.getTotalElements());
         verify(auditLogRepository).findFiltered(null, null, from, to, pageable);
     }
 
@@ -132,11 +133,11 @@ class AuditTrailManagementServiceTest {
         when(auditLogRepository.findFiltered(null, null, null, null, pageable))
                 .thenReturn(mockPage);
 
-        Page<AuditLog> result = auditTrailManagementService.getFilteredAuditLogs(
+        Page<AuditLogDTO> result = auditTrailManagementService.getFilteredAuditLogs(
                 null, null, null, null, pageable);
 
         assertNotNull(result);
-        assertEquals(mockPage, result);
+        assertEquals(mockPage.getTotalElements(), result.getTotalElements());
         verify(auditLogRepository).findFiltered(null, null, null, null, pageable);
     }
 }
