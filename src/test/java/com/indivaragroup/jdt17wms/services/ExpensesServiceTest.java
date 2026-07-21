@@ -193,4 +193,133 @@ class ExpensesServiceTest {
         verify(expenseRepository, times(1)).save(any(Expense.class));
         verify(goalsManagementService).autoAllocateIfNeeded(userId);
     }
+
+    @Test
+    void getFinancesForUser_ExpenseNotFound_throwsException() {
+        UUID profileId = UUID.randomUUID();
+        FinancialProfile fp = FinancialProfile.builder()
+                .id(profileId)
+                .userId(userId)
+                .monthlyIncome(BigDecimal.valueOf(20000))
+                .build();
+
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.of(fp));
+        when(expenseRepository.findByFinancialProfileId(profileId)).thenReturn(Optional.empty());
+
+        assertThrows(CoreThrowHandler.class, () -> expensesService.getFinancesForUser());
+    }
+
+    @Test
+    void updateFinancesForUser_withAutoAllocationAndPriorityAllocation_updatesProfileFields() {
+        ExpenseDTO expDto = ExpenseDTO.builder()
+                .housing(BigDecimal.valueOf(1000))
+                .food(BigDecimal.valueOf(1000))
+                .transport(BigDecimal.valueOf(1000))
+                .utilities(BigDecimal.valueOf(1000))
+                .healthcare(BigDecimal.valueOf(1000))
+                .entertainment(BigDecimal.valueOf(1000))
+                .insurance(BigDecimal.valueOf(1000))
+                .other(BigDecimal.valueOf(1000))
+                .build();
+
+        FinancialProfileDTO dto = FinancialProfileDTO.builder()
+                .monthlyIncome(BigDecimal.valueOf(10000))
+                .autoAllocationEnabled(true)
+                .priorityAllocationPercentage(50)
+                .expenseDTO(expDto)
+                .build();
+
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(financialProfileRepository.save(any(FinancialProfile.class))).thenAnswer(i -> {
+            FinancialProfile fp = i.getArgument(0);
+            fp.setId(UUID.randomUUID());
+            return fp;
+        });
+        when(expenseRepository.save(any(Expense.class))).thenAnswer(i -> i.getArgument(0));
+
+        ExpenseDTO result = expensesService.updateFinancesForUser(dto);
+
+        assertNotNull(result);
+        verify(financialProfileRepository).save(argThat(fp ->
+                Boolean.TRUE.equals(fp.getAutoAllocationEnabled()) &&
+                Integer.valueOf(50).equals(fp.getPriorityAllocationPercentage())
+        ));
+    }
+
+    @Test
+    void updateFinancesForUser_whenSavedExpenseIsNull_returnsNull() {
+        ExpenseDTO expDto = ExpenseDTO.builder()
+                .housing(BigDecimal.valueOf(1000))
+                .food(BigDecimal.valueOf(1000))
+                .transport(BigDecimal.valueOf(1000))
+                .utilities(BigDecimal.valueOf(1000))
+                .healthcare(BigDecimal.valueOf(1000))
+                .entertainment(BigDecimal.valueOf(1000))
+                .insurance(BigDecimal.valueOf(1000))
+                .other(BigDecimal.valueOf(1000))
+                .build();
+
+        FinancialProfileDTO dto = FinancialProfileDTO.builder()
+                .monthlyIncome(BigDecimal.valueOf(10000))
+                .expenseDTO(expDto)
+                .build();
+
+        when(financialProfileRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(financialProfileRepository.save(any(FinancialProfile.class))).thenAnswer(i -> {
+            FinancialProfile fp = i.getArgument(0);
+            fp.setId(UUID.randomUUID());
+            return fp;
+        });
+        when(expenseRepository.save(any(Expense.class))).thenReturn(null);
+
+        ExpenseDTO result = expensesService.updateFinancesForUser(dto);
+
+        assertNull(result);
+    }
+
+    @Test
+    void updateFinancesForUser_whenExpenseFinancialProfileIsNull_returnsDTOWithNullMonthlyIncome() {
+        ExpenseDTO expDto = ExpenseDTO.builder()
+                .housing(BigDecimal.valueOf(1000))
+                .food(BigDecimal.valueOf(1000))
+                .transport(BigDecimal.valueOf(1000))
+                .utilities(BigDecimal.valueOf(1000))
+                .healthcare(BigDecimal.valueOf(1000))
+                .entertainment(BigDecimal.valueOf(1000))
+                .insurance(BigDecimal.valueOf(1000))
+                .other(BigDecimal.valueOf(1000))
+                .build();
+
+        FinancialProfileDTO dto = FinancialProfileDTO.builder()
+                .monthlyIncome(BigDecimal.valueOf(10000))
+                .expenseDTO(expDto)
+                .build();
+
+        Expense expenseWithoutFp = Expense.builder()
+                .id(UUID.randomUUID())
+                .financialProfile(null)
+                .housing(BigDecimal.valueOf(1000))
+                .food(BigDecimal.valueOf(1000))
+                .transport(BigDecimal.valueOf(1000))
+                .utilities(BigDecimal.valueOf(1000))
+                .healthcare(BigDecimal.valueOf(1000))
+                .entertainment(BigDecimal.valueOf(1000))
+                .insurance(BigDecimal.valueOf(1000))
+                .other(BigDecimal.valueOf(1000))
+                .totalExpenses(BigDecimal.valueOf(8000))
+                .build();
+
+        when(financialProfileRepository.findByUserId(any())).thenReturn(Optional.empty());
+        when(financialProfileRepository.save(any(FinancialProfile.class))).thenAnswer(i -> {
+            FinancialProfile fp = i.getArgument(0);
+            fp.setId(UUID.randomUUID());
+            return fp;
+        });
+        when(expenseRepository.save(any(Expense.class))).thenReturn(expenseWithoutFp);
+
+        ExpenseDTO result = expensesService.updateFinancesForUser(dto);
+
+        assertNotNull(result);
+        assertNull(result.getMonthlyIncome());
+    }
 }

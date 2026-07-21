@@ -18,7 +18,6 @@ import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import com.indivaragroup.jdt17wms.repositories.AuditLogRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import io.jsonwebtoken.ExpiredJwtException;
-import jakarta.validation.Valid;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,7 +59,7 @@ public class AuthService {
         User user = userRepository.findByEmail(dto.getLoginRequestEmail())
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST,"Email Or Password Invalid"));
 
-        if (user.getStatus() == null || !"active".equalsIgnoreCase(user.getStatus())) {
+        if (!"active".equalsIgnoreCase(user.getStatus())) {
             throw new CoreThrowHandler(ApiError.UNAUTHORIZED,"Account is Not active. Please Contact Admin");
         }
 
@@ -88,7 +87,7 @@ public class AuthService {
                 .email(user.getEmail())
                 .questionnaireCompleted(user.getQuestionnaireCompleted())
                 .isAdmin(user.getRole() == UserRole.ADMIN)
-                .risk_profile(user.getRiskProfile())
+                .riskProfile(user.getRiskProfile())
                 .build();
 
         return AuthSuccessDTO.builder()

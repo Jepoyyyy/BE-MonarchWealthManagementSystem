@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.aspects.RiskProfileAssessmentRequired;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import static com.indivaragroup.jdt17wms.constants.GoalConstants.*;
@@ -138,14 +139,11 @@ public class ActionRecommendationService {
      * 3. Goal Coverage — goals with a matching product type in portfolio
      * 4. Risk Alignment — weighted avg portfolio risk vs. profile target
      */
+    @RiskProfileAssessmentRequired
     public HealthDTO getHealthScore() {
         // ── Fetch all required data ──
         User user = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.USER_NOT_FOUND));
-
-      if (!Boolean.TRUE.equals(user.getQuestionnaireCompleted())) {
-        throw new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER);
-      }
 
         List<Asset> assets = assetRepository.findAllByUserId(user.getId());
         List<Product> products = productRepository.findAll();
@@ -339,14 +337,11 @@ public class ActionRecommendationService {
      * 7. Idle surplus
      */
     @Transactional
+    @RiskProfileAssessmentRequired
     public List<RecommendationDTO> generateRecommendations() {
         // ── Fetch all required data ──
         User user = userRepository.findById(SecurityUtils.getCurrentUserId())
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.USER_NOT_FOUND));
-
-        if (!Boolean.TRUE.equals(user.getQuestionnaireCompleted())) {
-          throw new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER);
-        }
 
         UUID userId = user.getId();
 
@@ -368,9 +363,6 @@ public class ActionRecommendationService {
                 .map(a -> Optional.ofNullable(a.getCurrentValue()).orElse(BigDecimal.ZERO))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (user.getRiskProfile() == null) {
-            throw new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER);
-        }
         String riskProfile = user.getRiskProfile();
         int maxRiskLv = MAX_RISK_LEVELS.getOrDefault(riskProfile.toLowerCase(), DEFAULT_MAX_RISK_LEVEL);
 
@@ -412,46 +404,42 @@ public class ActionRecommendationService {
         // ─────────────────────────────────────────
         // Rule 2: Concentration risk (>65% in one product)
         // ─────────────────────────────────────────
-        if (totalValue.compareTo(BigDecimal.ZERO) > 0 && !assets.isEmpty()) {
+        if (!assets.isEmpty() && totalValue.compareTo(BigDecimal.ZERO) > 0) {
             // Aggregate value per product
             Map<UUID, BigDecimal> byProduct = new HashMap<>();
             for (Asset a : assets) {
                 BigDecimal val = Optional.ofNullable(a.getCurrentValue()).orElse(BigDecimal.ZERO);
                 byProduct.merge(a.getProductId(), val, BigDecimal::add);
             }
-            //sampebawah
+
             // Find the most concentrated product
-            Map.Entry<UUID, BigDecimal> top = byProduct.entrySet().stream()
+            byProduct.entrySet().stream()
                     .max(Map.Entry.comparingByValue())
-                    .orElse(null);
+                    .ifPresent(top -> {
+                        double concentration = top.getValue().doubleValue() / totalValue.doubleValue();
+                        if (concentration > CONCENTRATION_LIMIT) {
+                            Product topProduct = productMap.get(top.getKey());
+                            String topType = topProduct != null ? topProduct.getType().toLowerCase() : "";
 
-            if (top != null) {
-                double concentration = top.getValue().doubleValue() / totalValue.doubleValue();
-                if (concentration > CONCENTRATION_LIMIT) {
-                    Product topProduct = productMap.get(top.getKey());
-                    String topType = topProduct != null && topProduct.getType() != null
-                            ? topProduct.getType().toLowerCase() : "";
+                            // Find complement: best product in a different type not yet owned
+                            List<String> complementTypes = ALL_PRODUCT_TYPES.stream()
+                                    .filter(t -> !t.equalsIgnoreCase(topType))
+                                    .toList();
+                            Product complement = bestOf(products, complementTypes, maxRiskLv, ownedIds);
 
-                    // Find complement: best product in a different type not yet owned
-                    List<String> complementTypes = ALL_PRODUCT_TYPES.stream()
-                            .filter(t -> !t.equalsIgnoreCase(topType))
-                            .toList();
-                    Product complement = bestOf(products, complementTypes, maxRiskLv, ownedIds);
+                            String topName = topProduct != null ? topProduct.getName() : "One position";
+                            int pct = (int) Math.round(concentration * PERCENTAGE_MULTIPLIER);
 
-                    String topName = topProduct != null ? topProduct.getName() : "One position";
-                    int pct = (int) Math.round(concentration * PERCENTAGE_MULTIPLIER);
-
-                    freshRecs.add(buildRecommendation( HIGH_PRIORITY, "rebalance",
-                            String.format("%s is %d%% of your portfolio", topName, pct),
-                            "Heavy concentration in a single product amplifies loss if it underperforms. "
-                                    + "Adding a second product type reduces correlated risk without lowering "
-                                    + "your expected return significantly.",
-                            complement != null ? complement.getId() : null,
-                            complement != null && complement.getMinInvestment() != null
-                                    ? complement.getMinInvestment() : null,
-                            null));
-                }
-            }
+                            freshRecs.add(buildRecommendation( HIGH_PRIORITY, "rebalance",
+                                    String.format("%s is %d%% of your portfolio", topName, pct),
+                                    "Heavy concentration in a single product amplifies loss if it underperforms. "
+                                            + "Adding a second product type reduces correlated risk without lowering "
+                                            + "your expected return significantly.",
+                                    complement != null ? complement.getId() : null,
+                                    complement != null ? complement.getMinInvestment() : null,
+                                    null));
+                        }
+                    });
         }
 
         // ─────────────────────────────────────────
@@ -559,7 +547,6 @@ public class ActionRecommendationService {
                         && !ownedIds.contains(p.getId())
                         && p.getRiskLevel() <= fMaxRisk
                         && !usedProductIds.contains(p.getId()))
-                .filter(p -> p.getAnnualReturn() != null)
                 .max(Comparator.comparing(Product::getAnnualReturn));
 
       topGrowth.ifPresent(tg -> freshRecs.add(buildRecommendation( LOW_PRIORITY, "growth",
@@ -700,7 +687,6 @@ public class ActionRecommendationService {
                         && lowerTypes.contains(p.getType().toLowerCase())
                         && p.getRiskLevel() <= maxRisk
                         && (excludeIds == null || !excludeIds.contains(p.getId())))
-                .filter(p -> p.getAnnualReturn() != null)
                 .max(Comparator.comparing(Product::getAnnualReturn))
                 .orElse(null);
     }

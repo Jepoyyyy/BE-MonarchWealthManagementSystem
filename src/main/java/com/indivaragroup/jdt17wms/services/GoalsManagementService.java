@@ -275,11 +275,14 @@ public class GoalsManagementService implements VerifiedUserProvider {
     @RiskProfileAssessmentRequired
     public List<GoalDTO> autoAllocateGoalsForUser(int percentage) {
         User user = getVerifiedUser();
-        UUID userId = user.getId();
+        doAutoAllocate(user.getId(), percentage);
+        return getGoalsForUser();
+    }
 
+    private void doAutoAllocate(UUID userId, int percentage) {
         List<Goal> goals = goalRepository.findAllByUserId(userId);
         if (goals.isEmpty()) {
-            return List.of();
+            return;
         }
 
         // Calculate investable surplus
@@ -296,34 +299,32 @@ public class GoalsManagementService implements VerifiedUserProvider {
 
         // Find priority goal
         Goal priorityGoal = goals.stream()
-                .filter(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS)
+                .filter(GoalsManagementService::isPriorityGoal)
                 .findFirst()
                 .orElse(null);
 
         long otherCount = goals.stream()
-                .filter(g -> !Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS)
+                .filter(GoalsManagementService::isNonPriorityGoal)
                 .count();
 
         BigDecimal primaryAmt = BigDecimal.ZERO;
         BigDecimal eachOther = BigDecimal.ZERO;
 
-        if (surplus.compareTo(BigDecimal.ZERO) > 0) {
-            if (priorityGoal != null) {
-                // Priority goal gets percentage of surplus
-                primaryAmt = surplus.multiply(BigDecimal.valueOf(percentage))
-                        .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+        if (surplus.compareTo(BigDecimal.ZERO) > 0 && priorityGoal != null) {
+            // Priority goal gets percentage of surplus
+            primaryAmt = surplus.multiply(BigDecimal.valueOf(percentage))
+                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
 
-                BigDecimal remaining = surplus.subtract(primaryAmt).max(BigDecimal.ZERO);
-                if (otherCount > 0) {
-                    eachOther = remaining.divide(BigDecimal.valueOf(otherCount), 4, RoundingMode.HALF_UP);
-                }
+            BigDecimal remaining = surplus.subtract(primaryAmt).max(BigDecimal.ZERO);
+            if (otherCount > 0) {
+                eachOther = remaining.divide(BigDecimal.valueOf(otherCount), 4, RoundingMode.HALF_UP);
             }
         }
 
         // Update all active goals
         for (Goal g : goals) {
             if (g.getStatus() == GoalStatus.IN_PROGRESS) {
-                if (Boolean.TRUE.equals(g.getIsPriority())) {
+                if (isPriorityGoal(g)) {
                     g.setMonthlyContribution(primaryAmt);
                 } else {
                     g.setMonthlyContribution(eachOther);
@@ -331,8 +332,6 @@ public class GoalsManagementService implements VerifiedUserProvider {
                 goalRepository.save(g);
             }
         }
-
-        return getGoalsForUser();
     }
 
   void autoAllocateIfNeeded(UUID userId) {
@@ -348,7 +347,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .count();
 
     boolean hasPriorityGoal = goals.stream()
-      .anyMatch(g -> Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS);
+      .anyMatch(GoalsManagementService::isPriorityGoal);
 
     // Only auto-allocate if we have 2+ active goals and a priority goal
     if (activeGoals >= 2 && hasPriorityGoal) {
@@ -356,8 +355,16 @@ public class GoalsManagementService implements VerifiedUserProvider {
       if (percentage == null) {
         percentage = 50; // Default fallback
       }
-      autoAllocateGoalsForUser(percentage);
-        }
+      doAutoAllocate(userId, percentage);
+    }
+  }
+
+    private static boolean isPriorityGoal(Goal g) {
+        return Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS;
+    }
+
+    private static boolean isNonPriorityGoal(Goal g) {
+        return !Boolean.TRUE.equals(g.getIsPriority()) && g.getStatus() == GoalStatus.IN_PROGRESS;
     }
 
     @Override

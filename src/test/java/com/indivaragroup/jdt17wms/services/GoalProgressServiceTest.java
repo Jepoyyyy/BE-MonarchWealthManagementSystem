@@ -112,6 +112,73 @@ class GoalProgressServiceTest {
         assertNotNull(progress1.getProjectedEtaMonths());
     }
 
+    @Test
+    void getGoalProgressForUser_whenCurrentSavedIsZero_setsTotalPotentialPnLPercentToZero() {
+        UUID goalId = UUID.randomUUID();
+        Goal goal = createGoal(goalId, "Savings", "SAVINGS",
+                new BigDecimal("10000000"), new BigDecimal("1000000"));
+        Asset asset = createAsset(UUID.randomUUID(), goalId);
+
+        AssetsPnLResponseDTO pnl = createPnL(asset.getId(), BigDecimal.ZERO,
+                BigDecimal.ZERO, BigDecimal.ZERO);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(goal));
+        when(pnlCalculationService.computePnLForAllAssets()).thenReturn(List.of(pnl));
+        when(assetRepository.findAllByGoalId(goalId)).thenReturn(List.of(asset));
+
+        List<GoalProgressResponseDTO> result = goalProgressService.getGoalProgressForUser();
+
+        assertEquals(1, result.size());
+        GoalProgressResponseDTO progress = result.get(0);
+        assertEquals(BigDecimal.ZERO, progress.getCurrentSaved());
+        assertEquals(BigDecimal.ZERO, progress.getTotalPotentialPnLPercent());
+    }
+
+    @Test
+    void getGoalProgressForUser_whenTargetAmountReached_setsProjectedEtaMonthsToZero() {
+        UUID goalId = UUID.randomUUID();
+        Goal goal = createGoal(goalId, "Goal Reached", "SAVINGS",
+                new BigDecimal("10000000"), new BigDecimal("1000000"));
+        Asset asset = createAsset(UUID.randomUUID(), goalId);
+
+        AssetsPnLResponseDTO pnl = createPnL(asset.getId(), new BigDecimal("10000000"),
+                new BigDecimal("500000"), new BigDecimal("5.00"));
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(goal));
+        when(pnlCalculationService.computePnLForAllAssets()).thenReturn(List.of(pnl));
+        when(assetRepository.findAllByGoalId(goalId)).thenReturn(List.of(asset));
+
+        List<GoalProgressResponseDTO> result = goalProgressService.getGoalProgressForUser();
+
+        assertEquals(1, result.size());
+        GoalProgressResponseDTO progress = result.get(0);
+        assertEquals(0, progress.getProjectedEtaMonths());
+    }
+
+    @Test
+    void getGoalProgressForUser_whenTotalMonthlyIncreaseIsZeroOrNegative_setsProjectedEtaMonthsToMinusOne() {
+        UUID goalId = UUID.randomUUID();
+        Goal goal = createGoal(goalId, "Stagnant Goal", "SAVINGS",
+                new BigDecimal("10000000"), BigDecimal.ZERO);
+        Asset asset = createAsset(UUID.randomUUID(), goalId);
+
+        AssetsPnLResponseDTO pnl = createPnL(asset.getId(), new BigDecimal("1000000"),
+                BigDecimal.ZERO, BigDecimal.ZERO);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(goalRepository.findAllByUserId(userId)).thenReturn(List.of(goal));
+        when(pnlCalculationService.computePnLForAllAssets()).thenReturn(List.of(pnl));
+        when(assetRepository.findAllByGoalId(goalId)).thenReturn(List.of(asset));
+
+        List<GoalProgressResponseDTO> result = goalProgressService.getGoalProgressForUser();
+
+        assertEquals(1, result.size());
+        GoalProgressResponseDTO progress = result.get(0);
+        assertEquals(-1, progress.getProjectedEtaMonths());
+    }
+
     private Goal createGoal(UUID id, String name, String type, BigDecimal target, BigDecimal contribution) {
         Goal goal = new Goal();
         goal.setId(id);

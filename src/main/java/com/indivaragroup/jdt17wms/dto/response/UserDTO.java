@@ -21,5 +21,5 @@ public class UserDTO {
     @JsonProperty("isAdmin")
     private Boolean isAdmin;
     private Boolean questionnaireCompleted;
-    private String  risk_profile;
+    private String  riskProfile;
 }
