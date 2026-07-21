@@ -42,7 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if ((uri != null && (uri.endsWith("/logout") || uri.endsWith("/logout/")))) {
             return false;
         }
-        return ((uri != null && (uri.startsWith(ApiPath.BASE_AUTH_PATH) || uri.startsWith("/auth/"))));
+        return (uri != null && (uri.startsWith(ApiPath.BASE_AUTH_PATH) || uri.startsWith("/auth/")));
     }
 
     @Override
@@ -51,9 +51,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-        
+
         final String authHeader = request.getHeader("Authorization");
-        
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
@@ -61,7 +61,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             final String token = authHeader.substring(7);
-            
+
             if (!jwtService.isAccessToken(token)) {
                 sendUnauthorizedError(response, "Invalid token type");
                 return;
@@ -88,7 +88,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             );
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            
+
         } catch (ExpiredJwtException e) {
             sendUnauthorizedError(response, "Token expired");
             return;
@@ -99,7 +99,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             sendUnauthorizedError(response, "Authentication failed");
             return;
         }
-        
+
         filterChain.doFilter(request, response);
     }
 

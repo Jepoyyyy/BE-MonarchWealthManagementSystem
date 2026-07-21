@@ -252,4 +252,27 @@ class JwtAuthenticationFilterTest {
         assertEquals(1, auth.getAuthorities().size());
         assertEquals("ROLE_USER", auth.getAuthorities().iterator().next().getAuthority());
     }
+
+    @Test
+    void testDoFilterInternal_GeneralException_Returns401WithAuthenticationFailed() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer valid-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain filterChain = mock(FilterChain.class);
+
+        when(jwtService.isAccessToken("valid-token")).thenReturn(true);
+        when(jwtService.getEmailFromToken("valid-token")).thenThrow(new RuntimeException("Unexpected error during processing"));
+
+        jwtAuthenticationFilter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain, never()).doFilter(any(), any());
+        assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
+
+        ErrorResponseDTO expectedResponse = ErrorResponseDTO.builder()
+                .error("Authentication failed")
+                .code(401)
+                .build();
+        assertEquals(objectMapper.writeValueAsString(expectedResponse), response.getContentAsString());
+    }
 }
+
