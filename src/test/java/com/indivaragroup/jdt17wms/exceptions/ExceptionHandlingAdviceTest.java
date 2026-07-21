@@ -47,6 +47,20 @@ class ExceptionHandlingAdviceTest {
     }
 
     @Test
+    void handleCoreThrowHandler_withNullErrorMap_shouldReturnNullErrorInResponse() {
+        CoreThrowHandler ex = new CoreThrowHandler(ApiError.NOT_FOUND, "Resource not found", null);
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleCoreThrowHandler(ex);
+
+        assertEquals(404, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(404, body.getRestApiResponseHttpCode());
+        assertEquals("Resource not found", body.getRestApiResponseMessage());
+        assertNull(body.getRestApiResponseError());
+    }
+
+    @Test
     void handleCoreThrowHandler_withErrorMap_shouldIncludeError() {
         Map<String, Serializable> errorMap = Map.of("detail", "something went wrong");
         CoreThrowHandler ex = new CoreThrowHandler(ApiError.BAD_REQUEST, "Bad request", errorMap);
@@ -108,7 +122,7 @@ class ExceptionHandlingAdviceTest {
     // --- MethodArgumentNotValidException ---
 
     @Test
-    void handleValidationErrors_shouldExtractFieldErrors() throws Exception {
+    void handleValidationErrors_shouldExtractFieldErrors() {
         BindingResult bindingResult = mock(BindingResult.class);
         FieldError fieldError = new FieldError("testObject", "email", "must not be null");
         when(bindingResult.getAllErrors()).thenReturn(List.of(fieldError));
@@ -136,7 +150,7 @@ class ExceptionHandlingAdviceTest {
     }
 
     @Test
-    void handleValidationErrors_withNonFieldError_shouldUseObjectName() throws Exception {
+    void handleValidationErrors_withNonFieldError_shouldUseObjectName() {
         BindingResult bindingResult = mock(BindingResult.class);
         // Use ObjectError (not FieldError) to test the branch where error is not a FieldError instance
         org.springframework.validation.ObjectError objectError = new org.springframework.validation.ObjectError("testObject", "global error message");

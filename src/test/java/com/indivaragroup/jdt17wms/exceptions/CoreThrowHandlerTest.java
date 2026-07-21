@@ -66,4 +66,15 @@ class CoreThrowHandlerTest {
         assertTrue(ex.getError().isEmpty());
         assertNull(ex.getDetails());
     }
+
+    @Test
+    void constructor_withNullErrorMap_shouldAllowNullErrorMap() {
+        CoreThrowHandler ex = new CoreThrowHandler(ApiError.BAD_REQUEST, "Bad request", null);
+
+        assertEquals(400, ex.getCode());
+        assertEquals("Bad request", ex.getMessage());
+        assertNull(ex.getError());
+        assertNull(ex.getDetails());
+    }
 }
+
