@@ -6,7 +6,6 @@ import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
 import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
-import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.services.UserManagementService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -42,7 +41,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @AuditLogged(action = "UPDATE_USER_STATUS", category = "USER")
-    public ApiResponse<User> updateUser(
+    public ApiResponse<AdminUserDTO> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UserStatusUpdateDTO userStatusUpdateDTO) {
         return ApiResponse.success(ApiSuccess.USER_UPDATED,

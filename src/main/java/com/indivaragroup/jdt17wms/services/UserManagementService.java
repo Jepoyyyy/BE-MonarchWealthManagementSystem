@@ -48,10 +48,10 @@ public class UserManagementService {
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND)));
     }
 
-    public User updateUserStatus(UUID id, UserStatusUpdateDTO userStatusUpdateDTO) {
+    public AdminUserDTO updateUserStatus(UUID id, UserStatusUpdateDTO userStatusUpdateDTO) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
         user.setStatus(userStatusUpdateDTO.getStatus());
-        return userRepository.save(user);
+        return toDTO(userRepository.save(user));
     }
 }

@@ -5,9 +5,9 @@ import com.indivaragroup.jdt17wms.dto.request.AdminProductCreateDTO;
 import com.indivaragroup.jdt17wms.dto.request.AdminProductUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
+import com.indivaragroup.jdt17wms.dto.response.AuditLogDTO;
+import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
-import com.indivaragroup.jdt17wms.models.AuditLog;
-import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.services.AdminProductManagementService;
 import com.indivaragroup.jdt17wms.services.AuditTrailManagementService;
 import jakarta.validation.Valid;
@@ -36,7 +36,7 @@ public class AdminController {
 
 
     @GetMapping("/audit")
-    public ApiResponse<Page<AuditLog>> getAuditLogs(
+    public ApiResponse<Page<AuditLogDTO>> getAuditLogs(
             @RequestParam(required = false, defaultValue = "false") Boolean headView,
             Pageable pageable) {
         return ApiResponse.success(ApiSuccess.AUDIT_LOGS_FETCHED,
@@ -44,7 +44,7 @@ public class AdminController {
     }
 
     @GetMapping("/audit/search")
-    public ApiResponse<Page<AuditLog>> searchAuditLogs(
+    public ApiResponse<Page<AuditLogDTO>> searchAuditLogs(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
@@ -55,7 +55,7 @@ public class AdminController {
     }
 
     @GetMapping("/products")
-    public ApiResponse<Page<Product>> listAdminProducts(
+    public ApiResponse<Page<ProductResponseDTO>> listAdminProducts(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String type,
             Pageable pageable) {
@@ -67,14 +67,14 @@ public class AdminController {
     @PostMapping("/products")
     @ResponseStatus(HttpStatus.CREATED)
     @AuditLogged(action = "CREATE_PRODUCT", category = "PRODUCT")
-    public ApiResponse<Product> createProduct(@Valid @RequestBody AdminProductCreateDTO dto) {
+    public ApiResponse<ProductResponseDTO> createProduct(@Valid @RequestBody AdminProductCreateDTO dto) {
         return ApiResponse.success(ApiSuccess.ADMIN_PRODUCT_CREATED,
                 adminProductManagementService.createProduct(dto));
     }
 
 
     @AuditLogged(action = "UPDATE_PRODUCT", category = "PRODUCT")
-    public ApiResponse<Product> updateProduct(
+    public ApiResponse<ProductResponseDTO> updateProduct(
             @PathVariable UUID id,
             @RequestBody AdminProductUpdateDTO dto) {
         return ApiResponse.success(ApiSuccess.ADMIN_PRODUCT_UPDATED,

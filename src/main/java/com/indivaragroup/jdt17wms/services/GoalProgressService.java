@@ -60,7 +60,8 @@ public class GoalProgressService {
 
         BigDecimal currentSaved = goalPnlData.stream()
                 .map(AssetsPnLResponseDTO::getCurrentValue)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .add(goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO);
 
         BigDecimal totalPotentialPnL = goalPnlData.stream()
                 .map(AssetsPnLResponseDTO::getPotentialPnL)

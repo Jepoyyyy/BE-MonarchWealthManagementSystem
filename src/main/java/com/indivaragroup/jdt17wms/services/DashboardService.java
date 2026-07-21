@@ -15,6 +15,7 @@ import com.indivaragroup.jdt17wms.repositories.AssetRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.AuditLogRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductPriceRepository;
+import com.indivaragroup.jdt17wms.services.PnLCalculationService;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -39,17 +40,20 @@ public class DashboardService {
     private final ProductRepository productRepository;
     private final AuditLogRepository auditLogRepository;
     private final ProductPriceRepository productPriceRepository;
+    private final PnLCalculationService pnLCalculationService;
 
     public DashboardService(UserRepository userRepository,
                             AssetRepository assetRepository,
                             ProductRepository productRepository,
                             AuditLogRepository auditLogRepository,
-                            ProductPriceRepository productPriceRepository) {
+                            ProductPriceRepository productPriceRepository,
+                            PnLCalculationService pnLCalculationService) {
         this.userRepository = userRepository;
         this.assetRepository = assetRepository;
         this.productRepository = productRepository;
         this.auditLogRepository = auditLogRepository;
-      this.productPriceRepository = productPriceRepository;
+        this.productPriceRepository = productPriceRepository;
+        this.pnLCalculationService = pnLCalculationService;
     }
 
     public AdminDashboardDTO getAdminDashboard() {
@@ -140,16 +144,15 @@ public class DashboardService {
     List<PortfolioItemDTO> portfolioItemDTOList = new ArrayList<>();
 
     for (Asset asset : assetList) {
-      Product product = productRepository.findById(asset.getProductId())
-        .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
-
-      BigDecimal assetValue = Optional.ofNullable(asset.getCurrentValue())
-        .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST, "Asset " + asset.getId() + " has null currentValue — data corrupt"));
+      // Use PnLCalculationService for accurate remaining units calculation
+      AssetsPnLResponseDTO pnl = pnLCalculationService.computePnLForAsset(asset);
+      
+      BigDecimal assetValue = pnl.getCurrentValue(); // remaining units × current price
       totalValue = totalValue.add(assetValue);
       totalInvested = totalInvested.add(asset.getAmount());
 
       PortfolioItemDTO portfolioItemDTO = PortfolioItemDTO.builder()
-        .name(product.getName())
+        .name(pnl.getProductName())
         .value(assetValue)
         .build();
       portfolioItemDTOList.add(portfolioItemDTO);

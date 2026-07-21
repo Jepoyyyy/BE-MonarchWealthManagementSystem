@@ -37,6 +37,8 @@ public class AssetRegistrationDTO {
     @NotNull(message = "Must not be null")
     private LocalDateTime purchaseDate;
 
+    private Integer tenor;
+
     private String platform;
 
     private String notes;

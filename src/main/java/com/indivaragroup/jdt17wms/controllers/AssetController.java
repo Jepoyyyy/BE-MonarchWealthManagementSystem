@@ -10,9 +10,9 @@ import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetsPnLResponseDTO;
+import com.indivaragroup.jdt17wms.dto.response.TransactionHistoryDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
 import com.indivaragroup.jdt17wms.models.Asset;
-import com.indivaragroup.jdt17wms.models.TransactionHistory;
 import com.indivaragroup.jdt17wms.services.AssetsManagementService;
 import com.indivaragroup.jdt17wms.services.PnLCalculationService;
 import jakarta.validation.Valid;
@@ -56,7 +56,7 @@ public class AssetController {
     }
 
     @GetMapping("/transaction-logs")
-    public ApiResponse<List<TransactionHistory>> getTransactionLogs() {
+    public ApiResponse<List<TransactionHistoryDTO>> getTransactionLogs() {
         return ApiResponse.success(ApiSuccess.TRANSACTION_LOGS_FETCHED,
                 assetsManagementService.getTransactionLogsForUser());
     }
@@ -94,7 +94,7 @@ public class AssetController {
     }
 
     @PatchMapping("/{assetId}/goal")
-    public ApiResponse<Asset> updateAssetGoal(
+    public ApiResponse<AssetDTO> updateAssetGoal(
             @PathVariable UUID assetId,
             @RequestParam(required = false) UUID goalId) {
         return ApiResponse.success(ApiSuccess.ASSET_UPDATED,
@@ -109,7 +109,7 @@ public class AssetController {
     }
 
     @GetMapping("/{assetId}/transactions")
-    public ApiResponse<List<TransactionHistory>> getAssetTransactions(@PathVariable UUID assetId) {
+    public ApiResponse<List<TransactionHistoryDTO>> getAssetTransactions(@PathVariable UUID assetId) {
         return ApiResponse.success(ApiSuccess.TRANSACTION_LOGS_FETCHED,
                 assetsManagementService.getTransactionHistoryForAsset(assetId));
     }

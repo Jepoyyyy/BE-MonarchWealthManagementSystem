@@ -4,6 +4,7 @@ import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
+import com.indivaragroup.jdt17wms.dto.response.TransactionHistoryDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
@@ -145,7 +146,7 @@ class AssetsManagementServiceTest {
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
         when(transactionHistoryRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(log));
 
-        List<TransactionHistory> result = assetsManagementService.getTransactionLogsForUser();
+        List<TransactionHistoryDTO> result = assetsManagementService.getTransactionLogsForUser();
 
         assertNotNull(result);
         assertEquals(1, result.size());

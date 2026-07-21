@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.request.AdminProductCreateDTO;
 import com.indivaragroup.jdt17wms.dto.request.AdminProductUpdateDTO;
+import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
@@ -21,13 +22,13 @@ public class AdminProductManagementService {
         this.productRepository = productRepository;
     }
 
-    public Page<Product> listProducts(String search, String type, Pageable pageable) {
+    public Page<ProductResponseDTO> listProducts(String search, String type, Pageable pageable) {
         String s = (search != null && search.trim().isEmpty()) ? null : search;
         String t = (type != null && type.trim().isEmpty()) ? null : type;
-        return productRepository.findAllAdmin(s, t, pageable);
+        return productRepository.findAllAdmin(s, t, pageable).map(ProductResponseDTO::fromEntity);
     }
 
-    public Product createProduct(AdminProductCreateDTO dto) {
+    public ProductResponseDTO createProduct(AdminProductCreateDTO dto) {
         Product p = Product.builder()
                 .code(dto.getCode())
                 .name(dto.getName())
@@ -43,10 +44,10 @@ public class AdminProductManagementService {
                 .isFractionalAllowed(dto.getIsFractionalAllowed())
                 .visible(dto.getVisible())
                 .build();
-        return productRepository.save(p);
+        return ProductResponseDTO.fromEntity(productRepository.save(p));
     }
 
-    public Product updateProduct(UUID id, AdminProductUpdateDTO dto) {
+    public ProductResponseDTO updateProduct(UUID id, AdminProductUpdateDTO dto) {
         Product p = productRepository.findById(id)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND, "Product not found"));
         if (dto.getName() != null) p.setName(dto.getName());
@@ -61,6 +62,6 @@ public class AdminProductManagementService {
         if (dto.getLotSize() != null) p.setLotSize(dto.getLotSize());
         if (dto.getIsFractionalAllowed() != null) p.setIsFractionalAllowed(dto.getIsFractionalAllowed());
         if (dto.getVisible() != null) p.setVisible(dto.getVisible());
-        return productRepository.save(p);
+        return ProductResponseDTO.fromEntity(productRepository.save(p));
     }
 }

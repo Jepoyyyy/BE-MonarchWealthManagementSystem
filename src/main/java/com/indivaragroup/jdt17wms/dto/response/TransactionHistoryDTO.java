@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.indivaragroup.jdt17wms.models.enums.TransactionAction;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -10,8 +11,6 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.Date;
 import java.util.UUID;
 
 @Getter
@@ -19,7 +18,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AssetDTO {
+public class TransactionHistoryDTO {
+
     private UUID id;
 
     @JsonProperty("user_id")
@@ -28,38 +28,29 @@ public class AssetDTO {
     @JsonProperty("product_id")
     private UUID productId;
 
+    @JsonProperty("asset_id")
+    private UUID assetId;
+
     @JsonProperty("goal_id")
     private UUID goalId;
 
+    private TransactionAction action;
+
+    @JsonProperty("price_per_unit")
+    private BigDecimal pricePerUnit;
+
     private BigDecimal units;
 
-    private BigDecimal amount;
+    @JsonProperty("total_amount")
+    private BigDecimal totalAmount;
 
-    @JsonProperty("name")
-    private String assetsName;
-
-    @JsonProperty("issuer")
-    private String assetsIssuer;
-
-    @JsonProperty("type")
-    private String assetsType;
-
-    @JsonProperty("current_value")
-    private BigDecimal currentValue;
-
-    @JsonProperty("tenor")
-    @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate tenor;
-
-    @JsonProperty("purchase_date")
+    @JsonProperty("transaction_date")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
-    private Instant purchaseDate;
-
-    private String platform;
+    private Instant transactionDate;
 
     private String notes;
 
-    @JsonProperty("updated_at")
+    @JsonProperty("created_at")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "UTC")
-    private Instant updatedAt;
+    private Instant createdAt;
 }

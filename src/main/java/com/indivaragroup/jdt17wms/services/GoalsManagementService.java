@@ -228,6 +228,9 @@ public class GoalsManagementService implements VerifiedUserProvider {
 
     goal = goalRepository.save(goal);
 
+    // Trigger auto-allocation if needed after updating goal
+    autoAllocateIfNeeded(user.getId());
+
     return GoalDTO.builder()
       .id(goal.getId())
       .userId(goal.getUserId())

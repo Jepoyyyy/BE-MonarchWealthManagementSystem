@@ -6,6 +6,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Date;
 import java.util.UUID;
 
 @Entity
@@ -48,6 +50,9 @@ public class Asset {
 
     @Column(name = "notes", columnDefinition = "text")
     private String notes;
+
+    @Column(name = "tenor")
+    private LocalDate tenor;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)

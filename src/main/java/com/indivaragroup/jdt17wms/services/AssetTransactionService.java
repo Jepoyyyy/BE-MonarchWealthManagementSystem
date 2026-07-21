@@ -32,10 +32,11 @@ public class AssetTransactionService {
     private final TransactionHistoryRepository transactionHistoryRepository;
     private final PnLCalculationService pnLCalculationService;
 
+
     public AssetTransactionService(AssetRepository assetRepository,
                                    ProductRepository productRepository,
                                    TransactionHistoryRepository transactionHistoryRepository,
-                                   PnLCalculationService pnLCalculationService) {
+                                   PnLCalculationService pnLCalculationService, ProductManagementService productManagementService) {
         this.assetRepository = assetRepository;
         this.productRepository = productRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
@@ -63,7 +64,7 @@ public class AssetTransactionService {
 
         // Determine units and amount
         boolean hasUnits = dto.getUnits() != null && dto.getUnits().compareTo(BigDecimal.ZERO) > 0;
-        boolean hasAmount = dto.getAmount() != null && dto.getAmount().compareTo(BigDecimal.ZERO) > 0;
+
 
         BigDecimal unitsToBuy;
         BigDecimal totalAmount;

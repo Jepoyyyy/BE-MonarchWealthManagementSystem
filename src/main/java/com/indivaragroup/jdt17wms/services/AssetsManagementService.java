@@ -7,6 +7,7 @@ import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
+import com.indivaragroup.jdt17wms.dto.response.TransactionHistoryDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
 import com.indivaragroup.jdt17wms.models.Product;
@@ -20,15 +21,21 @@ import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.RecommendationRepository;
 import com.indivaragroup.jdt17wms.repositories.TransactionHistoryRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
+import org.hibernate.sql.results.graph.collection.internal.ListInitializerProducer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.indivaragroup.jdt17wms.constants.ProductConstants;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -42,6 +49,10 @@ public class AssetsManagementService implements VerifiedUserProvider {
     private final RecommendationRepository recommendationRepository;
     private final AssetTransactionService assetTransactionService;
     private static final int BY_FOUR = 4;
+    private static final Set<String> TENOR_PRODUCT_TYPES = Set.of(
+            ProductConstants.SUKUK, ProductConstants.DEPOSIT, ProductConstants.BOND
+    );
+    private final ProductManagementService productManagementService;
 
     @Override
     public UserRepository userRepository() { return userRepository; }
@@ -52,7 +63,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
                                    ProductRepository productRepository,
                                    GoalRepository goalRepository,
                                    RecommendationRepository recommendationRepository,
-                                   AssetTransactionService assetTransactionService) {
+                                   AssetTransactionService assetTransactionService, ProductManagementService productManagementService) {
         this.assetRepository = assetRepository;
         this.userRepository = userRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
@@ -60,6 +71,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         this.goalRepository = goalRepository;
         this.recommendationRepository = recommendationRepository;
         this.assetTransactionService = assetTransactionService;
+        this.productManagementService = productManagementService;
     }
 
     public List<AssetDTO> getAssetsForUser() {
@@ -86,6 +98,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
                 .purchaseDate(asset.getPurchaseDate())
                 .platform(asset.getPlatform())
                 .notes(asset.getNotes())
+                .tenor(asset.getTenor())
                 .updatedAt(asset.getUpdatedAt());
 
         productRepository.findById(asset.getProductId()).ifPresent(product -> {
@@ -97,12 +110,31 @@ public class AssetsManagementService implements VerifiedUserProvider {
         return builder.build();
     }
 
-    public List<TransactionHistory> getTransactionLogsForUser() {
-        User user = getVerifiedUser();
-        return transactionHistoryRepository.findAllByUserId(user.getId());
+    private TransactionHistoryDTO toTransactionHistoryDTO(TransactionHistory th) {
+        return TransactionHistoryDTO.builder()
+                .id(th.getId())
+                .userId(th.getUserId())
+                .productId(th.getProductId())
+                .assetId(th.getAssetId())
+                .goalId(th.getGoalId())
+                .action(th.getAction())
+                .pricePerUnit(th.getPricePerUnit())
+                .units(th.getUnits())
+                .totalAmount(th.getTotalAmount())
+                .transactionDate(th.getTransactionDate())
+                .notes(th.getNotes())
+                .createdAt(th.getCreatedAt())
+                .build();
     }
 
-    public List<TransactionHistory> getTransactionHistoryForAsset(UUID assetId) {
+    public List<TransactionHistoryDTO> getTransactionLogsForUser() {
+        User user = getVerifiedUser();
+        return transactionHistoryRepository.findAllByUserId(user.getId()).stream()
+                .map(this::toTransactionHistoryDTO)
+                .toList();
+    }
+
+    public List<TransactionHistoryDTO> getTransactionHistoryForAsset(UUID assetId) {
         User user = getVerifiedUser();
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
@@ -111,7 +143,9 @@ public class AssetsManagementService implements VerifiedUserProvider {
             throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
         }
 
-        return transactionHistoryRepository.findAllByAssetIdOrderByTransactionDateDesc(assetId);
+        return transactionHistoryRepository.findAllByAssetIdOrderByTransactionDateDesc(assetId).stream()
+                .map(this::toTransactionHistoryDTO)
+                .toList();
     }
 
     @Transactional
@@ -130,18 +164,26 @@ public class AssetsManagementService implements VerifiedUserProvider {
         }
 
         Instant purchaseInstant = dto.getPurchaseDate().atZone(ZoneId.systemDefault()).toInstant();
-
         // Calculate current_value based on current product price
         BigDecimal currentPrice = product.getCurrentPrice();
         BigDecimal calculatedCurrentValue = dto.getUnits().multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
+
+        //cek ulang. nwgawur loh ya
+        // Calculate maturity date if tenor is provided and product type supports it
+        LocalDate maturityDate = null;
+        if (dto.getTenor() != null) {
+            maturityDate = LocalDate.now().plusMonths(dto.getTenor());
+        }
+        System.out.println(maturityDate);
 
         Asset asset = Asset.builder()
                 .userId(user.getId())
                 .productId(product.getId())
                 .units(dto.getUnits())
                 .amount(dto.getAmount())
-                .currentValue(calculatedCurrentValue) // CALCULATED, not from DTO
+                .currentValue(calculatedCurrentValue)
                 .purchaseDate(purchaseInstant)
+                .tenor((maturityDate))
                 .platform(dto.getPlatform())
                 .notes(dto.getNotes())
                 .build();
@@ -245,7 +287,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
     }
 
     @Transactional
-    public Asset updateAssetGoal(UUID assetId, UUID goalId) {
+    public AssetDTO updateAssetGoal(UUID assetId, UUID goalId) {
         User user = getVerifiedUser();
         Asset asset = assetRepository.findById(assetId)
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
@@ -260,7 +302,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         }
 
         asset.setGoalId(goalId);
-        return assetRepository.save(asset);
+        return toAssetDTO(assetRepository.save(asset));
     }
 
     @Transactional
