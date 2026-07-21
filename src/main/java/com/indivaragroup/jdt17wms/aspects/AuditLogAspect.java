@@ -24,7 +24,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.*;
 
@@ -66,7 +65,7 @@ public class AuditLogAspect {
     ) {}
 
     @Around("@annotation(auditLogged)")
-    public Object logAudit(ProceedingJoinPoint joinPoint, AuditLogged auditLogged) throws Throwable {
+    public void logAudit(ProceedingJoinPoint joinPoint, AuditLogged auditLogged) throws Throwable {
         String category = auditLogged.category();
         String action = auditLogged.action();
 
@@ -142,24 +141,24 @@ public class AuditLogAspect {
             List<FieldChange> changes = new ArrayList<>();
             Object dto = null;
             for (Object arg : joinPoint.getArgs()) {
-                if (isDto(arg)) {
+                if (AuditLogHelper.isDto(arg)) {
                     dto = arg;
                     break;
                 }
             }
 
             if (action.contains("UPDATE")) {
-                if ("RISK_PROFILE".equalsIgnoreCase(category) && oldEntitySnapshot != null) {
+                if ("RISK_PROFILE".equalsIgnoreCase(category)) {
                     if (userId != null) {
                         User updatedUser = userRepository.findById(userId).orElse(null);
                         if (updatedUser != null) {
                             Object oldRiskProfile = oldEntitySnapshot.get("riskProfile");
                             Object oldQuestionnaireCompleted = oldEntitySnapshot.get("questionnaireCompleted");
 
-                            if (isChanged(oldRiskProfile, updatedUser.getRiskProfile())) {
+                            if (AuditLogHelper.isChanged(oldRiskProfile, updatedUser.getRiskProfile())) {
                                 changes.add(new FieldChange("risk_profile", oldRiskProfile, updatedUser.getRiskProfile()));
                             }
-                            if (isChanged(oldQuestionnaireCompleted, updatedUser.getQuestionnaireCompleted())) {
+                            if (AuditLogHelper.isChanged(oldQuestionnaireCompleted, updatedUser.getQuestionnaireCompleted())) {
                                 changes.add(new FieldChange("questionnaire_completed", oldQuestionnaireCompleted, updatedUser.getQuestionnaireCompleted()));
                             }
                         }
@@ -173,7 +172,7 @@ public class AuditLogAspect {
                         }
 
                         Object oldIncome = oldEntitySnapshot.get("monthly_income");
-                        if (updatedFp != null && isChanged(oldIncome, updatedFp.getMonthlyIncome())) {
+                        if (updatedFp != null && AuditLogHelper.isChanged(oldIncome, updatedFp.getMonthlyIncome())) {
                             changes.add(new FieldChange("monthly_income", oldIncome, updatedFp.getMonthlyIncome()));
                         }
 
@@ -181,17 +180,17 @@ public class AuditLogAspect {
                         if (updatedExpense != null) {
                             for (String fieldName : expenseFields) {
                                 Object oldVal = oldEntitySnapshot.get(fieldName);
-                                Object newVal = getPropertyValue(updatedExpense, fieldName);
-                                if (isChanged(oldVal, newVal)) {
+                                Object newVal = AuditLogHelper.getPropertyValue(updatedExpense, fieldName);
+                                if (AuditLogHelper.isChanged(oldVal, newVal)) {
                                     changes.add(new FieldChange(fieldName, oldVal, newVal));
                                 }
                             }
                         }
                     }
-                } else if (dto != null && oldEntitySnapshot != null) {
+                } else if (dto != null) {
                     changes = getChanges(dto, oldEntitySnapshot);
                 }
-            } else if (action.contains("CREATE") && dto != null) {
+            } else if (dto != null) {
                 changes = getCreateChanges(dto);
             }
 
@@ -214,61 +213,15 @@ public class AuditLogAspect {
 
         auditLogRepository.save(auditLog);
 
-        return result;
-    }
-
-    private boolean isDto(Object arg) {
-        if (arg == null) return false;
-        Class<?> clazz = arg.getClass();
-        if (clazz.isPrimitive()) return false;
-        String packageName = clazz.getPackageName();
-        if (packageName.startsWith("java.") || packageName.startsWith("javax.") || packageName.startsWith("jakarta.")) {
-            return false;
-        }
-        if (arg instanceof UUID) return false;
-
-        return true;
-    }
-
-    private Class<?> getUnproxiedClass(Object entity) {
-        Class<?> clazz = entity.getClass();
-        if (clazz.getName().contains("$$HibernateProxy") || clazz.getName().contains("$HibernateProxy")) {
-            return clazz.getSuperclass();
-        }
-        return clazz;
-    }
-
-    private Object getPropertyValue(Object obj, String propertyName) {
-        if (obj == null) return null;
-        String capitalized = propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
-        String[] getterNames = {"get" + capitalized, "is" + capitalized};
-        for (String getterName : getterNames) {
-            try {
-                java.lang.reflect.Method method = obj.getClass().getMethod(getterName);
-                return method.invoke(obj);
-            } catch (Exception e) {
-                // Ignore
-            }
-        }
-        try {
-            Field field = findUnderlyingField(obj.getClass(), propertyName);
-            if (field != null) {
-                field.setAccessible(true);
-                return field.get(obj);
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        return null;
     }
 
     private Map<String, Object> snapshotEntity(Object entity) {
         if (entity == null) return Map.of();
         Map<String, Object> snapshot = new HashMap<>();
-        Class<?> unproxiedClass = getUnproxiedClass(entity);
-        for (Field field : getDeclaredFieldsInherited(unproxiedClass)) {
+        Class<?> unproxiedClass = AuditLogHelper.getUnproxiedClass(entity);
+        for (Field field : AuditLogHelper.getDeclaredFieldsInherited(unproxiedClass)) {
             try {
-                Object value = getPropertyValue(entity, field.getName());
+                Object value = AuditLogHelper.getPropertyValue(entity, field.getName());
                 snapshot.put(field.getName(), value);
             } catch (Exception e) {
                 // Ignore
@@ -279,10 +232,7 @@ public class AuditLogAspect {
 
     private List<FieldChange> getChanges(Object dto, Map<String, Object> oldEntitySnapshot) {
         List<FieldChange> changes = new ArrayList<>();
-        if (dto == null || oldEntitySnapshot == null) {
-            return changes;
-        }
-        for (Field dtoField : getDeclaredFieldsInherited(dto.getClass())) {
+        for (Field dtoField : AuditLogHelper.getDeclaredFieldsInherited(dto.getClass())) {
             dtoField.setAccessible(true);
             try {
                 Object newValue = dtoField.get(dto);
@@ -290,11 +240,11 @@ public class AuditLogAspect {
                     continue;
                 }
 
-                String entityFieldName = getEntityFieldName(dtoField.getName());
+                String entityFieldName = AuditLogHelper.getEntityFieldName(dtoField.getName());
                 if (oldEntitySnapshot.containsKey(entityFieldName)) {
                     Object oldValue = oldEntitySnapshot.get(entityFieldName);
-                    if (isChanged(oldValue, newValue)) {
-                        String jsonFieldName = getJsonFieldName(dtoField);
+                    if (AuditLogHelper.isChanged(oldValue, newValue)) {
+                        String jsonFieldName = AuditLogHelper.getJsonFieldName(dtoField);
                         changes.add(new FieldChange(jsonFieldName, oldValue, newValue));
                     }
                 }
@@ -307,17 +257,14 @@ public class AuditLogAspect {
 
     private List<FieldChange> getCreateChanges(Object dto) {
         List<FieldChange> changes = new ArrayList<>();
-        if (dto == null) {
-            return changes;
-        }
-        for (Field dtoField : getDeclaredFieldsInherited(dto.getClass())) {
+        for (Field dtoField : AuditLogHelper.getDeclaredFieldsInherited(dto.getClass())) {
             dtoField.setAccessible(true);
             try {
                 Object newValue = dtoField.get(dto);
                 if (newValue == null) {
                     continue;
                 }
-                String jsonFieldName = getJsonFieldName(dtoField);
+                String jsonFieldName = AuditLogHelper.getJsonFieldName(dtoField);
                 changes.add(new FieldChange(jsonFieldName, null, newValue));
             } catch (Exception e) {
                 // Ignore reflection exceptions
@@ -326,49 +273,12 @@ public class AuditLogAspect {
         return changes;
     }
 
-    private String getEntityFieldName(String dtoFieldName) {
-        if ("visibility".equals(dtoFieldName)) {
-            return "visible";
-        }
-        return dtoFieldName;
-    }
-
-    private String getJsonFieldName(Field field) {
-        if (field.isAnnotationPresent(JsonProperty.class)) {
-            return field.getAnnotation(JsonProperty.class).value();
-        }
-        return toSnakeCase(field.getName());
-    }
-
-    private String toSnakeCase(String camelCase) {
-        return camelCase.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
-    }
-
-    private boolean isChanged(Object oldValue, Object newValue) {
-        if (oldValue == null && newValue == null) {
-            return false;
-        }
-        if (oldValue == null || newValue == null) {
-            return true;
-        }
-        if (oldValue instanceof BigDecimal bd1 && newValue instanceof BigDecimal bd2) {
-            return bd1.compareTo(bd2) != 0;
-        }
-        if (oldValue instanceof Number n1 && newValue instanceof Number n2) {
-            return n1.doubleValue() != n2.doubleValue();
-        }
-        if (oldValue.getClass().isEnum() || newValue.getClass().isEnum()) {
-            return !oldValue.toString().equalsIgnoreCase(newValue.toString());
-        }
-        return !oldValue.equals(newValue);
-    }
-
     private String getDetails(String action, Object result, Object[] args, UUID entityId) {
         String name = "";
         for (Object arg : args) {
             if (arg != null) {
                 try {
-                    Field nameField = findUnderlyingField(arg.getClass(), "name");
+                    Field nameField = AuditLogHelper.findUnderlyingField(arg.getClass(), "name");
                     if (nameField != null) {
                         nameField.setAccessible(true);
                         Object val = nameField.get(arg);
@@ -381,10 +291,10 @@ public class AuditLogAspect {
             }
         }
 
-        if ((name == null || name.isEmpty()) && result instanceof ApiResponse<?> apiResponse && apiResponse.getRestApiResponseResult() != null) {
+        if (name.isEmpty() && result instanceof ApiResponse<?> apiResponse && apiResponse.getRestApiResponseResult() != null) {
             try {
                 Object body = apiResponse.getRestApiResponseResult();
-                Field nameField = findUnderlyingField(body.getClass(), "name");
+                Field nameField = AuditLogHelper.findUnderlyingField(body.getClass(), "name");
                 if (nameField != null) {
                     nameField.setAccessible(true);
                     Object val = nameField.get(body);
@@ -395,45 +305,20 @@ public class AuditLogAspect {
             }
         }
 
-        if (name == null) {
-            name = "";
-        }
-
         String s = name.isEmpty() ? "" : ": " + name;
-      return switch (action) {
-        case "CREATE_ASSET" -> "Created Asset" + s;
-        case "UPDATE_ASSET" -> "Updated Asset" + s + (entityId != null ? " (ID: " + entityId + ")" : "");
-        case "DELETE_ASSET" -> "Deleted Asset" + (entityId != null ? " (ID: " + entityId + ")" : "");
-        case "CREATE_GOAL" -> "Created Goal" + s;
-        case "UPDATE_GOAL" -> "Updated Goal" + s + (entityId != null ? " (ID: " + entityId + ")" : "");
-        case "DELETE_GOAL" -> "Deleted Goal" + (entityId != null ? " (ID: " + entityId + ")" : "");
-        case "UPDATE_PRODUCT" -> "Updated Product Visibility" + (entityId != null ? " (ID: " + entityId + ")" : "");
-        case "UPDATE_RISK_PROFILE" -> "Updated Risk Profile Questionnaire";
-        case "UPDATE_USER_STATUS" -> "Updated User Status" + (entityId != null ? " (ID: " + entityId + ")" : "");
-        case "UPDATE_FINANCES" -> "Updated Financial Profile and Expenses";
-        default -> action + " action performed";
-      };
-    }
-
-    private static Field findUnderlyingField(Class<?> clazz, String fieldName) {
-        Class<?> current = clazz;
-        while (current != null) {
-            try {
-                return current.getDeclaredField(fieldName);
-            } catch (NoSuchFieldException e) {
-                current = current.getSuperclass();
-            }
-        }
-        return null;
-    }
-
-    private static List<Field> getDeclaredFieldsInherited(Class<?> clazz) {
-        List<Field> fields = new ArrayList<>();
-        Class<?> current = clazz;
-        while (current != null && current != Object.class) {
-            fields.addAll(Arrays.asList(current.getDeclaredFields()));
-            current = current.getSuperclass();
-        }
-        return fields;
+        return switch (action) {
+            case "CREATE_ASSET" -> "Created Asset" + s;
+            case "UPDATE_ASSET" -> "Updated Asset" + s + (entityId != null ? " (ID: " + entityId + ")" : "");
+            case "DELETE_ASSET" -> "Deleted Asset" + (entityId != null ? " (ID: " + entityId + ")" : "");
+            case "CREATE_GOAL" -> "Created Goal" + s;
+            case "UPDATE_GOAL" -> "Updated Goal" + s + (entityId != null ? " (ID: " + entityId + ")" : "");
+            case "DELETE_GOAL" -> "Deleted Goal" + (entityId != null ? " (ID: " + entityId + ")" : "");
+            case "UPDATE_PRODUCT" -> "Updated Product Visibility" + (entityId != null ? " (ID: " + entityId + ")" : "");
+            case "UPDATE_RISK_PROFILE" -> "Updated Risk Profile Questionnaire";
+            case "UPDATE_USER_STATUS" -> "Updated User Status" + (entityId != null ? " (ID: " + entityId + ")" : "");
+            case "UPDATE_FINANCES" -> "Updated Financial Profile and Expenses";
+            default -> action + " action performed";
+        };
     }
 }
+
