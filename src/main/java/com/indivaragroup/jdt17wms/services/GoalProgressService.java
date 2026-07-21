@@ -17,7 +17,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class GoalProgressService {
@@ -47,21 +46,22 @@ public class GoalProgressService {
 
         return goals.stream()
                 .map(goal -> computeProgressForGoal(goal, allPnlData))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private GoalProgressResponseDTO computeProgressForGoal(Goal goal, List<AssetsPnLResponseDTO> allPnlData) {
         List<Asset> goalAssets = assetRepository.findAllByGoalId(goal.getId());
-        
+
         List<AssetsPnLResponseDTO> goalPnlData = allPnlData.stream()
                 .filter(pnl -> goalAssets.stream()
                         .anyMatch(asset -> asset.getId().equals(pnl.getAssetId())))
-                .collect(Collectors.toList());
+                .toList();
 
+        BigDecimal initialAmount = goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO;
         BigDecimal currentSaved = goalPnlData.stream()
                 .map(AssetsPnLResponseDTO::getCurrentValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .add(goal.getCurrentAmount() != null ? goal.getCurrentAmount() : BigDecimal.ZERO);
+                .add(initialAmount);
 
         BigDecimal totalPotentialPnL = goalPnlData.stream()
                 .map(AssetsPnLResponseDTO::getPotentialPnL)
@@ -77,21 +77,9 @@ public class GoalProgressService {
 
         BigDecimal avgMonthlyGrowth = totalPotentialPnL.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
 
-        BigDecimal remaining = goal.getTargetAmount().subtract(currentSaved);
-        BigDecimal totalMonthlyIncrease = goal.getMonthlyContribution().add(avgMonthlyGrowth);
-        
-        Integer projectedEtaMonths = null;
-        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
-            projectedEtaMonths = 0;
-        } else if (totalMonthlyIncrease.compareTo(BigDecimal.ZERO) > 0) {
-            projectedEtaMonths = remaining
-                    .divide(totalMonthlyIncrease, 0, RoundingMode.CEILING)
-                    .intValue();
-        } else {
-            projectedEtaMonths = -1;
-        }
+      Integer projectedEtaMonths = getEtaMonths(goal, currentSaved, avgMonthlyGrowth);
 
-        return GoalProgressResponseDTO.builder()
+      return GoalProgressResponseDTO.builder()
                 .goalId(goal.getId())
                 .goalName(goal.getName())
                 .goalType(goal.getType())
@@ -106,4 +94,21 @@ public class GoalProgressService {
                 .isPriority(goal.getIsPriority())
                 .build();
     }
+
+  private static Integer getEtaMonths(Goal goal, BigDecimal currentSaved, BigDecimal avgMonthlyGrowth) {
+    BigDecimal remaining = goal.getTargetAmount().subtract(currentSaved);
+    BigDecimal totalMonthlyIncrease = goal.getMonthlyContribution().add(avgMonthlyGrowth);
+
+    Integer projectedEtaMonths = null;
+    if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+        projectedEtaMonths = 0;
+    } else if (totalMonthlyIncrease.compareTo(BigDecimal.ZERO) > 0) {
+        projectedEtaMonths = remaining
+                .divide(totalMonthlyIncrease, 0, RoundingMode.CEILING)
+                .intValue();
+    } else {
+        projectedEtaMonths = -1;
+    }
+    return projectedEtaMonths;
+  }
 }

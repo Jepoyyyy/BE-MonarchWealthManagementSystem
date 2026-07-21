@@ -7,7 +7,6 @@ import com.indivaragroup.jdt17wms.aspects.RiskProfileAssessmentRequired;
 import com.indivaragroup.jdt17wms.dto.response.*;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
-import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
@@ -15,11 +14,9 @@ import com.indivaragroup.jdt17wms.repositories.AssetRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.AuditLogRepository;
 import com.indivaragroup.jdt17wms.repositories.ProductPriceRepository;
-import com.indivaragroup.jdt17wms.services.PnLCalculationService;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
@@ -30,7 +27,6 @@ import java.time.Month;
 import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class DashboardService {
@@ -146,7 +142,10 @@ public class DashboardService {
     for (Asset asset : assetList) {
       // Use PnLCalculationService for accurate remaining units calculation
       AssetsPnLResponseDTO pnl = pnLCalculationService.computePnLForAsset(asset);
-      
+      if (pnl == null || pnl.getCurrentValue() == null) {
+        throw new CoreThrowHandler(ApiError.BAD_REQUEST, "null currentValue");
+      }
+
       BigDecimal assetValue = pnl.getCurrentValue(); // remaining units × current price
       totalValue = totalValue.add(assetValue);
       totalInvested = totalInvested.add(asset.getAmount());
