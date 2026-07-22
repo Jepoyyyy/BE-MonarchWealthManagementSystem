@@ -2,7 +2,7 @@ package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
-import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
+import com.indivaragroup.jdt17wms.dto.request.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.services.UserManagementService;
 import org.junit.jupiter.api.Test;

@@ -1,5 +1,7 @@
 package com.indivaragroup.jdt17wms.dto.request;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -11,6 +13,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AdminUserAccessDTO {
+public class UserStatusUpdateDTO {
+    @NotNull(message = "Status cannot be null")
+    @Pattern(regexp = "^(active|suspended|disabled)$", message = "Invalid status value")
     private String status;
 }

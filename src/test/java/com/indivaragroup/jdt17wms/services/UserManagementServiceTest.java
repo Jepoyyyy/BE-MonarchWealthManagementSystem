@@ -2,7 +2,7 @@ package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
-import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
+import com.indivaragroup.jdt17wms.dto.request.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.enums.UserRole;

@@ -6,7 +6,7 @@ import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
-import com.indivaragroup.jdt17wms.dtos.input.UserStatusUpdateDTO;
+import com.indivaragroup.jdt17wms.dto.request.UserStatusUpdateDTO;
 import com.indivaragroup.jdt17wms.services.UserManagementService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;

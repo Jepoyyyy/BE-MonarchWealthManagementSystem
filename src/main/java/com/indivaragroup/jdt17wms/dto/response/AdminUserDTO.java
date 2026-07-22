@@ -5,7 +5,11 @@ import lombok.*;
 import java.time.Instant;
 import java.util.UUID;
 
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AdminUserDTO {
     private UUID id;
     private String name;
