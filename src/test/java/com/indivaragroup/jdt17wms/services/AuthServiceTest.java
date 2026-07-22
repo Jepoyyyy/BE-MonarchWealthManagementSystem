@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.request.BearerHeaderDTO;
 import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.AuthSuccessDTO;
 import com.indivaragroup.jdt17wms.dto.response.auth.LogoutSuccessDTO;
@@ -221,6 +222,84 @@ class AuthServiceTest {
         assertTrue(response.getSuccess());
 
         verify(auditLogRepository, times(1)).save(argThat(audit -> "anonymous".equals(audit.getUserName())));
+    }
+
+    @Test
+    void logout_withValidBearerHeaderDTO_shouldExtractTokenDetailsAndLogout() {
+        UUID userId = UUID.randomUUID();
+        BearerHeaderDTO headerDTO = BearerHeaderDTO.builder()
+                .authHeader("Bearer valid.token.string")
+                .build();
+
+        when(jwtService.getEmailFromToken("valid.token.string")).thenReturn("user@example.com");
+        when(jwtService.getUserIdFromToken("valid.token.string")).thenReturn(userId);
+
+        LogoutSuccessDTO response = authService.logout(headerDTO);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+        assertEquals("Logout successful", response.getMessage());
+
+        verify(auditLogRepository, times(1)).save(argThat(audit ->
+                "user@example.com".equals(audit.getUserName()) && userId.equals(audit.getUserId())
+        ));
+    }
+
+    @Test
+    void logout_withNullBearerHeaderDTO_shouldLogoutAsAnonymous() {
+        LogoutSuccessDTO response = authService.logout((BearerHeaderDTO) null);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+
+        verify(auditLogRepository, times(1)).save(argThat(audit ->
+                "anonymous".equals(audit.getUserName()) && audit.getUserId() == null
+        ));
+    }
+
+    @Test
+    void logout_withNullAuthHeaderInDTO_shouldLogoutAsAnonymous() {
+        BearerHeaderDTO headerDTO = BearerHeaderDTO.builder().authHeader(null).build();
+
+        LogoutSuccessDTO response = authService.logout(headerDTO);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+
+        verify(auditLogRepository, times(1)).save(argThat(audit ->
+                "anonymous".equals(audit.getUserName()) && audit.getUserId() == null
+        ));
+    }
+
+    @Test
+    void logout_withNonBearerHeader_shouldLogoutAsAnonymous() {
+        BearerHeaderDTO headerDTO = BearerHeaderDTO.builder().authHeader("Basic 123456").build();
+
+        LogoutSuccessDTO response = authService.logout(headerDTO);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+
+        verify(jwtService, never()).getEmailFromToken(any());
+        verify(auditLogRepository, times(1)).save(argThat(audit ->
+                "anonymous".equals(audit.getUserName()) && audit.getUserId() == null
+        ));
+    }
+
+    @Test
+    void logout_withTokenParsingException_shouldCatchAndLogoutAsAnonymous() {
+        BearerHeaderDTO headerDTO = BearerHeaderDTO.builder().authHeader("Bearer malformed.token").build();
+
+        when(jwtService.getEmailFromToken("malformed.token")).thenThrow(new RuntimeException("Token parse error"));
+
+        LogoutSuccessDTO response = authService.logout(headerDTO);
+
+        assertNotNull(response);
+        assertTrue(response.getSuccess());
+
+        verify(auditLogRepository, times(1)).save(argThat(audit ->
+                "anonymous".equals(audit.getUserName()) && audit.getUserId() == null
+        ));
     }
 
     // --- Refresh Token Tests ---
