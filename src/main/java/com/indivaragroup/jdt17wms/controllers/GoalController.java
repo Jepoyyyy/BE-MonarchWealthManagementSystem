@@ -71,7 +71,7 @@ public class GoalController {
 
     @PostMapping(ApiPath.AUTO_ALLOCATE_ROUTE)
     @AuditLogged(action = AuditConstants.Action.AUTO_ALLOCATE_GOALS, category = AuditConstants.GOAL_CATEGORY)
-    public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam("percentage") int percentage) {
+    public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam int percentage) {
         return ApiResponse.success(ApiSuccess.GOALS_FETCHED,
                 goalsManagementService.autoAllocateGoalsForUser(percentage));
     }

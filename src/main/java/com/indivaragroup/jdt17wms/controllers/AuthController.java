@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.controllers;
 
+import com.indivaragroup.jdt17wms.constants.JwtConstants;
 import com.indivaragroup.jdt17wms.dto.request.BearerHeaderDTO;
 import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
 import com.indivaragroup.jdt17wms.dto.request.RefreshTokenDTO;
@@ -43,7 +44,7 @@ public class AuthController {
     }
 
     @PostMapping(ApiPath.LOGOUT_ROUTE)
-    public ApiResponse<LogoutSuccessDTO> logout(@RequestHeader(value = "Authorization", required = false) BearerHeaderDTO headerDto) {
+    public ApiResponse<LogoutSuccessDTO> logout(@RequestHeader(value = JwtConstants.HEADER_AUTHORIZATION, required = false) BearerHeaderDTO headerDto) {
         return ApiResponse.success(ApiSuccess.LOGOUT, authService.logout(headerDto));
     }
 
