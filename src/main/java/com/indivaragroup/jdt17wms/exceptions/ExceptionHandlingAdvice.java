@@ -6,6 +6,7 @@ import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
@@ -120,25 +121,25 @@ public class ExceptionHandlingAdvice {
         errorMap.put("method", ex.getHttpMethod());
 
         ApiResponse<?> body = ApiResponse.builder()
-                .restApiResponseHttpCode(404)
+                .restApiResponseHttpCode(HttpStatus.NOT_FOUND.value())
                 .restApiResponseMessage(ApiError.NOT_FOUND.getMessage())
                 .restApiResponseResult(null)
                 .restApiResponseError(errorMap)
                 .build();
 
-        return ResponseEntity.status(404).body(body);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(body);
     }
 
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
         ApiResponse<?> body = ApiResponse.builder()
-                .restApiResponseHttpCode(404)
+                .restApiResponseHttpCode(HttpStatus.NOT_FOUND.value())
                 .restApiResponseMessage(ApiError.NOT_FOUND.getMessage())
                 .restApiResponseResult(null)
                 .restApiResponseError(null)
                 .build();
 
-        return ResponseEntity.status(404).body(body);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND.value()).body(body);
     }
 
     @ExceptionHandler(Throwable.class)
@@ -150,8 +151,8 @@ public class ExceptionHandlingAdvice {
         errorMap.put("errorId", errorId);
 
         ApiResponse<?> body = ApiResponse.builder()
-                .restApiResponseHttpCode(500)
-                .restApiResponseMessage("Internal server error")
+                .restApiResponseHttpCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .restApiResponseMessage(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
                 .restApiResponseResult(null)
                 .restApiResponseError(errorMap)
                 .build();

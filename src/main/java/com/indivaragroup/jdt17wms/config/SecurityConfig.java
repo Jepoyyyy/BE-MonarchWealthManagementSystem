@@ -6,6 +6,7 @@ import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -24,6 +25,8 @@ public class SecurityConfig {
 
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final ObjectMapper objectMapper;
+
+  public static final String ANY_WILDCARD = "/**";
 
 
   public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
@@ -47,26 +50,25 @@ public class SecurityConfig {
                 BASE_AUTH_PATH + LOGIN_PATH,
                 BASE_AUTH_PATH + REGISTER_PATH,
                 BASE_AUTH_PATH + REFRESH_TOKEN_PATH,
-                "/error"
+                SPRING_ERROR_URL
         ).permitAll()
         .requestMatchers(HttpMethod.GET, BASE_PRODUCTS_PATH).hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
-        .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_PATH + "/**").hasRole(UserRole.ADMIN.name())
-        .requestMatchers("/api/v1/admin/dashboard").hasRole(UserRole.ADMIN.name())
-        .requestMatchers("/api/v1/admin/**").hasRole(UserRole.ADMIN.name())
-        .requestMatchers("/api/v1/audit", "/api/v1/audit/**").hasRole(UserRole.ADMIN.name())
-        .requestMatchers("/api/v1/users", "/api/v1/users/**").hasRole(UserRole.ADMIN.name())
-        .requestMatchers("/api/v1/me/**", "/me/**").hasRole(UserRole.USER.name())
+        .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_ADMIN_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_AUDIT_PATH, BASE_AUDIT_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_USERS_PATH, BASE_USERS_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_USER_PATH + ANY_WILDCARD).hasRole(UserRole.USER.name())
         .anyRequest().authenticated()
       )
       .exceptionHandling(exceptions -> exceptions
         .authenticationEntryPoint((request, response, authException) -> {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.setContentType("application/json");
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write(objectMapper.writeValueAsString(ErrorConstants.ERROR_UNAUTHORIZED));
         })
         .accessDeniedHandler((request, response, accessDeniedException) -> {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.setContentType("application/json");
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             response.getWriter().write(objectMapper.writeValueAsString(ErrorConstants.ERROR_FORBIDDEN));
         })
       )

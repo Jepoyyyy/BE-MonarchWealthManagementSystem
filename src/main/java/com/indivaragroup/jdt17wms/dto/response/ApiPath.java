@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class ApiPath {
   public static final String ROOT_URL = "/api/v1";
+  public static final String SPRING_ERROR_URL = "/error";
 
     //Auth
     public static final String BASE_AUTH_PATH = ROOT_URL + "/auth";
@@ -16,6 +17,7 @@ public class ApiPath {
 
     //Admin
     public static final String BASE_ADMIN_PATH =ROOT_URL + "/admin";
+    public static final String BASE_AUDIT_PATH =ROOT_URL + "/audit";
 
 
     public static final String BASE_USER_PATH = ROOT_URL + "/me";

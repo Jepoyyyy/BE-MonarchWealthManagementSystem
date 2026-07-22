@@ -327,7 +327,7 @@ class ExceptionHandlingAdviceTest {
         ApiResponse<?> body = response.getBody();
         assertNotNull(body);
         assertEquals(500, body.getRestApiResponseHttpCode());
-        assertEquals("Internal server error", body.getRestApiResponseMessage());
+        assertEquals("Internal Server Error", body.getRestApiResponseMessage());
         assertNotNull(body.getRestApiResponseError());
         assertNotNull(body.getRestApiResponseError().get("errorId"));
     }
