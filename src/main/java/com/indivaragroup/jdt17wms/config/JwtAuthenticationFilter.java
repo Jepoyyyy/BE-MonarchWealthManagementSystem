@@ -11,6 +11,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,6 +26,17 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final String HEADER_AUTHORIZATION = "Authorization";
+    private static final String TOKEN_PREFIX_BEARER = "Bearer ";
+    private static final String PATH_LOGOUT = ApiPath.LOGOUT_PATH;
+    private static final String ROLE_ADMIN = "ADMIN";
+    private static final String AUTHORITY_PREFIX_ROLE = "ROLE_";
+
+    private static final String ERROR_INVALID_TOKEN_TYPE = "Invalid token type";
+    private static final String ERROR_TOKEN_EXPIRED = "Token expired";
+    private static final String ERROR_INVALID_TOKEN = "Invalid token";
+    private static final String ERROR_AUTHENTICATION_FAILED = "Authentication failed";
+
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
 
@@ -34,12 +46,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        if ((uri != null && (uri.endsWith("/logout") || uri.endsWith("/logout/")))) {
+        if (uri != null && uri.endsWith(PATH_LOGOUT)) {
             return false;
         }
-        return (uri != null && (uri.startsWith(ApiPath.BASE_AUTH_PATH) || uri.startsWith("/auth/")));
+        return (uri != null && (uri.startsWith(ApiPath.BASE_AUTH_PATH)));
     }
 
     @Override
@@ -49,18 +61,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        final String authHeader = request.getHeader(HEADER_AUTHORIZATION);
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+        if (authHeader == null || !authHeader.startsWith(TOKEN_PREFIX_BEARER)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            final String token = authHeader.substring(7);
+            final String token = authHeader.substring(TOKEN_PREFIX_BEARER.length());
 
             if (!jwtService.isAccessToken(token)) {
-                sendUnauthorizedError(response, "Invalid token type");
+                sendUnauthorizedError(response, ERROR_INVALID_TOKEN_TYPE);
                 return;
             }
 
@@ -75,25 +87,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .email(email)
                     .name(name)
                     .questionnaireCompleted(false)
-                    .isAdmin("ADMIN".equals(role))
+                    .isAdmin(ROLE_ADMIN.equals(role))
                     .build();
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
-                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                    List.of(new SimpleGrantedAuthority(AUTHORITY_PREFIX_ROLE + role))
             );
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
         } catch (ExpiredJwtException e) {
-            sendUnauthorizedError(response, "Token expired");
+            sendUnauthorizedError(response, ERROR_TOKEN_EXPIRED);
             return;
         } catch (JwtException e) {
-            sendUnauthorizedError(response, "Invalid token");
+            sendUnauthorizedError(response, ERROR_INVALID_TOKEN);
             return;
         } catch (Exception e) {
-            sendUnauthorizedError(response, "Authentication failed");
+            sendUnauthorizedError(response, ERROR_AUTHENTICATION_FAILED);
             return;
         }
 
@@ -102,7 +114,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void sendUnauthorizedError(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         ErrorResponseDTO errorResponse = ErrorResponseDTO.builder()
                 .error(message)
                 .code(HttpServletResponse.SC_UNAUTHORIZED)

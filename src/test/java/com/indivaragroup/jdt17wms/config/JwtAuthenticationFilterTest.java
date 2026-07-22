@@ -51,11 +51,9 @@ class JwtAuthenticationFilterTest {
     @ParameterizedTest
     @CsvSource({
         "/api/v1/auth/logout, /api/v1/auth/logout",
-        "/api/v1/auth/logout/, /api/v1/auth/logout/",
-        "null, /logout",
-        "null, /logout/"
+        "null, /api/v1/auth/logout"
     })
-    void testShouldNotFilter_PathEndsWithLogout_ReturnsFalse(String servletPath, String requestUri) throws Exception {
+    void testShouldNotFilter_PathEndsWithLogout_ReturnsFalse(String servletPath, String requestUri) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("null".equals(servletPath) ? null : servletPath);
         request.setRequestURI("null".equals(requestUri) ? null : requestUri);
@@ -65,11 +63,11 @@ class JwtAuthenticationFilterTest {
     @ParameterizedTest
     @CsvSource({
         "/api/v1/auth/login, /api/v1/auth/login",
-        "/auth/register, /auth/register",
+        "/api/v1/auth/register, /api/v1/auth/register",
         "null, /api/v1/auth/login",
-        "null, /auth/login"
+        "null, /api/v1/auth/register"
     })
-    void testShouldNotFilter_PathStartsWithAuth_ReturnsTrue(String servletPath, String requestUri) throws Exception {
+    void testShouldNotFilter_PathStartsWithAuth_ReturnsTrue(String servletPath, String requestUri) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("null".equals(servletPath) ? null : servletPath);
         request.setRequestURI("null".equals(requestUri) ? null : requestUri);
@@ -77,7 +75,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testShouldNotFilter_NullPathAndUri_ReturnsFalse() throws Exception {
+    void testShouldNotFilter_NullPathAndUri_ReturnsFalse() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath(null);
         request.setRequestURI(null);
@@ -85,7 +83,7 @@ class JwtAuthenticationFilterTest {
     }
 
     @Test
-    void testShouldNotFilter_NoMatch_ReturnsFalse() throws Exception {
+    void testShouldNotFilter_NoMatch_ReturnsFalse() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServletPath("/api/v1/me/dashboard");
         request.setRequestURI("/api/v1/me/dashboard");
