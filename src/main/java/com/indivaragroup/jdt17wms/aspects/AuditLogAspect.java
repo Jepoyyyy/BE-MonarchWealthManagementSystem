@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.aspects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.indivaragroup.jdt17wms.constants.FinancesConstants;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
@@ -103,17 +104,17 @@ public class AuditLogAspect {
                 FinancialProfile fp = financialProfileRepository.findByUserId(currentUserId).orElse(null);
                 if (fp != null) {
                     oldEntitySnapshot = new HashMap<>();
-                    oldEntitySnapshot.put("monthly_income", fp.getMonthlyIncome());
+                    oldEntitySnapshot.put(FinancesConstants.MONTHLY_INCOME, fp.getMonthlyIncome());
                     Expense exp = expenseRepository.findByFinancialProfileId(fp.getId()).orElse(null);
                     if (exp != null) {
-                        oldEntitySnapshot.put("housing", exp.getHousing());
-                        oldEntitySnapshot.put("food", exp.getFood());
-                        oldEntitySnapshot.put("transport", exp.getTransport());
-                        oldEntitySnapshot.put("utilities", exp.getUtilities());
-                        oldEntitySnapshot.put("healthcare", exp.getHealthcare());
-                        oldEntitySnapshot.put("entertainment", exp.getEntertainment());
-                        oldEntitySnapshot.put("insurance", exp.getInsurance());
-                        oldEntitySnapshot.put("other", exp.getOther());
+                        oldEntitySnapshot.put(FinancesConstants.HOUSING_EXPENSES, exp.getHousing());
+                        oldEntitySnapshot.put(FinancesConstants.FOOD_EXPENSES, exp.getFood());
+                        oldEntitySnapshot.put(FinancesConstants.TRANSPORT_EXPENSES, exp.getTransport());
+                        oldEntitySnapshot.put(FinancesConstants.UTILITIES_EXPENSES, exp.getUtilities());
+                        oldEntitySnapshot.put(FinancesConstants.HEALTHCARE_EXPENSES, exp.getHealthcare());
+                        oldEntitySnapshot.put(FinancesConstants.ENTERTAINMENT_EXPENSES, exp.getEntertainment());
+                        oldEntitySnapshot.put(FinancesConstants.INSURANCE_EXPENSES, exp.getInsurance());
+                        oldEntitySnapshot.put(FinancesConstants.OTHER_EXPENSES, exp.getOther());
                     }
                 }
             } catch (Exception e) {
@@ -172,12 +173,12 @@ public class AuditLogAspect {
                             updatedExpense = expenseRepository.findByFinancialProfileId(updatedFp.getId()).orElse(null);
                         }
 
-                        Object oldIncome = oldEntitySnapshot.get("monthly_income");
+                        Object oldIncome = oldEntitySnapshot.get(FinancesConstants.MONTHLY_INCOME);
                         if (updatedFp != null && AuditLogHelper.isChanged(oldIncome, updatedFp.getMonthlyIncome())) {
-                            changes.add(new FieldChange("monthly_income", oldIncome, updatedFp.getMonthlyIncome()));
+                            changes.add(new FieldChange(FinancesConstants.MONTHLY_INCOME, oldIncome, updatedFp.getMonthlyIncome()));
                         }
 
-                        String[] expenseFields = {"housing", "food", "transport", "utilities", "healthcare", "entertainment", "insurance", "other"};
+                        String[] expenseFields = {FinancesConstants.HOUSING_EXPENSES, FinancesConstants.FOOD_EXPENSES, FinancesConstants.TRANSPORT_EXPENSES, FinancesConstants.UTILITIES_EXPENSES, FinancesConstants.HEALTHCARE_EXPENSES, FinancesConstants.ENTERTAINMENT_EXPENSES, FinancesConstants.INSURANCE_EXPENSES, FinancesConstants.OTHER_EXPENSES};
                         if (updatedExpense != null) {
                             for (String fieldName : expenseFields) {
                                 Object oldVal = oldEntitySnapshot.get(fieldName);
