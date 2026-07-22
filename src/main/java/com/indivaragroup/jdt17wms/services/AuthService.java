@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.dto.request.BearerHeaderDTO;
 import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
 import com.indivaragroup.jdt17wms.dto.request.RegisterDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
@@ -103,7 +104,27 @@ public class AuthService {
 
     //logout
     @Transactional
+    public LogoutSuccessDTO logout(BearerHeaderDTO headerDTO) {
+        String email = null;
+        UUID userId = null;
+        if (headerDTO != null && headerDTO.getAuthHeader() != null && headerDTO.getAuthHeader().startsWith("Bearer ")) {
+            try {
+                String token = headerDTO.getAuthHeader().substring(7);
+                email = jwtService.getEmailFromToken(token);
+                userId = jwtService.getUserIdFromToken(token);
+            } catch (Exception e) {
+                // Token extraction failed
+            }
+        }
+        return performLogout(email, userId);
+    }
+
+    @Transactional
     public LogoutSuccessDTO logout(String userEmail, UUID userId) {
+        return performLogout(userEmail, userId);
+    }
+
+    private LogoutSuccessDTO performLogout(String userEmail, UUID userId) {
         AuditLog auditLog = AuditLog.builder()
                 .userId(userId)
                 .userName(userEmail != null ? userEmail : "anonymous")

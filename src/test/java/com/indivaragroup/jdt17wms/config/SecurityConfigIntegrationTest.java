@@ -166,7 +166,7 @@ class SecurityConfigIntegrationTest {
                         .success(true)
                         .message("Logout successful")
                         .build();
-        when(authService.logout(org.mockito.ArgumentMatchers.any(String.class), org.mockito.ArgumentMatchers.any(UUID.class))).thenReturn(mockResponse);
+        when(authService.logout(org.mockito.ArgumentMatchers.nullable(com.indivaragroup.jdt17wms.dto.request.BearerHeaderDTO.class))).thenReturn(mockResponse);
 
         mockMvc.perform(post("/api/v1/auth/logout")
                         .header("Authorization", "Bearer " + token))
