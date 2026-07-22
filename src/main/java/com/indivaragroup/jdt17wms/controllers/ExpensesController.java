@@ -12,7 +12,7 @@ import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping(ApiPath.BASE_USER_PATH + "/finances")
+@RequestMapping(ApiPath.BASE_FINANCES_ROUTE)
 public class ExpensesController {
 
     private final ExpensesService expensesService;

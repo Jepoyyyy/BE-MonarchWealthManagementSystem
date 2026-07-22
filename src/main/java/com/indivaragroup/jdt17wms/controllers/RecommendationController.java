@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping(ApiPath.BASE_USER_PATH)
+@RequestMapping(ApiPath.BASE_USER_ROUTE)
 public class RecommendationController {
 
     private final ActionRecommendationService actionRecommendationService;
@@ -25,13 +25,13 @@ public class RecommendationController {
         this.actionRecommendationService = actionRecommendationService;
   }
 
-    @GetMapping("/health")
+    @GetMapping(ApiPath.HEALTH_ROUTE)
     public ApiResponse<HealthDTO> getHealth() {
         return ApiResponse.success(ApiSuccess.HEALTH_OK,
                 actionRecommendationService.getHealthScore());
     }
 
-    @PostMapping("/recommendations")
+    @PostMapping(ApiPath.RECOMMENDATIONS_ROUTE)
     @AuditLogged(action = AuditConstants.Action.GENERATE_RECOMMENDATIONS, category = AuditConstants.RECOMMENDATION_CATEGORY)
     public ApiResponse<List<RecommendationDTO>> getRecommendations() {
         return ApiResponse.success(ApiSuccess.RECOMMENDATIONS_FETCHED,

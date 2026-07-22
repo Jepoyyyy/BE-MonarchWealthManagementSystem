@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(ApiPath.BASE_ASSETS_PATH)
+@RequestMapping(ApiPath.BASE_ASSETS_ROUTE)
 public class AssetController {
 
     private final AssetsManagementService assetsManagementService;
@@ -50,19 +50,19 @@ public class AssetController {
     }
 
 
-    @GetMapping("/pnl")
+    @GetMapping(ApiPath.PNL_ROUTE)
     public ApiResponse<List<AssetsPnLResponseDTO>> getAssetsPnL() {
         return ApiResponse.success(ApiSuccess.ASSETS_FETCHED,
                 pnLCalculationService.computePnLForAllAssets());
     }
 
-    @GetMapping("/transaction-logs")
+    @GetMapping(ApiPath.TRANSACTION_LOGS_ROUTE)
     public ApiResponse<List<TransactionHistoryDTO>> getTransactionLogs() {
         return ApiResponse.success(ApiSuccess.TRANSACTION_LOGS_FETCHED,
                 assetsManagementService.getTransactionLogsForUser());
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(ApiPath.ID_SLUG)
     @AuditLogged(action = AuditConstants.Action.UPDATE_ASSET, category = AuditConstants.ASSET_CATEGORY)
     public ApiResponse<AssetDTO> updateAsset(@PathVariable UUID id,
                                            @Valid @RequestBody GoalSettingDTO goalSettingDTO) {
@@ -70,7 +70,7 @@ public class AssetController {
                 assetsManagementService.updateAssetForUser(id, goalSettingDTO));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping(ApiPath.ID_SLUG)
     @AuditLogged(action = AuditConstants.Action.DELETE_ASSET, category = AuditConstants.ASSET_CATEGORY)
     public ApiResponse<Void> deleteAsset(@PathVariable UUID id) {
         assetsManagementService.deleteAssetForUser(id);
@@ -78,7 +78,7 @@ public class AssetController {
     }
 
 
-    @PostMapping("/{assetId}/transactions")
+    @PostMapping(ApiPath.ASSET_TRANSACTIONS_ROUTE)
     public ApiResponse<AssetUpdateResponseDTO> executeTransaction(
             @PathVariable UUID assetId,
             @Valid @RequestBody AssetTransactionDTO dto) {
@@ -86,7 +86,7 @@ public class AssetController {
                 assetsManagementService.executeTransaction(assetId, dto));
     }
 
-    @PatchMapping("/{assetId}/value")
+    @PatchMapping(ApiPath.ASSET_VALUE_ROUTE)
     public ApiResponse<AssetDTO> updateAssetValue(
             @PathVariable UUID assetId,
             @Valid @RequestBody AssetValueUpdateDTO dto) {
@@ -94,7 +94,7 @@ public class AssetController {
                 assetsManagementService.updateAssetValue(assetId, dto));
     }
 
-    @PatchMapping("/{assetId}/goal")
+    @PatchMapping(ApiPath.ASSET_GOAL_ROUTE)
     public ApiResponse<AssetDTO> updateAssetGoal(
             @PathVariable UUID assetId,
             @RequestParam(required = false) UUID goalId) {
@@ -102,14 +102,14 @@ public class AssetController {
                 assetsManagementService.updateAssetGoal(assetId, goalId));
     }
 
-    @GetMapping("/{assetId}/pnl")
+    @GetMapping(ApiPath.ASSET_PNL_ROUTE)
     public ApiResponse<AssetsPnLResponseDTO> getAssetPnL(@PathVariable UUID assetId) {
         Asset asset = assetsManagementService.findAssetByIdAndUser(assetId);
         return ApiResponse.success(ApiSuccess.ASSETS_FETCHED,
                 pnLCalculationService.computePnLForAsset(asset));
     }
 
-    @GetMapping("/{assetId}/transactions")
+    @GetMapping(ApiPath.ASSET_TRANSACTIONS_ROUTE)
     public ApiResponse<List<TransactionHistoryDTO>> getAssetTransactions(@PathVariable UUID assetId) {
         return ApiResponse.success(ApiSuccess.TRANSACTION_LOGS_FETCHED,
                 assetsManagementService.getTransactionHistoryForAsset(assetId));

@@ -47,17 +47,17 @@ public class SecurityConfig {
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(
-                BASE_AUTH_PATH + LOGIN_PATH,
-                BASE_AUTH_PATH + REGISTER_PATH,
-                BASE_AUTH_PATH + REFRESH_TOKEN_PATH,
+                BASE_AUTH_ROUTE + LOGIN_ROUTE,
+                BASE_AUTH_ROUTE + REGISTER_ROUTE,
+                BASE_AUTH_ROUTE + REFRESH_TOKEN_ROUTE,
                 SPRING_ERROR_URL
         ).permitAll()
-        .requestMatchers(HttpMethod.GET, BASE_PRODUCTS_PATH).hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
-        .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
-        .requestMatchers(BASE_ADMIN_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
-        .requestMatchers(BASE_AUDIT_PATH, BASE_AUDIT_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
-        .requestMatchers(BASE_USERS_PATH, BASE_USERS_PATH + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
-        .requestMatchers(BASE_USER_PATH + ANY_WILDCARD).hasRole(UserRole.USER.name())
+        .requestMatchers(HttpMethod.GET, BASE_PRODUCTS_ROUTE).hasAnyRole(UserRole.USER.name(), UserRole.ADMIN.name())
+        .requestMatchers(HttpMethod.PUT, BASE_PRODUCTS_ROUTE + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_ADMIN_ROUTE + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_AUDIT_ROUTE, BASE_AUDIT_ROUTE + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_USERS_ROUTE, BASE_USERS_ROUTE + ANY_WILDCARD).hasRole(UserRole.ADMIN.name())
+        .requestMatchers(BASE_USER_ROUTE + ANY_WILDCARD).hasRole(UserRole.USER.name())
         .anyRequest().authenticated()
       )
       .exceptionHandling(exceptions -> exceptions

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping(ApiPath.BASE_AUTH_PATH)
+@RequestMapping(ApiPath.BASE_AUTH_ROUTE)
 public class AuthController {
 
     private final AuthService authService;
@@ -30,24 +30,24 @@ public class AuthController {
         this.authService = authService;
     }
 
-    @PostMapping(ApiPath.LOGIN_PATH)
+    @PostMapping(ApiPath.LOGIN_ROUTE)
     public ApiResponse<AuthSuccessDTO> login(@Valid @RequestBody LoginDTO dto) {
         return ApiResponse.success(ApiSuccess.LOGIN, authService.login(dto));
     }
 
-    @PostMapping(ApiPath.REGISTER_PATH)
+    @PostMapping(ApiPath.REGISTER_ROUTE)
     public ResponseEntity<ApiResponse<Void>> register(@Valid @RequestBody RegisterDTO dto) {
         authService.register(dto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.created(ApiSuccess.REGISTER, null));
     }
 
-    @PostMapping(ApiPath.LOGOUT_PATH)
+    @PostMapping(ApiPath.LOGOUT_ROUTE)
     public ApiResponse<LogoutSuccessDTO> logout(@RequestHeader(value = "Authorization", required = false) BearerHeaderDTO headerDto) {
         return ApiResponse.success(ApiSuccess.LOGOUT, authService.logout(headerDto));
     }
 
-    @PostMapping(ApiPath.REFRESH_TOKEN_PATH)
+    @PostMapping(ApiPath.REFRESH_TOKEN_ROUTE)
     public ApiResponse<RefreshTokenSuccessDTO> refresh(@Valid @RequestBody RefreshTokenDTO dto) {
         return ApiResponse.success(ApiSuccess.REFRESH_TOKEN,
                 authService.refreshToken(dto.getRefreshToken()));

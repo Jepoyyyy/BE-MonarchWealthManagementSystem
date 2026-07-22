@@ -18,13 +18,13 @@ public class DashboardController {
         this.dashboardService = dashboardService;
     }
 
-    @GetMapping(ApiPath.BASE_ADMIN_PATH + "/dashboard")
+    @GetMapping(ApiPath.BASE_ADMIN_ROUTE + ApiPath.DASHBOARD_SLUG)
     public ApiResponse<AdminDashboardDTO> getAdminDashboard() {
         return ApiResponse.success(ApiSuccess.DASHBOARD_FETCHED,
                 dashboardService.getAdminDashboard());
     }
 
-    @GetMapping(ApiPath.BASE_USER_PATH + "/dashboard")
+    @GetMapping(ApiPath.BASE_USER_ROUTE + ApiPath.DASHBOARD_SLUG)
     public ApiResponse<UserDashboardDTO> getUserDashboard() {
         return ApiResponse.success(ApiSuccess.DASHBOARD_FETCHED,
                 dashboardService.getUserDashboard());

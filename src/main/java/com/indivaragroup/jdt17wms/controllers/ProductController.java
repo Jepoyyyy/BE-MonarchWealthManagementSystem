@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(ApiPath.BASE_PRODUCTS_PATH)
+@RequestMapping(ApiPath.BASE_PRODUCTS_ROUTE)
 public class ProductController {
 
     private final ProductManagementService productManagementService;
@@ -33,7 +33,7 @@ public class ProductController {
                 productManagementService.getProductsForUser(queryDTO, pageable));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(ApiPath.ID_SLUG)
     @AuditLogged(action = AuditConstants.Action.UPDATE_PRODUCT, category = AuditConstants.PRODUCT_CATEGORY)
     public ApiResponse<ProductResponseDTO> updateProduct(
             @PathVariable UUID id,
@@ -42,7 +42,7 @@ public class ProductController {
                 productManagementService.updateProductVisibility(id, adminChangeVisibilityDTO.getVisibility()));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(ApiPath.ID_SLUG)
     public ApiResponse<ProductResponseDTO> getProductById(
             @PathVariable UUID id
     ) {

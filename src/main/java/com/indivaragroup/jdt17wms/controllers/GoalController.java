@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(ApiPath.BASE_GOALS_PATH)
+@RequestMapping(ApiPath.BASE_GOALS_ROUTE)
 public class GoalController {
 
     private final GoalsManagementService goalsManagementService;
@@ -48,7 +48,7 @@ public class GoalController {
                 goalsManagementService.createGoalForUser(dto));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(ApiPath.ID_SLUG)
     @AuditLogged(action = AuditConstants.Action.UPDATE_GOAL, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<GoalDTO> updateGoal(@PathVariable UUID id,
                                             @Valid @RequestBody GoalEditingDTO dto) {
@@ -56,27 +56,27 @@ public class GoalController {
                 goalsManagementService.updateGoalForUser(id, dto));
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping(ApiPath.ID_SLUG)
     @AuditLogged(action = AuditConstants.Action.DELETE_GOAL, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<Void> deleteGoal(@PathVariable UUID id) {
         goalsManagementService.deleteGoalForUser(id);
         return ApiResponse.success(ApiSuccess.GOAL_DELETED, null);
     }
 
-    @GetMapping("/projections")
+    @GetMapping(ApiPath.PROJECTIONS_ROUTE)
     public ApiResponse<List<GoalProjectionDTO>> getGoalProjections() {
         return ApiResponse.success(ApiSuccess.GOAL_PROJECTIONS_FETCHED,
                 goalsProjectionService.getProjectionsForUser());
     }
 
-    @PostMapping("/auto-allocate")
+    @PostMapping(ApiPath.AUTO_ALLOCATE_ROUTE)
     @AuditLogged(action = AuditConstants.Action.AUTO_ALLOCATE_GOALS, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam("percentage") int percentage) {
         return ApiResponse.success(ApiSuccess.GOALS_FETCHED,
                 goalsManagementService.autoAllocateGoalsForUser(percentage));
     }
 
-    @GetMapping("/progress")
+    @GetMapping(ApiPath.PROGRESS_ROUTE)
     public ApiResponse<List<GoalProgressResponseDTO>> getGoalProgress() {
         return ApiResponse.success(ApiSuccess.GOAL_PROGRESS_FETCHED,
                 goalProgressService.getGoalProgressForUser());

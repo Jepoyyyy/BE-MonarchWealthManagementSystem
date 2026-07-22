@@ -22,7 +22,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(ApiPath.BASE_ADMIN_PATH)
+@RequestMapping(ApiPath.BASE_ADMIN_ROUTE)
 public class AdminController {
 
     private final AuditTrailManagementService auditTrailManagementService;
@@ -36,7 +36,7 @@ public class AdminController {
     }
 
 
-    @GetMapping("/audit")
+    @GetMapping(ApiPath.AUDIT_ROUTE)
     public ApiResponse<Page<AuditLogDTO>> getAuditLogs(
             @RequestParam(required = false, defaultValue = "false") Boolean headView,
             Pageable pageable) {
@@ -44,7 +44,7 @@ public class AdminController {
                 auditTrailManagementService.getAuditLogs(headView, pageable));
     }
 
-    @GetMapping("/audit/search")
+    @GetMapping(ApiPath.AUDIT_SEARCH_ROUTE)
     public ApiResponse<Page<AuditLogDTO>> searchAuditLogs(
             @RequestParam(required = false) String category,
             @RequestParam(required = false) String search,
@@ -55,7 +55,7 @@ public class AdminController {
                 auditTrailManagementService.getFilteredAuditLogs(category, search, from, to, pageable));
     }
 
-    @GetMapping("/products")
+    @GetMapping(ApiPath.PRODUCTS_ROUTE)
     public ApiResponse<Page<ProductResponseDTO>> listAdminProducts(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String type,
@@ -65,7 +65,7 @@ public class AdminController {
     }
 
 
-    @PostMapping("/products")
+    @PostMapping(ApiPath.PRODUCTS_ROUTE)
     @ResponseStatus(HttpStatus.CREATED)
     @AuditLogged(action = AuditConstants.Action.CREATE_PRODUCT, category = AuditConstants.PRODUCT_CATEGORY)
     public ApiResponse<ProductResponseDTO> createProduct(@Valid @RequestBody AdminProductCreateDTO dto) {
@@ -74,7 +74,7 @@ public class AdminController {
     }
 
 
-    @PutMapping("/products/{id}")
+    @PutMapping(ApiPath.PRODUCTS_ID_ROUTE)
     @AuditLogged(action = AuditConstants.Action.UPDATE_PRODUCT, category = AuditConstants.PRODUCT_CATEGORY)
     public ApiResponse<ProductResponseDTO> updateProduct(
             @PathVariable UUID id,

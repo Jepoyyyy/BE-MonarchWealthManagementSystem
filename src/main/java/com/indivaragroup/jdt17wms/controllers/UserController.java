@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping(ApiPath.BASE_USERS_PATH)
+@RequestMapping(ApiPath.BASE_USERS_ROUTE)
 public class UserController {
 
     private final UserManagementService userManagementService;
@@ -34,13 +34,13 @@ public class UserController {
                 userManagementService.getAllUsers(search, status, pageable));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping(ApiPath.ID_SLUG)
     public ApiResponse<AdminUserDTO> getUser(@PathVariable UUID id) {
         return ApiResponse.success(ApiSuccess.USER_DETAIL_FETCHED,
                 userManagementService.getUserById(id));
     }
 
-    @PutMapping("/{id}")
+    @PutMapping(ApiPath.ID_SLUG)
     @AuditLogged(action = AuditConstants.Action.UPDATE_USER_STATUS, category = AuditConstants.USER_CATEGORY)
     public ApiResponse<AdminUserDTO> updateUser(
             @PathVariable UUID id,

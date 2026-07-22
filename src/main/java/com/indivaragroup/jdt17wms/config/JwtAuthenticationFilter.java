@@ -28,7 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String HEADER_AUTHORIZATION = "Authorization";
     private static final String TOKEN_PREFIX_BEARER = "Bearer ";
-    private static final String PATH_LOGOUT = ApiPath.LOGOUT_PATH;
+    private static final String PATH_LOGOUT = ApiPath.LOGOUT_ROUTE;
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String AUTHORITY_PREFIX_ROLE = "ROLE_";
 
@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (uri != null && uri.endsWith(PATH_LOGOUT)) {
             return false;
         }
-        return (uri != null && (uri.startsWith(ApiPath.BASE_AUTH_PATH)));
+        return (uri != null && (uri.startsWith(ApiPath.BASE_AUTH_ROUTE)));
     }
 
     @Override

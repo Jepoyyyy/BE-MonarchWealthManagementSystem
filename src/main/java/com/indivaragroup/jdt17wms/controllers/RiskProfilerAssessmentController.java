@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping(ApiPath.BASE_PROFILER_PATH)
+@RequestMapping(ApiPath.BASE_PROFILER_ROUTE)
 public class RiskProfilerAssessmentController {
 
     private final RiskProfilerAssessmentService riskProfilerAssessmentService;
