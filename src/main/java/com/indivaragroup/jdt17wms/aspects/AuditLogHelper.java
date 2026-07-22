@@ -9,26 +9,36 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Package-private utility class extracted from {@link AuditLogAspect}.
- * Holds stateless helper logic that is easier to unit-test in isolation.
- */
 @SuppressWarnings("java:S3011")
 final class AuditLogHelper {
 
     private AuditLogHelper() {}
 
+    private static final String PACKAGE_PREFIX_JAVA = "java.";
+    private static final String PACKAGE_PREFIX_JAVAX = "javax.";
+
+    private static final String PROXY_HIBERNATE = "HibernateProxy";
+
+    private static final String GETTER_PREFIX_GET = "get";
+    private static final String GETTER_PREFIX_IS = "is";
+
+    private static final String FIELD_MAPPING_DTO_VISIBILITY = "visibility";
+    private static final String FIELD_MAPPING_ENTITY_VISIBLE = "visible";
+
+    private static final String SNAKE_CASE_PATTERN = "([a-z])([A-Z]+)";
+    private static final String SNAKE_CASE_REPLACEMENT = "$1_$2";
+
     static boolean isDto(Object arg) {
         if (arg == null) return false;
         if (arg instanceof UUID) return false;
         String packageName = arg.getClass().getPackageName();
-        return !packageName.startsWith("java.") && !packageName.startsWith("javax.");
+        return !packageName.startsWith(PACKAGE_PREFIX_JAVA) && !packageName.startsWith(PACKAGE_PREFIX_JAVAX);
     }
 
     static Class<?> getUnproxiedClass(Object entity) {
         if (entity == null) return null;
         Class<?> clazz = entity.getClass();
-        if (clazz.getName().contains("HibernateProxy")) {
+        if (clazz.getName().contains(PROXY_HIBERNATE)) {
             return clazz.getSuperclass();
         }
         return clazz;
@@ -37,7 +47,7 @@ final class AuditLogHelper {
     static Object getPropertyValue(Object obj, String propertyName) {
         if (obj == null) return null;
         String capitalized = propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
-        String[] getterNames = {"get" + capitalized, "is" + capitalized};
+        String[] getterNames = {GETTER_PREFIX_GET + capitalized, GETTER_PREFIX_IS + capitalized};
         for (String getterName : getterNames) {
             try {
                 java.lang.reflect.Method method = obj.getClass().getMethod(getterName);
@@ -74,8 +84,8 @@ final class AuditLogHelper {
     }
 
     static String getEntityFieldName(String dtoFieldName) {
-        if ("visibility".equals(dtoFieldName)) {
-            return "visible";
+        if (FIELD_MAPPING_DTO_VISIBILITY.equals(dtoFieldName)) {
+            return FIELD_MAPPING_ENTITY_VISIBLE;
         }
         return dtoFieldName;
     }
@@ -88,7 +98,7 @@ final class AuditLogHelper {
     }
 
     static String toSnakeCase(String camelCase) {
-        return camelCase.replaceAll("([a-z])([A-Z]+)", "$1_$2").toLowerCase();
+        return camelCase.replaceAll(SNAKE_CASE_PATTERN, SNAKE_CASE_REPLACEMENT).toLowerCase();
     }
 
     static Field findUnderlyingField(Class<?> clazz, String fieldName) {
