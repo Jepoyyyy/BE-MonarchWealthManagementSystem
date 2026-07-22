@@ -13,6 +13,7 @@ import java.util.UUID;
  * Package-private utility class extracted from {@link AuditLogAspect}.
  * Holds stateless helper logic that is easier to unit-test in isolation.
  */
+@SuppressWarnings("java:S3011")
 final class AuditLogHelper {
 
     private AuditLogHelper() {}

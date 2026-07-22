@@ -29,6 +29,7 @@ import java.util.*;
 
 @Aspect
 @Component
+@SuppressWarnings("java:S3011")
 public class AuditLogAspect {
 
     private final AuditLogRepository auditLogRepository;
