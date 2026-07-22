@@ -44,56 +44,62 @@ public class AssetValueUpdateScheduler {
     @Scheduled(cron = "0 0 2 * * ?") // Every day at 2:00 AM
     @Transactional
     public void updateAllAssetValues() {
-        log.info("Starting daily asset value update...");
+      log.info("Starting daily asset value update...");
 
-        List<Asset> allAssets = assetRepository.findAll();
-        int updated = 0;
-        int skipped = 0;
+      List<Asset> allAssets = assetRepository.findAll();
+      int updated = 0;
+      int skipped = 0;
 
-        for (Asset asset : allAssets) {
-            try {
-                Product product = productRepository.findById(asset.getProductId()).orElse(null);
-                if (product == null) {
-                    log.warn("Product not found for asset {}, skipping", asset.getId());
-                    skipped++;
-                    continue;
-                }
-
-                BigDecimal currentPrice = product.getCurrentPrice();
-                if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
-                    log.warn("Invalid price for product {} (asset {}), skipping", product.getId(), asset.getId());
-                    skipped++;
-                    continue;
-                }
-
-                // Calculate remaining units (total - sold)
-                List<TransactionHistory> sellTransactions = transactionHistoryRepository
-                        .findAllByAssetIdAndActionOrderByTransactionDateAsc(asset.getId(), TransactionAction.SELL);
-
-                BigDecimal soldUnits = sellTransactions.stream()
-                        .map(TransactionHistory::getUnits)
-                        .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-                BigDecimal remainingUnits = asset.getUnits().subtract(soldUnits);
-
-                // Calculate new current_value
-                BigDecimal newCurrentValue = remainingUnits.multiply(currentPrice)
-                        .setScale(4, RoundingMode.HALF_UP);
-
-                BigDecimal oldValue = asset.getCurrentValue();
-                asset.setCurrentValue(newCurrentValue);
-                assetRepository.save(asset);
-
-                updated++;
-                log.debug("Updated asset {}: {} → {} (price: {}, units: {})",
-                        asset.getId(), oldValue, newCurrentValue, currentPrice, remainingUnits);
-
-            } catch (Exception e) {
-                log.error("Error updating asset {}: {}", asset.getId(), e.getMessage(), e);
-                skipped++;
-            }
+      for (Asset asset : allAssets) {
+        if (updateAssetValue(asset)) {
+          updated++;
+        } else {
+          skipped++;
         }
+      }
 
-        log.info("Daily asset value update complete: {} updated, {} skipped", updated, skipped);
+      log.info("Daily asset value update complete: {} updated, {} skipped", updated, skipped);
     }
+
+  private boolean updateAssetValue(Asset asset) {
+    try {
+      Product product = productRepository.findById(asset.getProductId()).orElse(null);
+      if (product == null) {
+        log.warn("Product not found for asset {}, skipping", asset.getId());
+        return false;
+      }
+
+      BigDecimal currentPrice = product.getCurrentPrice();
+      if (currentPrice == null || currentPrice.compareTo(BigDecimal.ZERO) <= 0) {
+        log.warn("Invalid price for product {} (asset {}), skipping", product.getId(), asset.getId());
+        return false;
+      }
+
+      // Calculate remaining units (total - sold)
+      List<TransactionHistory> sellTransactions = transactionHistoryRepository
+        .findAllByAssetIdAndActionOrderByTransactionDateAsc(asset.getId(), TransactionAction.SELL);
+
+      BigDecimal soldUnits = sellTransactions.stream()
+        .map(TransactionHistory::getUnits)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+      BigDecimal remainingUnits = asset.getUnits().subtract(soldUnits);
+
+      // Calculate new current_value
+      BigDecimal newCurrentValue = remainingUnits.multiply(currentPrice)
+        .setScale(4, RoundingMode.HALF_UP);
+
+      BigDecimal oldValue = asset.getCurrentValue();
+      asset.setCurrentValue(newCurrentValue);
+      assetRepository.save(asset);
+
+      log.debug("Updated asset {}: {} → {} (price: {}, units: {})",
+        asset.getId(), oldValue, newCurrentValue, currentPrice, remainingUnits);
+      return true;
+
+    } catch (Exception e) {
+      log.error("Error updating asset {}: {}", asset.getId(), e.getMessage(), e);
+      return false;
+    }
+  }
 }
