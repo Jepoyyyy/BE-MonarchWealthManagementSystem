@@ -25,6 +25,7 @@ import com.indivaragroup.jdt17wms.repositories.RecommendationRepository;
 import com.indivaragroup.jdt17wms.repositories.TransactionHistoryRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,6 +77,11 @@ class AssetsManagementServiceTest {
 
     private final Clock clock = Clock.fixed(Instant.parse("2026-07-21T10:00:00Z"), ZoneOffset.UTC);
 
+  @BeforeEach
+  void setUp() {
+    assetsManagementService = new AssetsManagementService(assetRepository,
+      userRepository, transactionHistoryRepository, productRepository, goalRepository, recommendationRepository, assetTransactionService, clock);
+  }
 
   private void mockAuthenticatedUser() {
         UserDTO principal = UserDTO.builder().id(SecurityUtils.STATIC_USER_ID).build();

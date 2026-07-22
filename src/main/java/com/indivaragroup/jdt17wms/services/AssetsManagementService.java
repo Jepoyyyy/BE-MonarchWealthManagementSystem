@@ -26,10 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -44,6 +41,8 @@ public class AssetsManagementService implements VerifiedUserProvider {
     private final GoalRepository goalRepository;
     private final RecommendationRepository recommendationRepository;
     private final AssetTransactionService assetTransactionService;
+    private final Clock clock;
+
     private static final int BY_FOUR = 4;
 
   @Override
@@ -55,7 +54,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
                                    ProductRepository productRepository,
                                    GoalRepository goalRepository,
                                    RecommendationRepository recommendationRepository,
-                                   AssetTransactionService assetTransactionService) {
+                                   AssetTransactionService assetTransactionService, Clock clock) {
         this.assetRepository = assetRepository;
         this.userRepository = userRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
@@ -63,6 +62,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         this.goalRepository = goalRepository;
         this.recommendationRepository = recommendationRepository;
         this.assetTransactionService = assetTransactionService;
+        this.clock = clock;
     }
 
     public List<AssetDTO> getAssetsForUser() {
@@ -163,7 +163,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         // Calculate maturity date if tenor is provided and product type supports it
         LocalDate maturityDate = null;
         if (dto.getTenor() != null) {
-            maturityDate = LocalDate.now(ZoneOffset.UTC).plusMonths(dto.getTenor());
+            maturityDate = LocalDate.now(clock).plusMonths(dto.getTenor());
         }
         System.out.println(maturityDate);
 

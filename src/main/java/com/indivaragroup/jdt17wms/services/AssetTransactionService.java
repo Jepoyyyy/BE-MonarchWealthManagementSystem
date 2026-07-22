@@ -36,7 +36,7 @@ public class AssetTransactionService {
     public AssetTransactionService(AssetRepository assetRepository,
                                    ProductRepository productRepository,
                                    TransactionHistoryRepository transactionHistoryRepository,
-                                   PnLCalculationService pnLCalculationService, ProductManagementService productManagementService) {
+                                   PnLCalculationService pnLCalculationService) {
         this.assetRepository = assetRepository;
         this.productRepository = productRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
