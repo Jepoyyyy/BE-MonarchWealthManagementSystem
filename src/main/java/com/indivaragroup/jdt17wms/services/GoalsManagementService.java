@@ -44,8 +44,13 @@ public class GoalsManagementService implements VerifiedUserProvider {
     private final ExpenseRepository expenseRepository;
     private final Clock clock;
 
+  public static final Integer PERCENT_VALUE = 100;
+  public static final Integer FIFTY_PERCENT = 50;
+  public static final Integer BY_FOUR = 4;
 
-    public GoalsManagementService(GoalRepository goalRepository, UserRepository userRepository, FinancialProfileRepository financialProfileRepository, AssetRepository assetRepository, ExpenseRepository expenseRepository, Clock clock) {
+
+
+  public GoalsManagementService(GoalRepository goalRepository, UserRepository userRepository, FinancialProfileRepository financialProfileRepository, AssetRepository assetRepository, ExpenseRepository expenseRepository, Clock clock) {
         this.goalRepository = goalRepository;
         this.userRepository = userRepository;
         this.financialProfileRepository = financialProfileRepository;
@@ -313,11 +318,11 @@ public class GoalsManagementService implements VerifiedUserProvider {
         if (surplus.compareTo(BigDecimal.ZERO) > 0 && priorityGoal != null) {
             // Priority goal gets percentage of surplus
             primaryAmt = surplus.multiply(BigDecimal.valueOf(percentage))
-                    .divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+                    .divide(BigDecimal.valueOf(PERCENT_VALUE), BY_FOUR, RoundingMode.HALF_UP);
 
             BigDecimal remaining = surplus.subtract(primaryAmt).max(BigDecimal.ZERO);
             if (otherCount > 0) {
-                eachOther = remaining.divide(BigDecimal.valueOf(otherCount), 4, RoundingMode.HALF_UP);
+                eachOther = remaining.divide(BigDecimal.valueOf(otherCount), BY_FOUR, RoundingMode.HALF_UP);
             }
         }
 
@@ -350,10 +355,10 @@ public class GoalsManagementService implements VerifiedUserProvider {
       .anyMatch(GoalsManagementService::isPriorityGoal);
 
     // Only auto-allocate if we have 2+ active goals and a priority goal
-    if (activeGoals >= 2 && hasPriorityGoal) {
+    if (activeGoals > 1 && hasPriorityGoal) {
       Integer percentage = profile.getPriorityAllocationPercentage();
       if (percentage == null) {
-        percentage = 50; // Default fallback
+        percentage = FIFTY_PERCENT; // Default fallback
       }
       doAutoAllocate(userId, percentage);
     }

@@ -57,7 +57,7 @@ public class RiskProfilerAssessmentService {
 
         int expectedSize = questionnaireDataDTO.getData() != null ? questionnaireDataDTO.getData().size() : RiskConstants.DEFAULT_QUESTIONNAIRE_SIZE;
         if (riskProfilerDTO.getAnswers().size() != expectedSize) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST,"Invalid answers count");
+            throw new CoreThrowHandler(ApiError.INVALID_ANSWER_COUNT);
         }
 
         int rawScore = riskProfilerDTO.getAnswers().stream()

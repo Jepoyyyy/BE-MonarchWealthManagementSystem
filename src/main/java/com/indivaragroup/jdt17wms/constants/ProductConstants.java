@@ -23,6 +23,11 @@ public final class ProductConstants {
     public static final String BALANCED_FUND = "balanced_fund";
     public static final String STOCK = "stock";
 
+    public static final String BOND_NAME = "Bond";
+    public static final String SUKUK_NAME = "Sukuk";
+    public static final String DEPOSIT_NAME = "Deposit";
+
+
     public static final Set<String> LIQUID_PRODUCT_TYPES = Set.of(MONEY_MARKET, DEPOSIT);
     public static final List<String> ALL_PRODUCT_TYPES = List.of(
             MONEY_MARKET, DEPOSIT, BOND, SUKUK, MUTUAL_FUND, BALANCED_FUND, STOCK
@@ -37,11 +42,11 @@ public final class ProductConstants {
     );
     public static final Map<String, String> TYPE_LABELS = Map.of(
             MONEY_MARKET, "Money Market",
-            DEPOSIT, "Deposit",
+            DEPOSIT, DEPOSIT_NAME,
             BALANCED_FUND, "Balanced Fund",
             MUTUAL_FUND, "Mutual Fund",
             BOND, "Bond",
-            SUKUK, "Sukuk",
+            SUKUK, SUKUK_NAME,
             STOCK, "Stock"
     );
     public static final BigDecimal SURPLUS_THRESHOLD = BigDecimal.valueOf(100000);

@@ -16,10 +16,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
-/**
- * Scheduled service that recalculates asset current_value daily based on current product prices.
- * Runs at 2:00 AM every day to ensure portfolio valuations reflect market prices.
- */
 @Slf4j
 @Service
 public class AssetValueUpdateScheduler {

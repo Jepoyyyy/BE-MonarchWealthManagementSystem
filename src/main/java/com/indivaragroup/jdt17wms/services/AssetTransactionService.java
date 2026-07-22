@@ -32,6 +32,12 @@ public class AssetTransactionService {
     private final TransactionHistoryRepository transactionHistoryRepository;
     private final PnLCalculationService pnLCalculationService;
 
+    private static final Integer BY_FOUR = 4;
+    private static final Integer BY_SIX = 6;
+
+    private static final String STOCK_TYPE = "stock";
+
+
 
     public AssetTransactionService(AssetRepository assetRepository,
                                    ProductRepository productRepository,
@@ -70,21 +76,21 @@ public class AssetTransactionService {
 
         if (hasUnits) {
             unitsToBuy = dto.getUnits();
-            totalAmount = unitsToBuy.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
+            totalAmount = unitsToBuy.multiply(currentPrice).setScale(BY_FOUR, RoundingMode.HALF_UP);
         } else {
-            totalAmount = dto.getAmount().setScale(4, RoundingMode.HALF_UP);
-            unitsToBuy = totalAmount.divide(currentPrice, 6, RoundingMode.HALF_UP);
+            totalAmount = dto.getAmount().setScale(BY_FOUR, RoundingMode.HALF_UP);
+            unitsToBuy = totalAmount.divide(currentPrice, BY_SIX, RoundingMode.HALF_UP);
         }
 
         // Validate min investment
         if (product.getMinInvestment().compareTo(BigDecimal.ZERO) > 0
                 && totalAmount.compareTo(product.getMinInvestment()) < 0) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                    "Amount must be at least minimum investment of " + product.getMinInvestment());
+            throw new CoreThrowHandler(ApiError.BELOW_MIN_INVESTMENT,
+                    ApiError.BELOW_MIN_INVESTMENT.format(product.getMinInvestment()));
         }
 
         // Calculate price per unit
-        BigDecimal pricePerUnit = totalAmount.divide(unitsToBuy, 4, RoundingMode.HALF_UP);
+        BigDecimal pricePerUnit = totalAmount.divide(unitsToBuy, BY_FOUR, RoundingMode.HALF_UP);
 
         // Update asset
         asset.setUnits(asset.getUnits().add(unitsToBuy));
@@ -97,7 +103,7 @@ public class AssetTransactionService {
                 .map(TransactionHistory::getUnits)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal availableAfterBuy = asset.getUnits().subtract(totalSold);
-        asset.setCurrentValue(availableAfterBuy.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP));
+        asset.setCurrentValue(availableAfterBuy.multiply(currentPrice).setScale(BY_FOUR, RoundingMode.HALF_UP));
         assetRepository.save(asset);
 
         // Create BUY transaction record
@@ -162,7 +168,7 @@ public class AssetTransactionService {
 
         BigDecimal availableUnits = Objects.requireNonNullElse(asset.getUnits(), BigDecimal.ZERO).subtract(totalSoldUnits);
         if (availableUnits.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST, "No units available to sell");
+            throw new CoreThrowHandler(ApiError.NO_UNITS_AVAILABLE);
         }
 
         // Determine units to sell
@@ -173,19 +179,19 @@ public class AssetTransactionService {
 
         if (hasUnits) {
             unitsToSell = dto.getUnits();
-            actualAmount = unitsToSell.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
+            actualAmount = unitsToSell.multiply(currentPrice).setScale(BY_FOUR, RoundingMode.HALF_UP);
         } else {
-            actualAmount = dto.getAmount().setScale(4, RoundingMode.HALF_UP);
-            unitsToSell = actualAmount.divide(currentPrice, 6, RoundingMode.HALF_UP);
+            actualAmount = dto.getAmount().setScale(BY_FOUR, RoundingMode.HALF_UP);
+            unitsToSell = actualAmount.divide(currentPrice, BY_SIX, RoundingMode.HALF_UP);
         }
 
         // Validate sufficient units
         if (unitsToSell.compareTo(availableUnits) > 0) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                    "Insufficient units: available " + availableUnits + ", requested " + unitsToSell);
+            throw new CoreThrowHandler(ApiError.INSUFFICIENT_UNITS,
+                    ApiError.INSUFFICIENT_UNITS.format(availableUnits, unitsToSell));
         }
 
-        BigDecimal pricePerUnit = actualAmount.divide(unitsToSell, 4, RoundingMode.HALF_UP);
+        BigDecimal pricePerUnit = actualAmount.divide(unitsToSell, BY_FOUR, RoundingMode.HALF_UP);
 
         // Create SELL transaction record
         Instant txInstant = (dto.getTransactionDate() != null)
@@ -208,7 +214,7 @@ public class AssetTransactionService {
 
         // Update asset.currentValue — amount and units stay (total cost basis)
         BigDecimal remainingUnits = availableUnits.subtract(unitsToSell);
-        asset.setCurrentValue(remainingUnits.multiply(currentPrice).setScale(4, RoundingMode.HALF_UP));
+        asset.setCurrentValue(remainingUnits.multiply(currentPrice).setScale(BY_FOUR, RoundingMode.HALF_UP));
         assetRepository.save(asset);
 
         // Recalculate PnL
@@ -246,38 +252,34 @@ public class AssetTransactionService {
 
         // At least one of units or amount required
         if (!hasUnits && !hasAmount) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                    "Either units or amount must be provided");
+            throw new CoreThrowHandler(ApiError.TRANSACTION_TYPE_REQUIRED);
         }
 
         // Cannot provide both
         if (hasUnits && hasAmount) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                    "Provide either units or amount, not both");
+            throw new CoreThrowHandler(ApiError.BOTH_UNITS_AND_AMOUNT);
         }
 
         // Stock-specific: sell by units only
-        if ("Stock".equalsIgnoreCase(type) && dto.getAction() == TransactionAction.SELL && hasAmount) {
-                throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                        "Stocks can only be sold by units, not by amount");
-            }
+        if (STOCK_TYPE.equalsIgnoreCase(type) && dto.getAction() == TransactionAction.SELL && hasAmount) {
+            throw new CoreThrowHandler(ApiError.STOCK_AMOUNT_SELL_NOT_ALLOWED);
+        }
 
 
       // Fractional units validation
         if (hasUnits && !Boolean.TRUE.equals(product.getIsFractionalAllowed()) && dto.getUnits().stripTrailingZeros().scale() > 0) {
-                throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                        "Fractional units not allowed for this product");
-            }
+            throw new CoreThrowHandler(ApiError.FRACTIONAL_NOT_ALLOWED);
+        }
 
 
       // Lot size validation for stocks
-        if ("stock".equals(type) && !Boolean.TRUE.equals(product.getIsFractionalAllowed())
+        if (STOCK_TYPE.equals(type) && !Boolean.TRUE.equals(product.getIsFractionalAllowed())
                 && hasUnits) {
             int lotSize = product.getLotSize();
             BigDecimal remainder = dto.getUnits().remainder(BigDecimal.valueOf(lotSize));
             if (remainder.compareTo(BigDecimal.ZERO) != 0) {
-                throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                        "Stock must be traded in lot multiples of " + lotSize);
+                throw new CoreThrowHandler(ApiError.INVALID_LOT_SIZE,
+                        ApiError.INVALID_LOT_SIZE.format(lotSize));
             }
         }
     }

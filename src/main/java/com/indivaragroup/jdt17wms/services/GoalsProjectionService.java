@@ -131,21 +131,12 @@ public class GoalsProjectionService {
       .build();
   }
 
-  /**
-   * Number of months to use as the contribution-planning horizon: capped by the
-   * goal type's default horizon, but shortened if the target date arrives sooner.
-   */
   private double calculateMonthsToUse(String type, LocalDate targetDate) {
-    double maxMonths = GoalConstants.GOAL_MAX_MONTHS.getOrDefault(type, 60);
+    double maxMonths = GoalConstants.GOAL_MAX_MONTHS.getOrDefault(type, GoalConstants.GOAL_MAX_MONTHS.get(GoalConstants.CUSTOM_GOAL));
     long actualMonths = ChronoUnit.MONTHS.between(LocalDate.now(clock), targetDate);
     return (actualMonths > 0 && actualMonths < maxMonths) ? actualMonths : maxMonths;
   }
 
-  /**
-   * Simulates monthly compounding across one or more balances/rates with an even
-   * per-bucket contribution, returning the month count at which the combined sum
-   * first reaches target (capped at MAX_SIMULATION_MONTHS).
-   */
   private int simulateMonthsToTarget(double[] balances, double[] rates, double contributionPerBucket, double target) {
     double sum = sumOf(balances);
     if (sum >= target) {
@@ -169,7 +160,6 @@ public class GoalsProjectionService {
     return months;
   }
 
-  /** Standard PMT-style recommended monthly contribution, averaged evenly across buckets. */
   private BigDecimal calculateRecommendedContribution(double[] balances, double[] rates, double target, double monthsToUse) {
     double num = target;
     double sumS = 0.0;
@@ -183,7 +173,6 @@ public class GoalsProjectionService {
     return toScaledBigDecimal(Math.max(0.0, recContributionVal));
   }
 
-  /** Projects the combined balance forward PROJECTION_WINDOW_MONTHS for the response chart. */
   private List<TimeSeriesPointDTO> buildTimeSeries(double[] balances, double[] rates, double contributionPerBucket) {
     List<TimeSeriesPointDTO> series = new ArrayList<>(PROJECTION_WINDOW_MONTHS);
     double[] runBalances = balances.clone();

@@ -28,6 +28,11 @@ public class PnLCalculationService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
+    public static final Integer PERCENT_VALUE = 100;
+    public static final Integer BY_TWO = 2;
+    public static final Integer BY_FOUR = 4;
+
+
     public PnLCalculationService(AssetRepository assetRepository, TransactionHistoryRepository transactionHistoryRepository, ProductRepository productRepository, UserRepository userRepository) {
         this.assetRepository = assetRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
@@ -66,14 +71,12 @@ public class PnLCalculationService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         BigDecimal units = Optional.ofNullable(asset.getUnits())
-                .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST,
-                        "Asset has null units — data corrupt"));
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.CORRUPT_DATA));
 
         BigDecimal remainingUnits = units.subtract(totalSoldUnits);
         if (remainingUnits.compareTo(BigDecimal.ZERO) < 0) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST,
-                    "Asset has negative remaining units (" + remainingUnits
-                            + "): sold units exceed owned units — data corrupt");
+            throw new CoreThrowHandler(ApiError.CORRUPT_DATA_DETAIL,
+                    ApiError.CORRUPT_DATA_DETAIL.format(remainingUnits));
         }
         BigDecimal potentialPnL = BigDecimal.ZERO;
         BigDecimal potentialPnLPercent = BigDecimal.ZERO;
@@ -82,13 +85,13 @@ public class PnLCalculationService {
             // Potential P&L = (currentPrice - avgPrice) × remainingUnits
             potentialPnL = currentPrice.subtract(avgPrice)
                     .multiply(remainingUnits)
-                    .setScale(2, RoundingMode.HALF_UP);
+                    .setScale(BY_TWO, RoundingMode.HALF_UP);
 
             // Potential P&L % = (currentPrice - avgPrice) / avgPrice × 100
             potentialPnLPercent = currentPrice.subtract(avgPrice)
-                    .divide(avgPrice, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100))
-                    .setScale(2, RoundingMode.HALF_UP);
+                    .divide(avgPrice, BY_FOUR, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(PERCENT_VALUE))
+                    .setScale(BY_TWO, RoundingMode.HALF_UP);
         }
 
         BigDecimal realizedPnL = BigDecimal.ZERO;
@@ -103,14 +106,14 @@ public class PnLCalculationService {
             BigDecimal originalCostOfSold = totalSoldUnits.multiply(avgPrice);
             // Realized P&L = sellProceeds - originalCost
             realizedPnL = totalSellProceeds.subtract(originalCostOfSold)
-                    .setScale(2, RoundingMode.HALF_UP);
+                    .setScale(BY_TWO, RoundingMode.HALF_UP);
 
             // Realized P&L % = realizedPnL / originalCost × 100
             if (originalCostOfSold.compareTo(BigDecimal.ZERO) > 0) {
                 realizedPnLPercent = realizedPnL
-                        .divide(originalCostOfSold, 4, RoundingMode.HALF_UP)
+                        .divide(originalCostOfSold, BY_FOUR, RoundingMode.HALF_UP)
                         .multiply(BigDecimal.valueOf(100))
-                        .setScale(2, RoundingMode.HALF_UP);
+                        .setScale(BY_TWO, RoundingMode.HALF_UP);
             }
         }
 
@@ -134,7 +137,7 @@ public class PnLCalculationService {
             // Fallback: use asset's stored amount and units
             if (asset.getUnits() != null && asset.getUnits().compareTo(BigDecimal.ZERO) > 0) {
                 return asset.getAmount()
-                        .divide(asset.getUnits(), 4, RoundingMode.HALF_UP);
+                        .divide(asset.getUnits(), BY_FOUR, RoundingMode.HALF_UP);
             }
             return BigDecimal.ZERO;
         }
@@ -148,6 +151,6 @@ public class PnLCalculationService {
         if (totalUnits.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO;
         }
-        return totalCost.divide(totalUnits, 4, RoundingMode.HALF_UP);
+        return totalCost.divide(totalUnits, BY_FOUR, RoundingMode.HALF_UP);
     }
 }

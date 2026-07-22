@@ -25,6 +25,11 @@ public class GoalProgressService {
     private final UserRepository userRepository;
     private final PnLCalculationService pnlCalculationService;
 
+    public static final Integer PERCENT_VALUE = 100;
+    public static final Integer DOUBLE = 2;
+    public static final Integer BY_FOUR = 4;
+    public static final Integer TWELVE_MONTHS = 12;
+
     public GoalProgressService(
             GoalRepository goalRepository,
             AssetRepository assetRepository,
@@ -70,12 +75,12 @@ public class GoalProgressService {
         BigDecimal totalPotentialPnLPercent = BigDecimal.ZERO;
         if (currentSaved.compareTo(BigDecimal.ZERO) > 0) {
             totalPotentialPnLPercent = totalPotentialPnL
-                    .divide(currentSaved.subtract(totalPotentialPnL), 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal.valueOf(100))
-                    .setScale(2, RoundingMode.HALF_UP);
+                    .divide(currentSaved.subtract(totalPotentialPnL), BY_FOUR, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(PERCENT_VALUE))
+                    .setScale(DOUBLE, RoundingMode.HALF_UP);
         }
 
-        BigDecimal avgMonthlyGrowth = totalPotentialPnL.divide(BigDecimal.valueOf(12), 2, RoundingMode.HALF_UP);
+        BigDecimal avgMonthlyGrowth = totalPotentialPnL.divide(BigDecimal.valueOf(TWELVE_MONTHS), DOUBLE, RoundingMode.HALF_UP);
 
       Integer projectedEtaMonths = getEtaMonths(goal, currentSaved, avgMonthlyGrowth);
 

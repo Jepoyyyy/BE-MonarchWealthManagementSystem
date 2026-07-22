@@ -144,14 +144,14 @@ public class AssetsManagementService implements VerifiedUserProvider {
         User user = getVerifiedUser();
 
         Product product = productRepository.findById(dto.getProductId())
-                .orElseThrow(() -> new CoreThrowHandler(ApiError.NOT_FOUND,"No valid item with the ID"));
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.NOT_FOUND));
 
         if (!Boolean.TRUE.equals(product.getVisible())) {
             throw new CoreThrowHandler(ApiError.DELISTED_PRODUCT);
         }
 
         if (dto.getUnits() == null || dto.getUnits().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new CoreThrowHandler(ApiError.BAD_REQUEST, "Units must be greater than zero");
+            throw new CoreThrowHandler(ApiError.NOT_ABOVE_ZERO);
         }
 
         Instant purchaseInstant = dto.getPurchaseDate().atZone(ZoneId.systemDefault()).toInstant();
@@ -274,7 +274,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
             return assetTransactionService.executeSellTransaction(assetId, dto, user);
         }
 
-        throw new CoreThrowHandler(ApiError.BAD_REQUEST, "Invalid transaction action");
+        throw new CoreThrowHandler(ApiError.INVALID_TRANSACTION);
     }
 
     @Transactional

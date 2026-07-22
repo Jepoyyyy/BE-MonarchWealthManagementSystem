@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
+import com.indivaragroup.jdt17wms.constants.JwtConstants;
 import com.indivaragroup.jdt17wms.dto.request.BearerHeaderDTO;
 import com.indivaragroup.jdt17wms.dto.request.LoginDTO;
 import com.indivaragroup.jdt17wms.dto.request.RegisterDTO;
@@ -22,6 +23,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +37,31 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuditLogRepository auditLogRepository;
+
+    public static final String VALIDATION_ERROR_CODE = "ERR-001";
+    public static final String EMAIL_FIELD = "email";
+    public static final String PASSWORD_FIELD = "password";
+    public static final String ACTIVE_STATUS = "active";
+    public static final String ANONYMOUS_USER = "anonymous";
+
+    private static final String MSG_LOGIN_SUCCESSFUL = "Login successful";
+    private static final String MSG_LOGOUT_SUCCESSFUL = "Logout successful";
+    private static final String MSG_TOKEN_REFRESHED_SUCCESSFUL = "Token refreshed successfully";
+
+    private static final String MSG_INVALID_EMAIL_FORMAT = "Invalid email format";
+    private static final String MSG_MUST_CONTAIN_LOWERCASE = "Must contain lowercase letter";
+    private static final String MSG_MUST_CONTAIN_UPPERCASE = "Must contain uppercase letter";
+    private static final String MSG_MUST_CONTAIN_SYMBOL = "Must contain symbol";
+
+    private static final String AUDIT_LOGGED_IN_SUFFIX = " logged in";
+    private static final String AUDIT_LOGGED_OUT_DETAILS = "User logged out";
+    private static final String AUDIT_REGISTERED_PREFIX = "Successfully registered: ";
+    private static final String AUDIT_REFRESHED_PREFIX = "Access token refreshed for: ";
+
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    private static final Pattern LOWERCASE_PATTERN = Pattern.compile("[a-z]");
+    private static final Pattern UPPERCASE_PATTERN = Pattern.compile("[A-Z]");
+    private static final Pattern SYMBOL_PATTERN = Pattern.compile("[^a-zA-Z0-9]");
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
@@ -55,19 +82,18 @@ public class AuthService {
     }
 
     // Login
-    public AuthSuccessDTO login( LoginDTO dto) {
+    public AuthSuccessDTO login(LoginDTO dto) {
 
         User user = userRepository.findByEmail(dto.getLoginRequestEmail())
-                .orElseThrow(() -> new CoreThrowHandler(ApiError.BAD_REQUEST,"Email Or Password Invalid"));
+                .orElseThrow(() -> new CoreThrowHandler(ApiError.INVALID_CREDENTIALS));
 
-        if (!"active".equalsIgnoreCase(user.getStatus())) {
-            throw new CoreThrowHandler(ApiError.UNAUTHORIZED,"Account is Not active. Please Contact Admin");
+        if (!ACTIVE_STATUS.equalsIgnoreCase(user.getStatus())) {
+            throw new CoreThrowHandler(ApiError.ACCOUNT_INACTIVE);
         }
 
         if (!passwordEncoder.matches(dto.getLoginRequestPassword(), user.getPasswordHash())) {
-            throw new CoreThrowHandler(ApiError.VALIDATION,"Email or Password Invalid");
+            throw new CoreThrowHandler(ApiError.INVALID_PASSWORD);
         }
-
 
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
@@ -76,7 +102,7 @@ public class AuthService {
                 .userId(user.getId())
                 .userName(user.getName())
                 .action(AuditLogAction.LOGIN.name())
-                .details(user.getName() + " logged in")
+                .details(user.getName() + AUDIT_LOGGED_IN_SUFFIX)
                 .category(AuditLogCategory.AUTH.toString())
                 .timestamp(Instant.now())
                 .build();
@@ -93,7 +119,7 @@ public class AuthService {
 
         return AuthSuccessDTO.builder()
                 .success(true)
-                .message("Login successful")
+                .message(MSG_LOGIN_SUCCESSFUL)
                 .accessToken(accessToken)
                 .expiresIn(jwtService.getAccessTokenExpirationMs())
                 .refreshToken(refreshToken)
@@ -107,9 +133,9 @@ public class AuthService {
     public LogoutSuccessDTO logout(BearerHeaderDTO headerDTO) {
         String email = null;
         UUID userId = null;
-        if (headerDTO != null && headerDTO.getAuthHeader() != null && headerDTO.getAuthHeader().startsWith("Bearer ")) {
+        if (headerDTO != null && headerDTO.getAuthHeader() != null && headerDTO.getAuthHeader().startsWith(JwtConstants.TOKEN_PREFIX_BEARER)) {
             try {
-                String token = headerDTO.getAuthHeader().substring(7);
+                String token = headerDTO.getAuthHeader().substring(JwtConstants.TOKEN_PREFIX_BEARER.length());
                 email = jwtService.getEmailFromToken(token);
                 userId = jwtService.getUserIdFromToken(token);
             } catch (Exception e) {
@@ -127,9 +153,9 @@ public class AuthService {
     private LogoutSuccessDTO performLogout(String userEmail, UUID userId) {
         AuditLog auditLog = AuditLog.builder()
                 .userId(userId)
-                .userName(userEmail != null ? userEmail : "anonymous")
+                .userName(userEmail != null ? userEmail : ANONYMOUS_USER)
                 .action(AuditLogAction.LOGOUT.name())
-                .details("User logged out")
+                .details(AUDIT_LOGGED_OUT_DETAILS)
                 .category(AuditLogCategory.AUTH.name())
                 .timestamp(Instant.now())
                 .build();
@@ -137,25 +163,24 @@ public class AuthService {
 
         return LogoutSuccessDTO.builder()
                 .success(true)
-                .message("Logout successful")
+                .message(MSG_LOGOUT_SUCCESSFUL)
                 .build();
     }
 
-    //Register Harusnya Udah,coba crosscheck lagi
     @Transactional
     public void register(RegisterDTO dto) {
         List<ValidationErrorDetailDTO> errors = new ArrayList<>();
-         if (!Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$").matcher(dto.getRegisterRequestEmail()).matches()) {
-            errors.add(new ValidationErrorDetailDTO("email", "Invalid email format", "ERR-001"));
+        if (!EMAIL_PATTERN.matcher(dto.getRegisterRequestEmail()).matches()) {
+            errors.add(new ValidationErrorDetailDTO(EMAIL_FIELD, MSG_INVALID_EMAIL_FORMAT, VALIDATION_ERROR_CODE));
         }
-            if (!Pattern.compile("[a-z]").matcher(dto.getRegisterRequestPassword()).find()) {
-                errors.add(new ValidationErrorDetailDTO("password", "Must contain lowercase letter", "ERR-001"));
-            }
-            if (!Pattern.compile("[A-Z]").matcher(dto.getRegisterRequestPassword()).find()) {
-                errors.add(new ValidationErrorDetailDTO("password", "Must contain uppercase letter", "ERR-001"));
-            }
-            if (!Pattern.compile("[^a-zA-Z0-9]").matcher(dto.getRegisterRequestPassword()).find()) {
-                errors.add(new ValidationErrorDetailDTO("password", "Must contain symbol", "ERR-001"));
+        if (!LOWERCASE_PATTERN.matcher(dto.getRegisterRequestPassword()).find()) {
+            errors.add(new ValidationErrorDetailDTO(PASSWORD_FIELD, MSG_MUST_CONTAIN_LOWERCASE, VALIDATION_ERROR_CODE));
+        }
+        if (!UPPERCASE_PATTERN.matcher(dto.getRegisterRequestPassword()).find()) {
+            errors.add(new ValidationErrorDetailDTO(PASSWORD_FIELD, MSG_MUST_CONTAIN_UPPERCASE, VALIDATION_ERROR_CODE));
+        }
+        if (!SYMBOL_PATTERN.matcher(dto.getRegisterRequestPassword()).find()) {
+            errors.add(new ValidationErrorDetailDTO(PASSWORD_FIELD, MSG_MUST_CONTAIN_SYMBOL, VALIDATION_ERROR_CODE));
         }
 
         if (!errors.isEmpty()) {
@@ -182,7 +207,7 @@ public class AuthService {
                 .userId(savedUser.getId())
                 .userName(savedUser.getName())
                 .action(AuditLogAction.REGISTER.name())
-                .details(user.getName()+ "Successfully registered: ")
+                .details(AUDIT_REGISTERED_PREFIX + user.getName())
                 .category(AuditLogCategory.AUTH.name())
                 .timestamp(Instant.now())
                 .build();
@@ -199,7 +224,7 @@ public class AuthService {
         try {
             // Validate token type
             if (!jwtService.isRefreshToken(refreshToken)) {
-                throw new CoreThrowHandler(ApiError.INVALID_TOKEN, "Token is not a refresh token");
+                throw new CoreThrowHandler(ApiError.NOT_REFRESH_TOKEN);
             }
 
             // Extract email and load user
@@ -216,7 +241,7 @@ public class AuthService {
                     .userId(user.getId())
                     .userName(user.getName())
                     .action(AuditLogAction.TOKEN_REFRESH.name())
-                    .details("Access token refreshed for: " + user.getName())
+                    .details(AUDIT_REFRESHED_PREFIX + user.getName())
                     .category(AuditLogCategory.AUTH.name())
                     .timestamp(Instant.now())
                     .build();
@@ -224,7 +249,7 @@ public class AuthService {
 
             return RefreshTokenSuccessDTO.builder()
                     .success(true)
-                    .message("Token refreshed successfully")
+                    .message(MSG_TOKEN_REFRESHED_SUCCESSFUL)
                     .accessToken(newAccessToken)
                     .expiresIn(jwtService.getAccessTokenExpirationMs())
                     .refreshToken(newRefreshToken)
@@ -232,7 +257,7 @@ public class AuthService {
                     .build();
 
         } catch (ExpiredJwtException e) {
-            throw new CoreThrowHandler(ApiError.UNAUTHORIZED,"Token Expired");
+            throw new CoreThrowHandler(ApiError.EXPIRED_TOKEN);
         } catch (Exception e) {
             throw new CoreThrowHandler(ApiError.INVALID_TOKEN);
         }
