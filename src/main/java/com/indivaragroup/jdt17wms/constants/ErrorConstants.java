@@ -1,11 +1,11 @@
 package com.indivaragroup.jdt17wms.constants;
 
 import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorConstants {
-    private ErrorConstants() {
-      // Prevent Instantiation
-    }
 
     public static final ErrorResponseDTO ERROR_UNAUTHORIZED = ErrorResponseDTO.builder()
             .error("Unauthorized")

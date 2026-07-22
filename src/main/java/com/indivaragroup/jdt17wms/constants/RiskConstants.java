@@ -1,16 +1,16 @@
 package com.indivaragroup.jdt17wms.constants;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import java.util.Map;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class RiskConstants {
-    private RiskConstants() {
-      // Prevent Instantiation
-    }
 
   public static final String RISK_AVERSE = "risk_averse";
   public static final String MODERATE = "moderate";
   public static final String RISK_TAKER = "risk_taker";
-
 
   public static final int DEFAULT_QUESTIONNAIRE_SIZE = 5;
     public static final int RISK_AVERSE_THRESHOLD = 3;

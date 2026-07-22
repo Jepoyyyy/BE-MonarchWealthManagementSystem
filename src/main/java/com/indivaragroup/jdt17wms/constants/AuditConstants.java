@@ -1,9 +1,10 @@
 package com.indivaragroup.jdt17wms.constants;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class AuditConstants {
-    private AuditConstants() {
-      // Prevent Instantiation
-    }
 
     public static final int ADMIN_SUMMARY_AUDIT_LOG_LIMIT = 5;
 
@@ -15,20 +16,14 @@ public class AuditConstants {
     public static final String FINANCES_CATEGORY = "FINANCES";
     public static final String RECOMMENDATION_CATEGORY = "RECOMMENDATION";
 
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class RootAction {
-        private RootAction() {
-            // Prevent Instantiation
-        }
-
         public static final String CREATE = "CREATE";
         public static final String UPDATE = "UPDATE";
     }
 
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Action {
-        private Action() {
-            // Prevent Instantiation
-        }
-
         public static final String CREATE_ASSET = "CREATE_ASSET";
         public static final String UPDATE_ASSET = "UPDATE_ASSET";
         public static final String DELETE_ASSET = "DELETE_ASSET";
@@ -44,11 +39,8 @@ public class AuditConstants {
         public static final String GENERATE_RECOMMENDATIONS = "GENERATE_RECOMMENDATIONS";
     }
 
+    @NoArgsConstructor(access = AccessLevel.PRIVATE)
     public static final class Message {
-        private Message() {
-            // Prevent Instantiation
-        }
-
         public static final String CREATED_ASSET = "Created Asset";
         public static final String UPDATED_ASSET = "Updated Asset";
         public static final String DELETED_ASSET = "Deleted Asset";

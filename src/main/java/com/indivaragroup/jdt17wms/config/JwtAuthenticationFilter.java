@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.indivaragroup.jdt17wms.constants.JwtConstants;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
@@ -26,17 +27,6 @@ import java.util.UUID;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String HEADER_AUTHORIZATION = "Authorization";
-    private static final String TOKEN_PREFIX_BEARER = "Bearer ";
-    private static final String PATH_LOGOUT = ApiPath.LOGOUT_ROUTE;
-    private static final String ROLE_ADMIN = "ADMIN";
-    private static final String AUTHORITY_PREFIX_ROLE = "ROLE_";
-
-    private static final String ERROR_INVALID_TOKEN_TYPE = "Invalid token type";
-    private static final String ERROR_TOKEN_EXPIRED = "Token expired";
-    private static final String ERROR_INVALID_TOKEN = "Invalid token";
-    private static final String ERROR_AUTHENTICATION_FAILED = "Authentication failed";
-
     private final JwtService jwtService;
     private final ObjectMapper objectMapper;
 
@@ -48,7 +38,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String uri = request.getRequestURI();
-        if (uri != null && uri.endsWith(PATH_LOGOUT)) {
+        if (uri != null && uri.endsWith(JwtConstants.PATH_LOGOUT)) {
             return false;
         }
         return (uri != null && (uri.startsWith(ApiPath.BASE_AUTH_ROUTE)));
@@ -61,18 +51,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader(HEADER_AUTHORIZATION);
+        final String authHeader = request.getHeader(JwtConstants.HEADER_AUTHORIZATION);
 
-        if (authHeader == null || !authHeader.startsWith(TOKEN_PREFIX_BEARER)) {
+        if (authHeader == null || !authHeader.startsWith(JwtConstants.TOKEN_PREFIX_BEARER)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            final String token = authHeader.substring(TOKEN_PREFIX_BEARER.length());
+            final String token = authHeader.substring(JwtConstants.TOKEN_PREFIX_BEARER.length());
 
             if (!jwtService.isAccessToken(token)) {
-                sendUnauthorizedError(response, ERROR_INVALID_TOKEN_TYPE);
+                sendUnauthorizedError(response, JwtConstants.Error.INVALID_TOKEN_TYPE);
                 return;
             }
 
@@ -87,25 +77,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .email(email)
                     .name(name)
                     .questionnaireCompleted(false)
-                    .isAdmin(ROLE_ADMIN.equals(role))
+                    .isAdmin(JwtConstants.ROLE_ADMIN.equals(role))
                     .build();
 
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     principal,
                     null,
-                    List.of(new SimpleGrantedAuthority(AUTHORITY_PREFIX_ROLE + role))
+                    List.of(new SimpleGrantedAuthority(JwtConstants.AUTHORITY_PREFIX_ROLE + role))
             );
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
         } catch (ExpiredJwtException e) {
-            sendUnauthorizedError(response, ERROR_TOKEN_EXPIRED);
+            sendUnauthorizedError(response, JwtConstants.Error.TOKEN_EXPIRED);
             return;
         } catch (JwtException e) {
-            sendUnauthorizedError(response, ERROR_INVALID_TOKEN);
+            sendUnauthorizedError(response, JwtConstants.Error.INVALID_TOKEN);
             return;
         } catch (Exception e) {
-            sendUnauthorizedError(response, ERROR_AUTHENTICATION_FAILED);
+            sendUnauthorizedError(response, JwtConstants.Error.AUTHENTICATION_FAILED);
             return;
         }
 

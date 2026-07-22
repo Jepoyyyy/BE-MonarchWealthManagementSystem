@@ -1,5 +1,9 @@
 package com.indivaragroup.jdt17wms.constants;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class FinancesConstants {
   public static final String MONTHLY_INCOME = "monthly_income";
   public static final String HOUSING_EXPENSES = "housing";
@@ -10,8 +14,4 @@ public class FinancesConstants {
   public static final String ENTERTAINMENT_EXPENSES = "entertainment";
   public static final String INSURANCE_EXPENSES = "insurance";
   public static final String OTHER_EXPENSES = "other";
-
-  private FinancesConstants() {
-    // should not be initialized
-  }
 }

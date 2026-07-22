@@ -9,10 +9,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-@SuppressWarnings("java:S3011")
-final class AuditLogHelper {
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-    private AuditLogHelper() {}
+@SuppressWarnings("java:S3011")
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+final class AuditLogHelper {
 
     private static final String PACKAGE_PREFIX_JAVA = "java.";
     private static final String PACKAGE_PREFIX_JAVAX = "javax.";

@@ -1,11 +1,12 @@
 package com.indivaragroup.jdt17wms.constants;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import java.util.Map;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class GoalConstants {
-    private GoalConstants() {
-      // Prevent Instantiation
-    }
 
     public static final String CUSTOM_GOAL = "custom";
 

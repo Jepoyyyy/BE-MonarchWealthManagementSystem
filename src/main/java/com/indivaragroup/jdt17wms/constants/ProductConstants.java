@@ -2,15 +2,16 @@ package com.indivaragroup.jdt17wms.constants;
 
 import static com.indivaragroup.jdt17wms.constants.GoalConstants.CUSTOM_GOAL;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ProductConstants {
-    private ProductConstants() {
-      // Prevent Instantiation
-    }
 
     public static final int SUMMARY_COUNT = 5;
 
