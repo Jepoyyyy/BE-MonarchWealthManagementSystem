@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.aspects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.constants.FinancesConstants;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
@@ -60,11 +61,24 @@ public class AuditLogAspect {
         this.objectMapper = objectMapper;
     }
 
+    private static final String FIELD_NAME_OLD_VALUE = "old_value";
+    private static final String FIELD_NAME_NEW_VALUE = "new_value";
+    private static final String FIELD_NAME_RISK_PROFILE = "riskProfile";
+    private static final String FIELD_NAME_QUESTIONNAIRE_COMPLETED = "questionnaireCompleted";
+    private static final String FIELD_NAME_RISK_PROFILE_JSON = "risk_profile";
+    private static final String FIELD_NAME_QUESTIONNAIRE_COMPLETED_JSON = "questionnaire_completed";
+    private static final String FIELD_NAME_NAME = "name";
+
     private record FieldChange(
             String field,
-            @JsonProperty("old_value") Object oldValue,
-            @JsonProperty("new_value") Object newValue
+            @JsonProperty(FIELD_NAME_OLD_VALUE) Object oldValue,
+            @JsonProperty(FIELD_NAME_NEW_VALUE) Object newValue
     ) {}
+
+    private static final String OPENING_LOG = " (ID: ";
+    private static final String CLOSING_LOG = ")";
+
+    private static final String SYSTEM_USER = "SYSTEM";
 
     @Around("@annotation(auditLogged)")
     public void logAudit(ProceedingJoinPoint joinPoint, AuditLogged auditLogged) throws Throwable {
@@ -80,15 +94,15 @@ public class AuditLogAspect {
         }
 
         Object oldEntity = null;
-        if ("GOAL".equalsIgnoreCase(category) && entityId != null) {
+        if (AuditConstants.GOAL_CATEGORY.equalsIgnoreCase(category) && entityId != null) {
             oldEntity = goalRepository.findById(entityId).orElse(null);
-        } else if ("ASSET".equalsIgnoreCase(category) && entityId != null) {
+        } else if (AuditConstants.ASSET_CATEGORY.equalsIgnoreCase(category) && entityId != null) {
             oldEntity = assetRepository.findById(entityId).orElse(null);
-        } else if ("PRODUCT".equalsIgnoreCase(category) && entityId != null) {
+        } else if (AuditConstants.PRODUCT_CATEGORY.equalsIgnoreCase(category) && entityId != null) {
             oldEntity = productRepository.findById(entityId).orElse(null);
-        } else if ("USER".equalsIgnoreCase(category) && entityId != null) {
+        } else if (AuditConstants.USER_CATEGORY.equalsIgnoreCase(category) && entityId != null) {
             oldEntity = userRepository.findById(entityId).orElse(null);
-        } else if ("RISK_PROFILE".equalsIgnoreCase(category)) {
+        } else if (AuditConstants.RISK_PROFILE_CATEGORY.equalsIgnoreCase(category)) {
             try {
                 UUID currentUserId = SecurityUtils.getCurrentUserId();
                 oldEntity = userRepository.findById(currentUserId).orElse(null);
@@ -98,7 +112,7 @@ public class AuditLogAspect {
         }
 
         Map<String, Object> oldEntitySnapshot = null;
-        if ("FINANCES".equalsIgnoreCase(category)) {
+        if (AuditConstants.FINANCES_CATEGORY.equalsIgnoreCase(category)) {
             try {
                 UUID currentUserId = SecurityUtils.getCurrentUserId();
                 FinancialProfile fp = financialProfileRepository.findByUserId(currentUserId).orElse(null);
@@ -127,7 +141,7 @@ public class AuditLogAspect {
         Object result = joinPoint.proceed();
 
         UUID userId = null;
-        String userName = "SYSTEM";
+        String userName = SYSTEM_USER;
         try {
             userId = SecurityUtils.getCurrentUserId();
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -139,7 +153,7 @@ public class AuditLogAspect {
         }
 
         String changedValueJson = null;
-        if (action.contains("UPDATE") || action.contains("CREATE")) {
+        if (action.contains(AuditConstants.RootAction.UPDATE) || action.contains(AuditConstants.RootAction.CREATE)) {
             List<FieldChange> changes = new ArrayList<>();
             Object dto = null;
             for (Object arg : joinPoint.getArgs()) {
@@ -149,23 +163,23 @@ public class AuditLogAspect {
                 }
             }
 
-            if (action.contains("UPDATE")) {
-                if ("RISK_PROFILE".equalsIgnoreCase(category)) {
+            if (action.contains(AuditConstants.RootAction.UPDATE)) {
+                if (AuditConstants.RISK_PROFILE_CATEGORY.equalsIgnoreCase(category)) {
                     if (userId != null) {
                         User updatedUser = userRepository.findById(userId).orElse(null);
                         if (updatedUser != null) {
-                            Object oldRiskProfile = oldEntitySnapshot.get("riskProfile");
-                            Object oldQuestionnaireCompleted = oldEntitySnapshot.get("questionnaireCompleted");
+                            Object oldRiskProfile = oldEntitySnapshot.get(FIELD_NAME_RISK_PROFILE);
+                            Object oldQuestionnaireCompleted = oldEntitySnapshot.get(FIELD_NAME_QUESTIONNAIRE_COMPLETED);
 
                             if (AuditLogHelper.isChanged(oldRiskProfile, updatedUser.getRiskProfile())) {
-                                changes.add(new FieldChange("risk_profile", oldRiskProfile, updatedUser.getRiskProfile()));
+                                changes.add(new FieldChange(FIELD_NAME_RISK_PROFILE_JSON, oldRiskProfile, updatedUser.getRiskProfile()));
                             }
                             if (AuditLogHelper.isChanged(oldQuestionnaireCompleted, updatedUser.getQuestionnaireCompleted())) {
-                                changes.add(new FieldChange("questionnaire_completed", oldQuestionnaireCompleted, updatedUser.getQuestionnaireCompleted()));
+                                changes.add(new FieldChange(FIELD_NAME_QUESTIONNAIRE_COMPLETED_JSON, oldQuestionnaireCompleted, updatedUser.getQuestionnaireCompleted()));
                             }
                         }
                     }
-                } else if ("FINANCES".equalsIgnoreCase(category) && oldEntitySnapshot != null) {
+                } else if (AuditConstants.FINANCES_CATEGORY.equalsIgnoreCase(category) && oldEntitySnapshot != null) {
                     if (userId != null) {
                         FinancialProfile updatedFp = financialProfileRepository.findByUserId(userId).orElse(null);
                         Expense updatedExpense = null;
@@ -280,7 +294,7 @@ public class AuditLogAspect {
         for (Object arg : args) {
             if (arg != null) {
                 try {
-                    Field nameField = AuditLogHelper.findUnderlyingField(arg.getClass(), "name");
+                    Field nameField = AuditLogHelper.findUnderlyingField(arg.getClass(), FIELD_NAME_NAME);
                     if (nameField != null) {
                         nameField.setAccessible(true);
                         Object val = nameField.get(arg);
@@ -296,7 +310,7 @@ public class AuditLogAspect {
         if (name.isEmpty() && result instanceof ApiResponse<?> apiResponse && apiResponse.getRestApiResponseResult() != null) {
             try {
                 Object body = apiResponse.getRestApiResponseResult();
-                Field nameField = AuditLogHelper.findUnderlyingField(body.getClass(), "name");
+                Field nameField = AuditLogHelper.findUnderlyingField(body.getClass(), FIELD_NAME_NAME);
                 if (nameField != null) {
                     nameField.setAccessible(true);
                     Object val = nameField.get(body);
@@ -309,17 +323,17 @@ public class AuditLogAspect {
 
         String s = name.isEmpty() ? "" : ": " + name;
         return switch (action) {
-            case "CREATE_ASSET" -> "Created Asset" + s;
-            case "UPDATE_ASSET" -> "Updated Asset" + s + (entityId != null ? " (ID: " + entityId + ")" : "");
-            case "DELETE_ASSET" -> "Deleted Asset" + (entityId != null ? " (ID: " + entityId + ")" : "");
-            case "CREATE_GOAL" -> "Created Goal" + s;
-            case "UPDATE_GOAL" -> "Updated Goal" + s + (entityId != null ? " (ID: " + entityId + ")" : "");
-            case "DELETE_GOAL" -> "Deleted Goal" + (entityId != null ? " (ID: " + entityId + ")" : "");
-            case "UPDATE_PRODUCT" -> "Updated Product Visibility" + (entityId != null ? " (ID: " + entityId + ")" : "");
-            case "UPDATE_RISK_PROFILE" -> "Updated Risk Profile Questionnaire";
-            case "UPDATE_USER_STATUS" -> "Updated User Status" + (entityId != null ? " (ID: " + entityId + ")" : "");
-            case "UPDATE_FINANCES" -> "Updated Financial Profile and Expenses";
-            default -> action + " action performed";
+            case AuditConstants.Action.CREATE_ASSET -> AuditConstants.Message.CREATED_ASSET + s;
+            case AuditConstants.Action.UPDATE_ASSET -> AuditConstants.Message.UPDATED_ASSET + s + (entityId != null ? OPENING_LOG + entityId + CLOSING_LOG : "");
+            case AuditConstants.Action.DELETE_ASSET -> AuditConstants.Message.DELETED_ASSET + (entityId != null ? OPENING_LOG + entityId + CLOSING_LOG : "");
+            case AuditConstants.Action.CREATE_GOAL -> AuditConstants.Message.CREATED_GOAL + s;
+            case AuditConstants.Action.UPDATE_GOAL -> AuditConstants.Message.UPDATED_GOAL + s + (entityId != null ? OPENING_LOG + entityId + CLOSING_LOG : "");
+            case AuditConstants.Action.DELETE_GOAL -> AuditConstants.Message.DELETED_GOAL + (entityId != null ? OPENING_LOG + entityId + CLOSING_LOG : "");
+            case AuditConstants.Action.UPDATE_PRODUCT -> AuditConstants.Message.UPDATED_PRODUCT_VISIBILITY + (entityId != null ? OPENING_LOG + entityId + CLOSING_LOG : "");
+            case AuditConstants.Action.UPDATE_RISK_PROFILE -> AuditConstants.Message.UPDATED_RISK_PROFILE_QUESTIONNAIRE;
+            case AuditConstants.Action.UPDATE_USER_STATUS -> AuditConstants.Message.UPDATED_USER_STATUS + (entityId != null ? OPENING_LOG + entityId + CLOSING_LOG : "");
+            case AuditConstants.Action.UPDATE_FINANCES -> AuditConstants.Message.UPDATED_FINANCIAL_PROFILE_AND_EXPENSES;
+            default -> action + AuditConstants.Message.ACTION_PERFORMED_SUFFIX;
         };
     }
 }
