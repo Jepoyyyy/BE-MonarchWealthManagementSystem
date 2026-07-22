@@ -64,11 +64,11 @@ class GoalsProjectionServiceTest {
 
     @org.junit.jupiter.api.BeforeEach
     void setUp() {
-        goalsProjectionService = new GoalsProjectionService(goalRepository, userRepository, financialProfileRepository, assetRepository, productRepository, clock);
+        goalsProjectionService = new GoalsProjectionService(goalRepository, userRepository, assetRepository, productRepository, clock);
     }
 
-    private void mockAuthenticatedUser(UUID userId) {
-        UserDTO principal = UserDTO.builder().id(userId).build();
+    private void mockAuthenticatedUser() {
+        UserDTO principal = UserDTO.builder().id(SecurityUtils.STATIC_USER_ID).build();
         Authentication authentication = mock(Authentication.class);
         SecurityContext securityContext = mock(SecurityContext.class);
         when(authentication.getPrincipal()).thenReturn(principal);
@@ -88,7 +88,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldReturnProjectionsWhenNoAssets() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -130,7 +130,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldReturnProjectionsWhenAssetsTied() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -179,7 +179,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldThrowNotFoundExceptionWhenUserNotFound() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.empty());
 
         assertThrows(CoreThrowHandler.class, () -> goalsProjectionService.getProjectionsForUser());
@@ -187,7 +187,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_shouldUseTargetDateWhenTimelineIsEarlierThanMaxMonths() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -216,7 +216,7 @@ class GoalsProjectionServiceTest {
     }
     @Test
     void getProjectionsForUser_whenCannotGrow_returnsMaxSimulationMonths() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -250,7 +250,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_whenGrowthTooSmall_returnsMaxSimulationMonths() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -298,7 +298,7 @@ class GoalsProjectionServiceTest {
 
     @Test
     void getProjectionsForUser_whenBalanceAlreadyExceedsTarget_returnsZeroMonths() {
-        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+        mockAuthenticatedUser();
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
                 .questionnaireCompleted(true)
@@ -370,20 +370,20 @@ class GoalsProjectionServiceTest {
         var method = GoalsProjectionService.class.getDeclaredMethod("calculateRecommendedContribution", double[].class, double[].class, double.class, double.class);
         method.setAccessible(true);
 
-        // case 1: rates[j] <= 0 (division by zero rate guard)
-        // target = 10000, monthsToUse = 10. rates = {0.0}. balances = {1000.0}
-        // futureValueFactor = (1+0)^10 = 1
-        // num = 10000 - 1000*1 = 9000
-        // rate is 0 -> sumS += monthsToUse (10.0) -> denom = 10.0
-        // recContribution = 9000 / 10.0 = 900.0
-        BigDecimal resZeroRate = (BigDecimal) method.invoke(goalsProjectionService, new double[]{1000.0}, new double[]{0.0}, 10000.0, 10.0);
+      // Case 1: rates[j] <= 0 (division by zero rate guard)
+      // Setup: target is 10000, monthsToUse is 10, rates are [0.0], balances are [1000.0]
+      // Math: futureValueFactor is (1+0)^10 -> 1
+      // Math: num is 10000 - 1000*1 -> 9000
+      // Math: rate is 0 -> sumS increases by monthsToUse (10.0) -> denom is 10.0
+      // Math: recContribution is 9000 / 10.0 -> 900.0
+      BigDecimal resZeroRate = (BigDecimal) method.invoke(goalsProjectionService, new double[]{1000.0}, new double[]{0.0}, 10000.0, 10.0);
         assertEquals(new BigDecimal("900.00"), resZeroRate);
 
-        // case 2: denom <= 0 (division by zero denom guard)
-        // We can force denom to 0 by passing monthsToUse = 0 and rates = {0.0}
-        // target = 10000, monthsToUse = 0, rates = {0.0}, balances = {1000.0}
-        // num = 10000 - 1000*1 = 9000
-        // sumS = 0.0 -> denom = 0.0 -> recContribution should return 0.0
+        // Case 2: denom <= 0 (division by zero denom guard)
+        // We can force denom to 0 by passing monthsToUse of 0 and rates of [0.0]
+        // Setup: target is 10000, monthsToUse is 0, rates are [0.0], balances are [1000.0]
+        // Math: num is 10000 - 1000*1 -> 9000
+        // Math: sumS is 0.0 -> denom is 0.0 -> recContribution yields 0.0
         BigDecimal resZeroDenom = (BigDecimal) method.invoke(goalsProjectionService, new double[]{1000.0}, new double[]{0.0}, 10000.0, 0.0);
         assertEquals(new BigDecimal("0.00"), resZeroDenom);
     }

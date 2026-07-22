@@ -11,7 +11,6 @@ import com.indivaragroup.jdt17wms.models.Goal;
 import com.indivaragroup.jdt17wms.models.User;
 import com.indivaragroup.jdt17wms.models.Asset;
 import com.indivaragroup.jdt17wms.models.Product;
-import com.indivaragroup.jdt17wms.repositories.FinancialProfileRepository;
 import com.indivaragroup.jdt17wms.repositories.GoalRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.repositories.AssetRepository;
@@ -27,15 +26,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class
-
-
-
-GoalsProjectionService {
+public class GoalsProjectionService {
 
     private final GoalRepository goalRepository;
     private final UserRepository userRepository;
-    private final FinancialProfileRepository financialProfileRepository;
     private final AssetRepository assetRepository;
     private final ProductRepository productRepository;
     private final Clock clock;
@@ -49,13 +43,11 @@ GoalsProjectionService {
 
     public GoalsProjectionService(GoalRepository goalRepository,
                                   UserRepository userRepository,
-                                  FinancialProfileRepository financialProfileRepository,
                                   AssetRepository assetRepository,
                                   ProductRepository productRepository,
                                   Clock clock) {
         this.goalRepository = goalRepository;
         this.userRepository = userRepository;
-        this.financialProfileRepository = financialProfileRepository;
         this.assetRepository = assetRepository;
         this.productRepository = productRepository;
         this.clock = clock;
