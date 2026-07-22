@@ -32,9 +32,6 @@ class JwtAuthenticationFilterTest {
     @Mock
     private JwtService jwtService;
 
-    @Mock
-    private UserRepository userRepository;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private JwtAuthenticationFilter jwtAuthenticationFilter;
@@ -42,7 +39,7 @@ class JwtAuthenticationFilterTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService, userRepository, objectMapper);
+        jwtAuthenticationFilter = new JwtAuthenticationFilter(jwtService, objectMapper);
     }
 
     @org.junit.jupiter.api.AfterEach
