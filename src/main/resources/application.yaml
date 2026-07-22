@@ -6,7 +6,7 @@ spring:
   datasource:
     url: jdbc:postgresql://aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres?prepareThreshold=0
     username: postgres.vhssovcozxdwpmsvrvhr
-    password: HXrfUmI15vxDsXrm
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
