@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -82,7 +83,8 @@ class ExceptionHandlingAdviceTest {
     void handleJsonParseError_withUnrecognizedField_shouldExtractFieldName() {
         // Message must contain "UnrecognizedPropertyException" + field in ["<name>"] format for regex match
         String message = "JSON parse error: UnrecognizedPropertyException: Unrecognized field [\"unknownField\"]";
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(message);
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+          message, new MockHttpInputMessage(new byte[0]));
 
         ResponseEntity<ApiResponse<?>> response = advice.handleJsonParseError(ex);
 
@@ -97,7 +99,9 @@ class ExceptionHandlingAdviceTest {
 
     @Test
     void handleJsonParseError_withMalformedJson_shouldReturnGenericError() {
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("JSON parse error: Cannot deserialize value of type");
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+          "JSON parse error: Cannot deserialize value of type",
+          new MockHttpInputMessage(new byte[0]));
 
         ResponseEntity<ApiResponse<?>> response = advice.handleJsonParseError(ex);
 
@@ -109,7 +113,7 @@ class ExceptionHandlingAdviceTest {
 
     @Test
     void handleJsonParseError_withNullMessage_shouldReturnGenericError() {
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException((String) null);
+        HttpMessageNotReadableException ex = new HttpMessageNotReadableException("", new MockHttpInputMessage(new byte[0]));
 
         ResponseEntity<ApiResponse<?>> response = advice.handleJsonParseError(ex);
 
