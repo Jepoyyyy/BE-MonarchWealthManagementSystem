@@ -7,7 +7,6 @@ import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
-import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.services.ProductManagementService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

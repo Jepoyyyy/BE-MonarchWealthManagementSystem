@@ -29,11 +29,6 @@ public class JwtService {
     private static final String REFRESH_TOKEN_TYPE = "refresh";
 
     // Claim name constants
-    private static final String CLAIM_EMAIL = "email";
-    private static final String CLAIM_USER_ID = "userId";
-    private static final String CLAIM_ROLE = "role";
-    private static final String CLAIM_IAT = "iat";
-    private static final String CLAIM_EXP = "exp";
     private static final String USER_ID_CLAIM = "userId";
     private static final String USER_ROLE_CLAIM = "role";
     private static final String USER_NAME_CLAIM = "name";

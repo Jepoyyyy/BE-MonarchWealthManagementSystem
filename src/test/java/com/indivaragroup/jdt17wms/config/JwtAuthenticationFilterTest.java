@@ -3,7 +3,6 @@ package com.indivaragroup.jdt17wms.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
-import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.services.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;

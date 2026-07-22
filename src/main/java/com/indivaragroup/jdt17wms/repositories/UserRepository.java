@@ -1,7 +1,6 @@
 package com.indivaragroup.jdt17wms.repositories;
 
 import com.indivaragroup.jdt17wms.models.User;
-import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
