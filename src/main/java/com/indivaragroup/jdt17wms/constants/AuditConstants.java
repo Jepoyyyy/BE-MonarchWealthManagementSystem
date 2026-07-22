@@ -22,7 +22,6 @@ public class AuditConstants {
 
         public static final String CREATE = "CREATE";
         public static final String UPDATE = "UPDATE";
-        public static final String DELETE = "DELETE";
     }
 
     public static final class Action {
