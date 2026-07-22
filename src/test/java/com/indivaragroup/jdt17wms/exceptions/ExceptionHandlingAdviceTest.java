@@ -1,5 +1,8 @@
 package com.indivaragroup.jdt17wms.exceptions;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
+import com.indivaragroup.jdt17wms.dto.request.ProductQueryDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
@@ -79,24 +82,44 @@ class ExceptionHandlingAdviceTest {
 
     // --- HttpMessageNotReadableException ---
 
-    @Test
-    void handleJsonParseError_withUnrecognizedField_shouldExtractFieldName() {
-        // Message must contain "UnrecognizedPropertyException" + field in ["<name>"] format for regex match
-        String message = "JSON parse error: UnrecognizedPropertyException: Unrecognized field [\"unknownField\"]";
-        HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
-          message, new MockHttpInputMessage(new byte[0]));
-
-        ResponseEntity<ApiResponse<?>> response = advice.handleJsonParseError(ex);
-
-        assertEquals(400, response.getStatusCode().value());
-        ApiResponse<?> body = response.getBody();
-        assertNotNull(body);
-        assertEquals(ApiError.INVALID_REQUEST_BODY.getCode(), body.getRestApiResponseHttpCode());
-        assertEquals("Invalid Request Body", body.getRestApiResponseMessage());
-        assertNotNull(body.getRestApiResponseError());
-        assertEquals("Unrecognized field: unknownField", body.getRestApiResponseError().get("detail"));
+  @Test
+  void handleJsonParseError_withUnrecognizedField_shouldExtractFieldName() throws Exception {
+    ObjectMapper mapper = new ObjectMapper();
+    UnrecognizedPropertyException cause;
+    try {
+      // the ProductQueryDTO solely exists just for making the exception
+      mapper.readValue("{\"unknownField\":123}", ProductQueryDTO.class);
+      throw new AssertionError("expected UnrecognizedPropertyException");
+    } catch (UnrecognizedPropertyException e) {
+      cause = e;
     }
 
+    HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+      "JSON parse error", cause, new MockHttpInputMessage(new byte[0]));
+
+    ResponseEntity<ApiResponse<?>> response = advice.handleJsonParseError(ex);
+
+    assertEquals(400, response.getStatusCode().value());
+    ApiResponse<?> body = response.getBody();
+    assertNotNull(body);
+    assertEquals(ApiError.INVALID_REQUEST_BODY.getCode(), body.getRestApiResponseHttpCode());
+    assertEquals("Invalid Request Body", body.getRestApiResponseMessage());
+    assertNotNull(body.getRestApiResponseError());
+    assertEquals("Unrecognized field: unknownField", body.getRestApiResponseError().get("detail"));
+  }
+
+  @Test
+  void handleJsonParseError_withMalformedJson_shouldReturnGenericMessage() {
+    HttpMessageNotReadableException ex = new HttpMessageNotReadableException(
+      "JSON parse error: unexpected token",
+      new MockHttpInputMessage(new byte[0])); // no UnrecognizedPropertyException cause
+
+    ResponseEntity<ApiResponse<?>> response = advice.handleJsonParseError(ex);
+
+    assertNotNull(response.getBody());
+    assertEquals("Malformed JSON request body",
+      response.getBody().getRestApiResponseError().get("detail"));
+  }
     @Test
     void handleJsonParseError_withMalformedJson_shouldReturnGenericError() {
         HttpMessageNotReadableException ex = new HttpMessageNotReadableException(

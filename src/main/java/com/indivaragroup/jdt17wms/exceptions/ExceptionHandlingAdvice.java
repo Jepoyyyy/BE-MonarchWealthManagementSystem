@@ -1,5 +1,6 @@
 package com.indivaragroup.jdt17wms.exceptions;
 
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.ValidationErrorDetailDTO;
@@ -42,30 +43,29 @@ public class ExceptionHandlingAdvice {
         return ResponseEntity.status(ex.getCode()).body(body);
     }
 
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<ApiResponse<?>> handleJsonParseError(HttpMessageNotReadableException ex) {
-        String message = ex.getMessage();
-        String errorMsg;
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ApiResponse<?>> handleJsonParseError(HttpMessageNotReadableException ex) {
+    String errorMsg;
 
-        if (message != null && message.contains("UnrecognizedPropertyException")) {
-            String field = message.replaceAll(".*\\[\"([^\"]+)\"].*", "$1");
-            errorMsg = "Unrecognized field: " + field;
-        } else {
-            errorMsg = "Malformed JSON request body";
-        }
-
-        Map<String, Serializable> errorMap = new HashMap<>();
-        errorMap.put("detail", errorMsg);
-
-        ApiResponse<?> body = ApiResponse.builder()
-                .restApiResponseHttpCode(ApiError.INVALID_REQUEST_BODY.getCode())
-                .restApiResponseMessage(ApiError.INVALID_REQUEST_BODY.getMessage())
-                .restApiResponseResult(null)
-                .restApiResponseError(errorMap)
-                .build();
-
-        return ResponseEntity.badRequest().body(body);
+    Throwable cause = ex.getCause();
+    if (cause instanceof UnrecognizedPropertyException upe) {
+      errorMsg = "Unrecognized field: " + upe.getPropertyName();
+    } else {
+      errorMsg = "Malformed JSON request body";
     }
+
+    Map<String, Serializable> errorMap = new HashMap<>();
+    errorMap.put("detail", errorMsg);
+
+    ApiResponse<?> body = ApiResponse.builder()
+      .restApiResponseHttpCode(ApiError.INVALID_REQUEST_BODY.getCode())
+      .restApiResponseMessage(ApiError.INVALID_REQUEST_BODY.getMessage())
+      .restApiResponseResult(null)
+      .restApiResponseError(errorMap)
+      .build();
+
+    return ResponseEntity.badRequest().body(body);
+  }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<?>> handleValidationErrors(MethodArgumentNotValidException ex) {
