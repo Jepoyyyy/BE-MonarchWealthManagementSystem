@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.request.GoalEditingDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
@@ -41,14 +42,14 @@ public class GoalController {
     }
 
     @PostMapping
-    @AuditLogged(action = "CREATE_GOAL", category = "GOAL")
+    @AuditLogged(action = AuditConstants.Action.CREATE_GOAL, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<GoalDTO> createGoal(@Valid @RequestBody GoalRegistrationDTO dto) {
         return ApiResponse.created(ApiSuccess.GOAL_CREATED,
                 goalsManagementService.createGoalForUser(dto));
     }
 
     @PutMapping("/{id}")
-    @AuditLogged(action = "UPDATE_GOAL", category = "GOAL")
+    @AuditLogged(action = AuditConstants.Action.UPDATE_GOAL, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<GoalDTO> updateGoal(@PathVariable UUID id,
                                             @Valid @RequestBody GoalEditingDTO dto) {
         return ApiResponse.success(ApiSuccess.GOAL_UPDATED,
@@ -56,7 +57,7 @@ public class GoalController {
     }
 
     @DeleteMapping("/{id}")
-    @AuditLogged(action = "DELETE_GOAL", category = "GOAL")
+    @AuditLogged(action = AuditConstants.Action.DELETE_GOAL, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<Void> deleteGoal(@PathVariable UUID id) {
         goalsManagementService.deleteGoalForUser(id);
         return ApiResponse.success(ApiSuccess.GOAL_DELETED, null);
@@ -69,7 +70,7 @@ public class GoalController {
     }
 
     @PostMapping("/auto-allocate")
-    @AuditLogged(action = "AUTO_ALLOCATE_GOALS", category = "GOAL")
+    @AuditLogged(action = AuditConstants.Action.AUTO_ALLOCATE_GOALS, category = AuditConstants.GOAL_CATEGORY)
     public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam("percentage") int percentage) {
         return ApiResponse.success(ApiSuccess.GOALS_FETCHED,
                 goalsManagementService.autoAllocateGoalsForUser(percentage));

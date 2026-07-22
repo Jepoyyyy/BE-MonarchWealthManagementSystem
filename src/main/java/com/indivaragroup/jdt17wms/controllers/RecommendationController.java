@@ -7,6 +7,7 @@ import com.indivaragroup.jdt17wms.dto.response.RecommendationDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
 import com.indivaragroup.jdt17wms.services.ActionRecommendationService;
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,7 +32,7 @@ public class RecommendationController {
     }
 
     @PostMapping("/recommendations")
-    @AuditLogged(action = "GENERATE_RECOMMENDATIONS", category = "RECOMMENDATION")
+    @AuditLogged(action = AuditConstants.Action.GENERATE_RECOMMENDATIONS, category = AuditConstants.RECOMMENDATION_CATEGORY)
     public ApiResponse<List<RecommendationDTO>> getRecommendations() {
         return ApiResponse.success(ApiSuccess.RECOMMENDATIONS_FETCHED,
                 actionRecommendationService.generateRecommendations());

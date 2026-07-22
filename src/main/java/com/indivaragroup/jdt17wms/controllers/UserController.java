@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.response.AdminUserDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
@@ -40,7 +41,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @AuditLogged(action = "UPDATE_USER_STATUS", category = "USER")
+    @AuditLogged(action = AuditConstants.Action.UPDATE_USER_STATUS, category = AuditConstants.USER_CATEGORY)
     public ApiResponse<AdminUserDTO> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UserStatusUpdateDTO userStatusUpdateDTO) {

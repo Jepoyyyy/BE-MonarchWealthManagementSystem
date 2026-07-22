@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
@@ -36,7 +37,7 @@ public class AssetController {
 
 
     @PostMapping
-    @AuditLogged(action = "CREATE_ASSET", category = "ASSET")
+    @AuditLogged(action = AuditConstants.Action.CREATE_ASSET, category = AuditConstants.ASSET_CATEGORY)
     public ApiResponse<AssetDTO> createAsset(@Valid @RequestBody AssetRegistrationDTO dto) {
         return ApiResponse.created(ApiSuccess.ASSET_CREATED,
                 assetsManagementService.createAssetForUser(dto));
@@ -62,7 +63,7 @@ public class AssetController {
     }
 
     @PutMapping("/{id}")
-    @AuditLogged(action = "UPDATE_ASSET", category = "ASSET")
+    @AuditLogged(action = AuditConstants.Action.UPDATE_ASSET, category = AuditConstants.ASSET_CATEGORY)
     public ApiResponse<AssetDTO> updateAsset(@PathVariable UUID id,
                                            @Valid @RequestBody GoalSettingDTO goalSettingDTO) {
         return ApiResponse.success(ApiSuccess.ASSET_UPDATED,
@@ -70,7 +71,7 @@ public class AssetController {
     }
 
     @DeleteMapping("/{id}")
-    @AuditLogged(action = "DELETE_ASSET", category = "ASSET")
+    @AuditLogged(action = AuditConstants.Action.DELETE_ASSET, category = AuditConstants.ASSET_CATEGORY)
     public ApiResponse<Void> deleteAsset(@PathVariable UUID id) {
         assetsManagementService.deleteAssetForUser(id);
         return ApiResponse.success(ApiSuccess.ASSET_DELETED, null);

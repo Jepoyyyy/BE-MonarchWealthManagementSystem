@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.request.RiskProfilerDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
@@ -34,7 +35,7 @@ public class RiskProfilerAssessmentController {
     }
 
     @PutMapping
-    @AuditLogged(action = "UPDATE_RISK_PROFILE", category = "RISK_PROFILE")
+    @AuditLogged(action = AuditConstants.Action.UPDATE_RISK_PROFILE, category = AuditConstants.RISK_PROFILE_CATEGORY)
     public ApiResponse<RiskProfilerResponseDTO> updateProfilerAssessment(
             @Valid @RequestBody RiskProfilerDTO riskProfilerDTO) {
         return ApiResponse.success(ApiSuccess.PROFILER_UPDATED,

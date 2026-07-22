@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.request.AdminChangeVisibilityDTO;
 import com.indivaragroup.jdt17wms.dto.request.ProductQueryDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
@@ -33,7 +34,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    @AuditLogged(action = "UPDATE_PRODUCT", category = "PRODUCT")
+    @AuditLogged(action = AuditConstants.Action.UPDATE_PRODUCT, category = AuditConstants.PRODUCT_CATEGORY)
     public ApiResponse<ProductResponseDTO> updateProduct(
             @PathVariable UUID id,
             @RequestBody AdminChangeVisibilityDTO adminChangeVisibilityDTO) {

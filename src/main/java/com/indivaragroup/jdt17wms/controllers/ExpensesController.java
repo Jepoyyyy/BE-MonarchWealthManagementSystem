@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.aspects.AuditLogged;
+import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.request.FinancialProfileDTO;
 import com.indivaragroup.jdt17wms.dto.request.ExpenseDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
@@ -27,7 +28,7 @@ public class ExpensesController {
     }
 
     @PutMapping
-    @AuditLogged(action = "UPDATE_FINANCES", category = "FINANCES")
+    @AuditLogged(action = AuditConstants.Action.UPDATE_FINANCES, category = AuditConstants.FINANCES_CATEGORY)
     public ApiResponse<ExpenseDTO> updateFinances(@Valid @RequestBody FinancialProfileDTO financialProfileDTO) {
         return ApiResponse.success(ApiSuccess.FINANCES_UPDATED,
                 expensesService.updateFinancesForUser(financialProfileDTO));
