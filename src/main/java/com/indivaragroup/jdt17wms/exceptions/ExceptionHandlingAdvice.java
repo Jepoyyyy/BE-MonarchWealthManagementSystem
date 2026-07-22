@@ -27,6 +27,17 @@ import java.util.UUID;
 public class ExceptionHandlingAdvice {
 
     private static final Logger log = LoggerFactory.getLogger(ExceptionHandlingAdvice.class);
+    private static final String BUSINESS_ERROR_CODE = "ERR-001";
+    private static final String UNRECOGNIZED_FIELD_PREFIX = "Unrecognized field: ";
+    private static final String MALFORMED_JSON_MESSAGE = "Malformed JSON request body";
+
+    private static final String KEY_DETAIL = "detail";
+    private static final String KEY_FIELDS = "fields";
+    private static final String KEY_PATH = "path";
+    private static final String KEY_METHOD = "method";
+    private static final String KEY_ERROR_ID = "errorId";
+
+    private static final String LOG_UNHANDLED_EXCEPTION = "[{}] Unhandled exception";
 
     @ExceptionHandler(CoreThrowHandler.class)
     public ResponseEntity<ApiResponse<?>> handleCoreThrowHandler(CoreThrowHandler ex) {
@@ -50,13 +61,13 @@ public class ExceptionHandlingAdvice {
 
     Throwable cause = ex.getCause();
     if (cause instanceof UnrecognizedPropertyException upe) {
-      errorMsg = "Unrecognized field: " + upe.getPropertyName();
+      errorMsg = UNRECOGNIZED_FIELD_PREFIX + upe.getPropertyName();
     } else {
-      errorMsg = "Malformed JSON request body";
+      errorMsg = MALFORMED_JSON_MESSAGE;
     }
 
     Map<String, Serializable> errorMap = new HashMap<>();
-    errorMap.put("detail", errorMsg);
+    errorMap.put(KEY_DETAIL, errorMsg);
 
     ApiResponse<?> body = ApiResponse.builder()
       .restApiResponseHttpCode(ApiError.INVALID_REQUEST_BODY.getCode())
@@ -74,12 +85,12 @@ public class ExceptionHandlingAdvice {
                 .map(error -> ValidationErrorDetailDTO.builder()
                         .field(error instanceof FieldError f ? f.getField() : error.getObjectName())
                         .reason(error.getDefaultMessage())
-                        .type("ERR-001")
+                        .type(BUSINESS_ERROR_CODE)
                         .build())
                 .toList();
 
         Map<String, Serializable> errorMap = new HashMap<>();
-        errorMap.put("fields", (Serializable) details);
+        errorMap.put(KEY_FIELDS, (Serializable) details);
 
         ApiResponse<?> body = ApiResponse.builder()
                 .restApiResponseHttpCode(ApiError.VALIDATION.getCode())
@@ -97,12 +108,12 @@ public class ExceptionHandlingAdvice {
                 .map(v -> ValidationErrorDetailDTO.builder()
                         .field(v.getPropertyPath().toString())
                         .reason(v.getMessage())
-                        .type("ERR-001")
+                        .type(BUSINESS_ERROR_CODE)
                         .build())
                 .toList();
 
         Map<String, Serializable> errorMap = new HashMap<>();
-        errorMap.put("fields", (Serializable) details);
+        errorMap.put(KEY_FIELDS, (Serializable) details);
 
         ApiResponse<?> body = ApiResponse.builder()
                 .restApiResponseHttpCode(ApiError.VALIDATION.getCode())
@@ -117,8 +128,8 @@ public class ExceptionHandlingAdvice {
     @ExceptionHandler(NoHandlerFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleNotFound(NoHandlerFoundException ex) {
         Map<String, Serializable> errorMap = new HashMap<>();
-        errorMap.put("path", ex.getRequestURL());
-        errorMap.put("method", ex.getHttpMethod());
+        errorMap.put(KEY_PATH, ex.getRequestURL());
+        errorMap.put(KEY_METHOD, ex.getHttpMethod());
 
         ApiResponse<?> body = ApiResponse.builder()
                 .restApiResponseHttpCode(HttpStatus.NOT_FOUND.value())
@@ -145,10 +156,10 @@ public class ExceptionHandlingAdvice {
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<ApiResponse<?>> handleUncaught(Throwable ex) {
         String errorId = UUID.randomUUID().toString();
-        log.error("[{}] Unhandled exception", errorId, ex);
+        log.error(LOG_UNHANDLED_EXCEPTION, errorId, ex);
 
         Map<String, Serializable> errorMap = new HashMap<>();
-        errorMap.put("errorId", errorId);
+        errorMap.put(KEY_ERROR_ID, errorId);
 
         ApiResponse<?> body = ApiResponse.builder()
                 .restApiResponseHttpCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
