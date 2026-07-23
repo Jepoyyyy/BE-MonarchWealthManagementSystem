@@ -4,7 +4,6 @@ import com.indivaragroup.jdt17wms.aspects.AuditLogged;
 import com.indivaragroup.jdt17wms.constants.AuditConstants;
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
-import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
@@ -84,22 +83,6 @@ public class AssetController {
             @Valid @RequestBody AssetTransactionDTO dto) {
         return ApiResponse.success(ApiSuccess.EXECUTED,
                 assetsManagementService.executeTransaction(assetId, dto));
-    }
-
-    @PatchMapping(ApiPath.ASSET_VALUE_ROUTE)
-    public ApiResponse<AssetDTO> updateAssetValue(
-            @PathVariable UUID assetId,
-            @Valid @RequestBody AssetValueUpdateDTO dto) {
-        return ApiResponse.success(ApiSuccess.ASSET_UPDATED,
-                assetsManagementService.updateAssetValue(assetId, dto));
-    }
-
-    @PatchMapping(ApiPath.ASSET_GOAL_ROUTE)
-    public ApiResponse<AssetDTO> updateAssetGoal(
-            @PathVariable UUID assetId,
-            @RequestParam(required = false) UUID goalId) {
-        return ApiResponse.success(ApiSuccess.ASSET_UPDATED,
-                assetsManagementService.updateAssetGoal(assetId, goalId));
     }
 
     @GetMapping(ApiPath.ASSET_PNL_ROUTE)

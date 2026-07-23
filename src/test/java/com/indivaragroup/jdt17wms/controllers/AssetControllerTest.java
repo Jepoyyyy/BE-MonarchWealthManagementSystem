@@ -2,7 +2,6 @@ package com.indivaragroup.jdt17wms.controllers;
 
 import com.indivaragroup.jdt17wms.dto.request.AssetRegistrationDTO;
 import com.indivaragroup.jdt17wms.dto.request.AssetTransactionDTO;
-import com.indivaragroup.jdt17wms.dto.request.AssetValueUpdateDTO;
 import com.indivaragroup.jdt17wms.dto.request.GoalSettingDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetDTO;
 import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
@@ -176,62 +175,7 @@ class AssetControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.message").value("Access denied. Goal belongs to different user"));
     }
 
-    @Test
-    void updateAssetValue_shouldReturnOk() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        AssetDTO dto = AssetDTO.builder()
-                .id(assetId)
-                .currentValue(BigDecimal.valueOf(600000))
-                .build();
-        when(assetsManagementService.updateAssetValue(any(UUID.class), any(AssetValueUpdateDTO.class)))
-                .thenReturn(dto);
 
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
-                        .contentType("application/json")
-                        .content("{\"current_value\":600000}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.id").value(assetId.toString()))
-                .andExpect(jsonPath("$.result.current_value").value(600000));
-    }
-
-    @Test
-    void updateAssetValue_shouldReturn400WhenFieldsAreInvalid() throws Exception {
-        UUID assetId = UUID.randomUUID();
-
-        // current_value is negative -> invalid
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
-                        .contentType("application/json")
-                        .content("{\"current_value\":-600000}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("INVALID FIELD VALUES"));
-    }
-
-    @Test
-    void updateAssetValue_shouldReturn404WhenAssetNotFound() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        when(assetsManagementService.updateAssetValue(any(UUID.class), any(AssetValueUpdateDTO.class)))
-                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
-
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
-                        .contentType("application/json")
-                        .content("{\"current_value\":600000}"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value(404));
-    }
-
-    @Test
-    void updateAssetValue_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        when(assetsManagementService.updateAssetValue(any(UUID.class), any(AssetValueUpdateDTO.class)))
-                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
-
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/value")
-                        .contentType("application/json")
-                        .content("{\"current_value\":600000}"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Risk Profiler Assessment Required"))
-                .andExpect(jsonPath("$.code").value(403));
-    }
 
     @Test
     void deleteAsset_shouldReturnOk() throws Exception {
@@ -340,52 +284,7 @@ class AssetControllerTest extends BaseControllerTest {
                 .andExpect(jsonPath("$.code").value(403));
     }
 
-    @Test
-    void updateAssetGoal_shouldReturnOk() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        UUID goalId = UUID.randomUUID();
-        AssetDTO assetDTO = AssetDTO.builder().id(assetId).goalId(goalId).build();
-        when(assetsManagementService.updateAssetGoal(assetId, goalId)).thenReturn(assetDTO);
 
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal")
-                        .param("goalId", goalId.toString()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.id").value(assetId.toString()))
-                .andExpect(jsonPath("$.result.goal_id").value(goalId.toString()));
-    }
-
-    @Test
-    void updateAssetGoal_shouldReturnOkWhenGoalIdNull() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        AssetDTO assetDTO = AssetDTO.builder().id(assetId).build();
-        when(assetsManagementService.updateAssetGoal(assetId, null)).thenReturn(assetDTO);
-
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result.id").value(assetId.toString()));
-    }
-
-    @Test
-    void updateAssetGoal_shouldReturn404WhenAssetNotFound() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        when(assetsManagementService.updateAssetGoal(assetId, null))
-                .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
-
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value(404));
-    }
-
-    @Test
-    void updateAssetGoal_shouldReturn403WhenQuestionnaireNotCompleted() throws Exception {
-        UUID assetId = UUID.randomUUID();
-        when(assetsManagementService.updateAssetGoal(assetId, null))
-                .thenThrow(new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
-
-        mockMvc.perform(patch("/api/v1/me/assets/" + assetId + "/goal"))
-                .andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.code").value(403));
-    }
 
     @Test
     void getAssetPnL_shouldReturnOk() throws Exception {
