@@ -215,7 +215,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
             Goal goal = goalRepository.findById(dto.getGoalId())
                     .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
             if (!goal.getUserId().equals(user.getId())) {
-                throw new CoreThrowHandler(ApiError.GOAL_BELONGS_TO_DIFFERENT_USER);
+                throw new CoreThrowHandler(ApiError.ITEM_NOT_FOUND);
             }
             asset.setGoalId(dto.getGoalId());
         } else {

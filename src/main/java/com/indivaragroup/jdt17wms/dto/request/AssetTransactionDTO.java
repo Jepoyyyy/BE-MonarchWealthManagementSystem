@@ -18,7 +18,7 @@ import java.util.UUID;
 @Builder
 public class AssetTransactionDTO {
 
-    @NotNull(message = "Transaction action is required")
+    @NotNull(message = "Invalid transaction type. Must be one of: BUY, SELL")
     @JsonProperty("action")
     private TransactionAction action;
 
