@@ -165,7 +165,6 @@ public class AssetsManagementService implements VerifiedUserProvider {
         if (dto.getTenor() != null) {
             maturityDate = LocalDate.now(clock).plusMonths(dto.getTenor());
         }
-        System.out.println(maturityDate);
 
         Asset asset = Asset.builder()
                 .userId(user.getId())
@@ -197,7 +196,6 @@ public class AssetsManagementService implements VerifiedUserProvider {
                 .build();
 
         transactionHistoryRepository.save(buyHistory);
-
         return toAssetDTO(savedAsset);
     }
 

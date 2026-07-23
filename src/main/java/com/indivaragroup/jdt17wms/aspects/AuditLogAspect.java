@@ -81,7 +81,7 @@ public class AuditLogAspect {
     private static final String SYSTEM_USER = "SYSTEM";
 
     @Around("@annotation(auditLogged)")
-    public void logAudit(ProceedingJoinPoint joinPoint, AuditLogged auditLogged) throws Throwable {
+    public Object logAudit(ProceedingJoinPoint joinPoint, AuditLogged auditLogged) throws Throwable {
         String category = auditLogged.category();
         String action = auditLogged.action();
 
@@ -229,6 +229,7 @@ public class AuditLogAspect {
 
         auditLogRepository.save(auditLog);
 
+        return result;
     }
 
     private Map<String, Object> snapshotEntity(Object entity) {
