@@ -10,6 +10,7 @@ import com.indivaragroup.jdt17wms.dto.response.AssetUpdateResponseDTO;
 import com.indivaragroup.jdt17wms.dto.response.TransactionHistoryDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
+import com.indivaragroup.jdt17wms.models.Goal;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.models.Recommendation;
 import com.indivaragroup.jdt17wms.models.TransactionHistory;
@@ -211,8 +212,11 @@ public class AssetsManagementService implements VerifiedUserProvider {
         }
 
         if (dto.getGoalId() != null) {
-            goalRepository.findById(dto.getGoalId())
+            Goal goal = goalRepository.findById(dto.getGoalId())
                     .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+            if (!goal.getUserId().equals(user.getId())) {
+                throw new CoreThrowHandler(ApiError.GOAL_BELONGS_TO_DIFFERENT_USER);
+            }
             asset.setGoalId(dto.getGoalId());
         } else {
             asset.setGoalId(null);
@@ -286,8 +290,11 @@ public class AssetsManagementService implements VerifiedUserProvider {
         }
 
         if (goalId != null) {
-            goalRepository.findById(goalId)
+            Goal goal = goalRepository.findById(goalId)
                     .orElseThrow(() -> new CoreThrowHandler(ApiError.ITEM_NOT_FOUND));
+            if (!goal.getUserId().equals(user.getId())) {
+                throw new CoreThrowHandler(ApiError.GOAL_BELONGS_TO_DIFFERENT_USER);
+            }
         }
 
         asset.setGoalId(goalId);

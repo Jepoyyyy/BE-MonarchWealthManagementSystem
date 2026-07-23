@@ -27,6 +27,7 @@ public enum ApiError {
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "Item Not Found"),
     DUPLICATE_PRIORITY_GOALS(HttpStatus.CONFLICT.value(), "Can’t set more than 1 priority"),
     INSUFFICIENT_INCOME(HttpStatus.FORBIDDEN.value(), "Can’t set more allocation than income"),
+    GOAL_BELONGS_TO_DIFFERENT_USER(HttpStatus.FORBIDDEN.value(), "Access denied. Goal belongs to different user"),
     FINANCIAL_PROFILE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "Financial profile not found"),
     NOT_ABOVE_ZERO(HttpStatus.BAD_REQUEST.value(), "Units must be greater than zero"),
 

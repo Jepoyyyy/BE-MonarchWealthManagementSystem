@@ -379,7 +379,7 @@ class AssetsManagementServiceTest {
                 .goalId(goalId)
                 .build();
 
-        Goal goal = Goal.builder().id(goalId).build();
+        Goal goal = Goal.builder().id(goalId).userId(user.getId()).build();
 
         mockAuthenticatedUser();
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
@@ -422,6 +422,40 @@ class AssetsManagementServiceTest {
         assertNotNull(result);
         assertNull(result.getGoalId());
         verify(assetRepository).save(any(Asset.class));
+    }
+
+    @Test
+    void updateAssetForUser_shouldThrowForbiddenException_whenGoalBelongsToDifferentUser() {
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .questionnaireCompleted(true)
+                .build();
+
+        UUID assetId = UUID.randomUUID();
+        UUID goalId = UUID.randomUUID();
+
+        Asset asset = Asset.builder()
+                .id(assetId)
+                .userId(user.getId())
+                .build();
+
+        GoalSettingDTO dto = GoalSettingDTO.builder()
+                .goalId(goalId)
+                .build();
+
+        Goal goal = Goal.builder()
+                .id(goalId)
+                .userId(UUID.randomUUID())
+                .build();
+
+        mockAuthenticatedUser();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(goal));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> assetsManagementService.updateAssetForUser(assetId, dto));
+        assertEquals(ApiError.GOAL_BELONGS_TO_DIFFERENT_USER.getCode(), ex.getCode());
+        assertEquals("Access denied. Goal belongs to different user", ex.getMessage());
     }
 
     @Test
@@ -703,7 +737,7 @@ class AssetsManagementServiceTest {
         UUID assetId = UUID.randomUUID();
         UUID goalId = UUID.randomUUID();
         Asset asset = Asset.builder().id(assetId).userId(user.getId()).build();
-        Goal goal = Goal.builder().id(goalId).build();
+        Goal goal = Goal.builder().id(goalId).userId(user.getId()).build();
 
         mockAuthenticatedUser();
         when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
@@ -764,6 +798,25 @@ class AssetsManagementServiceTest {
         when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
 
         assertThrows(CoreThrowHandler.class, () -> assetsManagementService.updateAssetGoal(assetId, testUUID));
+    }
+
+    @Test
+    @DisplayName("updateAssetGoal - when goal belongs to another user, throw FORBIDDEN exception")
+    void updateAssetGoal_whenGoalBelongsToDifferentUser_shouldThrowForbiddenException() {
+        User user = User.builder().id(SecurityUtils.STATIC_USER_ID).questionnaireCompleted(true).build();
+        UUID assetId = UUID.randomUUID();
+        UUID goalId = UUID.randomUUID();
+        Asset asset = Asset.builder().id(assetId).userId(user.getId()).build();
+        Goal goal = Goal.builder().id(goalId).userId(UUID.randomUUID()).build();
+
+        mockAuthenticatedUser();
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(goal));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> assetsManagementService.updateAssetGoal(assetId, goalId));
+        assertEquals(ApiError.GOAL_BELONGS_TO_DIFFERENT_USER.getCode(), ex.getCode());
+        assertEquals("Access denied. Goal belongs to different user", ex.getMessage());
     }
 
     @Test

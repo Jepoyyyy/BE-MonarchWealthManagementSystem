@@ -163,6 +163,20 @@ class AssetControllerTest extends BaseControllerTest {
     }
 
     @Test
+    void updateAsset_shouldReturn403WhenGoalBelongsToDifferentUser() throws Exception {
+        UUID id = UUID.randomUUID();
+        when(assetsManagementService.updateAssetForUser(any(UUID.class), any(GoalSettingDTO.class)))
+                .thenThrow(new CoreThrowHandler(ApiError.GOAL_BELONGS_TO_DIFFERENT_USER));
+
+        mockMvc.perform(put("/api/v1/me/assets/" + id)
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value(403))
+                .andExpect(jsonPath("$.message").value("Access denied. Goal belongs to different user"));
+    }
+
+    @Test
     void updateAssetValue_shouldReturnOk() throws Exception {
         UUID assetId = UUID.randomUUID();
         AssetDTO dto = AssetDTO.builder()
