@@ -1,19 +1,19 @@
 package com.indivaragroup.jdt17wms.constants;
 
-import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
+import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ErrorConstants {
 
-    public static final ErrorResponseDTO ERROR_UNAUTHORIZED = ErrorResponseDTO.builder()
-            .error("Unauthorized")
-            .code(401)
+    public static final ApiResponse<Void> ERROR_UNAUTHORIZED = ApiResponse.<Void>builder()
+            .restApiResponseHttpCode(401)
+            .restApiResponseMessage("Unauthorized User")
             .build();
 
-    public static final ErrorResponseDTO ERROR_FORBIDDEN = ErrorResponseDTO.builder()
-            .error("Forbidden")
-            .code(403)
+    public static final ApiResponse<Void> ERROR_FORBIDDEN = ApiResponse.<Void>builder()
+            .restApiResponseHttpCode(403)
+            .restApiResponseMessage("Access Denied")
             .build();
 }
