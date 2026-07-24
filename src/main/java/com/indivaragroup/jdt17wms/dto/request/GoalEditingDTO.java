@@ -2,6 +2,7 @@ package com.indivaragroup.jdt17wms.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -45,6 +46,8 @@ public class GoalEditingDTO {
     @JsonProperty("is_priority")
     private Boolean isPriority;
 
+    @NotBlank(message = "Must not be blank")
+    @Pattern(regexp = "^(savings|vacation|vehicle|property|retirement|custom)$", message = "Invalid goal type")
     private String type;
 
     private String notes;
