@@ -35,10 +35,17 @@ public class CoreThrowHandler extends RuntimeException {
         this.details = null;
     }
 
-    public CoreThrowHandler(ApiError apiError,  List<ValidationErrorDetailDTO> details) {
+    public CoreThrowHandler(ApiError apiError, List<ValidationErrorDetailDTO> details) {
         super(ApiError.VALIDATION.getMessage());
         this.code = apiError.getCode();
         this.error = Collections.emptyMap();
+        this.details = details;
+    }
+
+    public CoreThrowHandler(ApiError apiError, String message, Map<String, Serializable> error, List<ValidationErrorDetailDTO> details) {
+        super(message);
+        this.code = apiError.getCode();
+        this.error = error;
         this.details = details;
     }
 

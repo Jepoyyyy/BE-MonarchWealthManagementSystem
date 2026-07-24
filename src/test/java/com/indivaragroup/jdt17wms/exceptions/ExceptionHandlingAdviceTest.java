@@ -103,6 +103,36 @@ class ExceptionHandlingAdviceTest {
         assertEquals("Target date must be in the future", fieldErrors.get(0).getReason());
     }
 
+    @Test
+    void handleCoreThrowHandler_withEmptyValidationDetails_shouldReturnNullError() {
+        CoreThrowHandler ex = new CoreThrowHandler(ApiError.VALIDATION, java.util.Collections.emptyList());
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleCoreThrowHandler(ex);
+
+        assertEquals(400, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertNull(body.getRestApiResponseError());
+    }
+
+    @Test
+    void handleCoreThrowHandler_withBothErrorMapAndValidationDetails_shouldMergeBothInErrorResponse() {
+        List<ValidationErrorDetailDTO> details = List.of(
+                ValidationErrorDetailDTO.builder().field("target_date").reason("Target date must be in the future").type("ERR-001").build()
+        );
+        Map<String, Serializable> initialError = Map.of("extra", "info");
+        CoreThrowHandler ex = new CoreThrowHandler(ApiError.VALIDATION, "Validation Error", initialError, details);
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleCoreThrowHandler(ex);
+
+        assertEquals(400, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertNotNull(body.getRestApiResponseError());
+        assertEquals("info", body.getRestApiResponseError().get("extra"));
+        assertTrue(body.getRestApiResponseError().containsKey("fields"));
+    }
+
     // --- HttpMessageNotReadableException ---
 
   @Test

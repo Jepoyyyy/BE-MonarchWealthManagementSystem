@@ -468,6 +468,31 @@ class GoalsManagementServiceTest {
     }
 
     @Test
+    void createGoalForUser_shouldThrowGoalValidationExceptionWhenTypeIsNull() {
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .questionnaireCompleted(true)
+                .build();
+        GoalRegistrationDTO request = GoalRegistrationDTO.builder()
+                .type(null)
+                .targetDate(LocalDate.now(clock).plusDays(30))
+                .isPriority(false)
+                .build();
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> goalsManagementService.createGoalForUser(request));
+
+        assertThat(ex.getDetails())
+                .hasSize(1)
+                .anySatisfy(err -> {
+                    assertThat(err.getField()).isEqualTo("type");
+                    assertThat(err.getReason()).isEqualTo("Invalid goal type");
+                });
+    }
+
+    @Test
     void createGoalForUser_shouldThrowGoalValidationExceptionWhenTargetDateIsInThePast() {
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)
@@ -627,6 +652,80 @@ class GoalsManagementServiceTest {
                 .anySatisfy(err -> {
                     assertThat(err.getField()).isEqualTo("target_date");
                     assertThat(err.getReason()).contains("18 months");
+                });
+    }
+
+    @Test
+    void updateGoalForUser_shouldThrowGoalValidationExceptionWhenTypeIsInvalid() {
+        UUID goalId = UUID.randomUUID();
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .questionnaireCompleted(true)
+                .build();
+        Goal existingGoal = Goal.builder()
+                .id(goalId)
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .type(null) // null type in db
+                .isPriority(false)
+                .status(GoalStatus.IN_PROGRESS)
+                .build();
+        GoalEditingDTO request = GoalEditingDTO.builder()
+                .name("Savings Goal")
+                .type("invalid_type") // invalid type in request
+                .targetAmount(new BigDecimal("10000.00"))
+                .monthlyContribution(new BigDecimal("500.00"))
+                .targetDate(LocalDate.now(clock).plusMonths(6))
+                .isPriority(false)
+                .build();
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(existingGoal));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> goalsManagementService.updateGoalForUser(goalId, request));
+
+        assertThat(ex.getDetails())
+                .hasSize(1)
+                .anySatisfy(err -> {
+                    assertThat(err.getField()).isEqualTo("type");
+                    assertThat(err.getReason()).isEqualTo("Invalid goal type");
+                });
+    }
+
+    @Test
+    void updateGoalForUser_shouldThrowGoalValidationExceptionWhenTypeIsNull() {
+        UUID goalId = UUID.randomUUID();
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .questionnaireCompleted(true)
+                .build();
+        Goal existingGoal = Goal.builder()
+                .id(goalId)
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .type(null) // null type in db
+                .isPriority(false)
+                .status(GoalStatus.IN_PROGRESS)
+                .build();
+        GoalEditingDTO request = GoalEditingDTO.builder()
+                .name("Savings Goal")
+                .type(null) // null type in request
+                .targetAmount(new BigDecimal("10000.00"))
+                .monthlyContribution(new BigDecimal("500.00"))
+                .targetDate(LocalDate.now(clock).plusMonths(6))
+                .isPriority(false)
+                .build();
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(existingGoal));
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> goalsManagementService.updateGoalForUser(goalId, request));
+
+        assertThat(ex.getDetails())
+                .hasSize(1)
+                .anySatisfy(err -> {
+                    assertThat(err.getField()).isEqualTo("type");
+                    assertThat(err.getReason()).isEqualTo("Invalid goal type");
                 });
     }
 

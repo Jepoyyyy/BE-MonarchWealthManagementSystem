@@ -93,7 +93,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
     List<ValidationErrorDetailDTO> errors = new ArrayList<>();
     String type = dto.getType(); // Enforced non-blank and lowercase by DTO @Pattern
 
-    if (!GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
+    if (type == null || !GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
       errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason("Invalid goal type").type(BUSINESS_ERROR_CODE).build());
     }
 
@@ -102,7 +102,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
 
     if (targetDate.isBefore(now)) {
       errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").type(BUSINESS_ERROR_CODE).build());
-    } else if (GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
+    } else if (type != null && GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
       int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type);
       long months = ChronoUnit.MONTHS.between(now, targetDate);
       if (months > maxMonths) {
@@ -173,15 +173,23 @@ public class GoalsManagementService implements VerifiedUserProvider {
 
     List<ValidationErrorDetailDTO> errors = new ArrayList<>();
 
+    String type = dto.getType() != null ? dto.getType() : goal.getType();
+    if (type != null) {
+      type = type.toLowerCase();
+    }
+
+    if (type == null || !GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason("Invalid goal type").type(BUSINESS_ERROR_CODE).build());
+    }
+
     // 1. Validate Target Date logic (Enforced non-null by DTO @NotNull)
     LocalDate now = LocalDate.now(clock);
     LocalDate targetDate = dto.getTargetDate();
 
     if (targetDate.isBefore(now)) {
       errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").type(BUSINESS_ERROR_CODE).build());
-    } else {
-      String type = goal.getType();
-      int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type.toLowerCase());
+    } else if (type != null && GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
+      int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type);
       long months = ChronoUnit.MONTHS.between(now, targetDate);
       if (months > maxMonths) {
         errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").type(BUSINESS_ERROR_CODE).build());
@@ -227,7 +235,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
     goal.setMonthlyContribution(dto.getMonthlyContribution());
     if (dto.getCurrentAmount() != null)
         goal.setCurrentAmount(dto.getCurrentAmount());
-    goal.setType(dto.getType());
+    goal.setType(type);
     goal.setTargetDate(targetDate);
     goal.setIsPriority(isDtoPriority); // Reuses the boolean evaluated above
     goal.setNotes(dto.getNotes());
