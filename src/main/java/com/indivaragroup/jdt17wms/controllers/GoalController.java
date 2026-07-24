@@ -14,11 +14,15 @@ import com.indivaragroup.jdt17wms.services.GoalsManagementService;
 import com.indivaragroup.jdt17wms.services.GoalProgressService;
 import com.indivaragroup.jdt17wms.services.GoalsProjectionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
 
+@Validated
 @RestController
 @RequestMapping(ApiPath.BASE_GOALS_ROUTE)
 public class GoalController {
@@ -71,7 +75,11 @@ public class GoalController {
 
     @PostMapping(ApiPath.AUTO_ALLOCATE_ROUTE)
     @AuditLogged(action = AuditConstants.Action.AUTO_ALLOCATE_GOALS, category = AuditConstants.GOAL_CATEGORY)
-    public ApiResponse<List<GoalDTO>> autoAllocate(@RequestParam int percentage) {
+    public ApiResponse<List<GoalDTO>> autoAllocate(
+      @RequestParam
+      @Min(value = 1, message = "Percentage must be between 1 and 100")
+      @Max(value = 100, message = "Percentage must be between 1 and 100")
+      int percentage) {
         return ApiResponse.success(ApiSuccess.GOALS_FETCHED,
                 goalsManagementService.autoAllocateGoalsForUser(percentage));
     }

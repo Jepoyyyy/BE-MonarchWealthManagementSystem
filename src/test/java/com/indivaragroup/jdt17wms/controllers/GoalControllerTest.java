@@ -144,7 +144,7 @@ class GoalControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/v1/me/goals/" + id)
                         .contentType("application/json")
-                        .content("{\"name\":\"Retirement Fund\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"retirement\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.name").value("Retirement Fund"))
                 .andExpect(jsonPath("$.result.target_amount").value(500000.00))
@@ -156,12 +156,25 @@ class GoalControllerTest extends BaseControllerTest {
         UUID id = UUID.randomUUID();
         mockMvc.perform(put("/api/v1/me/goals/" + id)
                         .contentType("application/json")
-                        .content("{\"name\":\"Retirement Fund\",\"target_amount\":-100.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"retirement\",\"target_amount\":-100.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("INVALID FIELD VALUES"))
                 .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.error.fields[0].field").value("targetAmount"))
                 .andExpect(jsonPath("$.error.fields[0].reason").value("Must not be negative"));
+    }
+
+    @Test
+    void updateGoal_shouldReturn400WhenTypeIsInvalid() throws Exception {
+        UUID id = UUID.randomUUID();
+        mockMvc.perform(put("/api/v1/me/goals/" + id)
+                        .contentType("application/json")
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"invalid_type\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("INVALID FIELD VALUES"))
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.error.fields[0].field").value("type"))
+                .andExpect(jsonPath("$.error.fields[0].reason").value("Invalid goal type"));
     }
 
     @Test
@@ -172,7 +185,7 @@ class GoalControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/v1/me/goals/" + id)
                         .contentType("application/json")
-                        .content("{\"name\":\"Retirement Fund\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"retirement\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Can’t set more than 1 priority"))
                 .andExpect(jsonPath("$.code").value(409));
@@ -186,7 +199,7 @@ class GoalControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/v1/me/goals/" + id)
                         .contentType("application/json")
-                        .content("{\"name\":\"Retirement Fund\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"retirement\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("Can’t set more allocation than income"))
                 .andExpect(jsonPath("$.code").value(403));
@@ -200,7 +213,7 @@ class GoalControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/v1/me/goals/" + id)
                         .contentType("application/json")
-                        .content("{\"name\":\"Retirement Fund\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"retirement\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("No valid item with the ID"))
                 .andExpect(jsonPath("$.code").value(404));
@@ -214,7 +227,7 @@ class GoalControllerTest extends BaseControllerTest {
 
         mockMvc.perform(put("/api/v1/me/goals/" + id)
                         .contentType("application/json")
-                        .content("{\"name\":\"Retirement Fund\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
+                        .content("{\"name\":\"Retirement Fund\",\"type\":\"retirement\",\"target_amount\":500000.0,\"monthly_contribution\":1000.0,\"target_date\":\"2040-01-01\",\"is_priority\":true}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value(403));
     }
