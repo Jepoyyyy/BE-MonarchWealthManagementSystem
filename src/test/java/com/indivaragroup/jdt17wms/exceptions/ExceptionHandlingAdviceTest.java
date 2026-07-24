@@ -80,6 +80,29 @@ class ExceptionHandlingAdviceTest {
         assertEquals("something went wrong", body.getRestApiResponseError().get("detail"));
     }
 
+    @Test
+    void handleCoreThrowHandler_withValidationDetails_shouldIncludeFieldsInErrorResponse() {
+        List<ValidationErrorDetailDTO> details = List.of(
+                ValidationErrorDetailDTO.builder().field("target_date").reason("Target date must be in the future").type("ERR-001").build()
+        );
+        CoreThrowHandler ex = new CoreThrowHandler(ApiError.VALIDATION, details);
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleCoreThrowHandler(ex);
+
+        assertEquals(400, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(400, body.getRestApiResponseHttpCode());
+        assertEquals("INVALID FIELD VALUES", body.getRestApiResponseMessage());
+        assertNotNull(body.getRestApiResponseError());
+        assertTrue(body.getRestApiResponseError().containsKey("fields"));
+        @SuppressWarnings("unchecked")
+        List<ValidationErrorDetailDTO> fieldErrors = (List<ValidationErrorDetailDTO>) body.getRestApiResponseError().get("fields");
+        assertEquals(1, fieldErrors.size());
+        assertEquals("target_date", fieldErrors.get(0).getField());
+        assertEquals("Target date must be in the future", fieldErrors.get(0).getReason());
+    }
+
     // --- HttpMessageNotReadableException ---
 
   @Test

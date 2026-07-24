@@ -36,6 +36,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
 
     private static final String FIELD_TYPE = "type";
     private static final String FIELD_TARGET_DATE = "target_date";
+    private static final String BUSINESS_ERROR_CODE = "ERR-001";
 
     private final GoalRepository goalRepository;
     private final UserRepository userRepository;
@@ -93,19 +94,19 @@ public class GoalsManagementService implements VerifiedUserProvider {
     String type = dto.getType(); // Enforced non-blank and lowercase by DTO @Pattern
 
     if (!GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason("Invalid goal type").build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason("Invalid goal type").type(BUSINESS_ERROR_CODE).build());
     }
 
     LocalDate now = LocalDate.now(clock);
     LocalDate targetDate = dto.getTargetDate();
 
     if (targetDate.isBefore(now)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").type(BUSINESS_ERROR_CODE).build());
     } else if (GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
       int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type);
       long months = ChronoUnit.MONTHS.between(now, targetDate);
       if (months > maxMonths) {
-        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").build());
+        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").type(BUSINESS_ERROR_CODE).build());
       }
     }
 
@@ -177,13 +178,13 @@ public class GoalsManagementService implements VerifiedUserProvider {
     LocalDate targetDate = dto.getTargetDate();
 
     if (targetDate.isBefore(now)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").type(BUSINESS_ERROR_CODE).build());
     } else {
       String type = goal.getType();
       int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type.toLowerCase());
       long months = ChronoUnit.MONTHS.between(now, targetDate);
       if (months > maxMonths) {
-        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").build());
+        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").type(BUSINESS_ERROR_CODE).build());
       }
     }
 

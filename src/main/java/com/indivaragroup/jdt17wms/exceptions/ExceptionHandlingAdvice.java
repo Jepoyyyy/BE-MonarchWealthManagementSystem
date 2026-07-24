@@ -42,8 +42,15 @@ public class ExceptionHandlingAdvice {
     @ExceptionHandler(CoreThrowHandler.class)
     public ResponseEntity<ApiResponse<?>> handleCoreThrowHandler(CoreThrowHandler ex) {
         Map<String, Serializable> errorMap = (ex.getError() != null && !ex.getError().isEmpty())
-                ? ex.getError()
+                ? new HashMap<>(ex.getError())
                 : null;
+
+        if (ex.getDetails() != null && !ex.getDetails().isEmpty()) {
+            if (errorMap == null) {
+                errorMap = new HashMap<>();
+            }
+            errorMap.put(KEY_FIELDS, (Serializable) ex.getDetails());
+        }
 
         ApiResponse<?> body = ApiResponse.builder()
                 .restApiResponseHttpCode(ex.getCode())
