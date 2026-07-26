@@ -112,7 +112,7 @@ public class PnLCalculationService {
             if (originalCostOfSold.compareTo(BigDecimal.ZERO) > 0) {
                 realizedPnLPercent = realizedPnL
                         .divide(originalCostOfSold, BY_FOUR, RoundingMode.HALF_UP)
-                        .multiply(BigDecimal.valueOf(100))
+                        .multiply(BigDecimal.valueOf(PERCENT_VALUE))
                         .setScale(BY_TWO, RoundingMode.HALF_UP);
             }
         }
@@ -123,7 +123,7 @@ public class PnLCalculationService {
                 .productName(product.getName())
                 .productType(product.getType())
                 .units(remainingUnits)
-                .currentValue(remainingUnits.multiply(currentPrice).setScale(2, RoundingMode.HALF_UP))
+                .currentValue(remainingUnits.multiply(currentPrice).setScale(BY_TWO, RoundingMode.HALF_UP))
                 .avgPrice(avgPrice)
                 .potentialPnL(potentialPnL)
                 .potentialPnLPercent(potentialPnLPercent)

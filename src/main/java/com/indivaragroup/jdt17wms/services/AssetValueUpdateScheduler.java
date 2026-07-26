@@ -24,6 +24,8 @@ public class AssetValueUpdateScheduler {
     private final ProductRepository productRepository;
     private final TransactionHistoryRepository transactionHistoryRepository;
 
+    public static final int BY_FOUR = 4;
+
     public AssetValueUpdateScheduler(AssetRepository assetRepository,
                                      ProductRepository productRepository,
                                      TransactionHistoryRepository transactionHistoryRepository) {
@@ -83,7 +85,7 @@ public class AssetValueUpdateScheduler {
 
       // Calculate new current_value
       BigDecimal newCurrentValue = remainingUnits.multiply(currentPrice)
-        .setScale(4, RoundingMode.HALF_UP);
+        .setScale(BY_FOUR, RoundingMode.HALF_UP);
 
       BigDecimal oldValue = asset.getCurrentValue();
       asset.setCurrentValue(newCurrentValue);

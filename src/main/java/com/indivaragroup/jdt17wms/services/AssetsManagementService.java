@@ -158,7 +158,7 @@ public class AssetsManagementService implements VerifiedUserProvider {
         Instant purchaseInstant = dto.getPurchaseDate().atZone(ZoneId.systemDefault()).toInstant();
         // Calculate current_value based on current product price
         BigDecimal currentPrice = product.getCurrentPrice();
-        BigDecimal calculatedCurrentValue = dto.getUnits().multiply(currentPrice).setScale(4, RoundingMode.HALF_UP);
+        BigDecimal calculatedCurrentValue = dto.getUnits().multiply(currentPrice).setScale(BY_FOUR, RoundingMode.HALF_UP);
 
         //cek ulang. nwgawur loh ya
         // Calculate maturity date if tenor is provided and product type supports it
