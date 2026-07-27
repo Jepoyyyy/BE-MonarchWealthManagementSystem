@@ -157,7 +157,7 @@ class AdminControllerTest extends BaseControllerTest {
                 .visible(true)
                 .build();
 
-        when(adminProductManagementService.updateProductVisibility(eq(productId), eq(true)))
+        when(adminProductManagementService.updateProductVisibility(productId, true))
                 .thenReturn(updatedProduct);
 
         mockMvc.perform(put("/api/v1/admin/products/" + productId)

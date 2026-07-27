@@ -5,8 +5,6 @@ import com.indivaragroup.jdt17wms.constants.JwtConstants;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
-import com.indivaragroup.jdt17wms.dto.utils.ApiError;
-import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
 import com.indivaragroup.jdt17wms.services.JwtService;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
@@ -89,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             );
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authToken);
-            
+
         } catch (ExpiredJwtException e) {
             sendUnauthorizedError(response, JwtConstants.Error.TOKEN_EXPIRED);
             return;

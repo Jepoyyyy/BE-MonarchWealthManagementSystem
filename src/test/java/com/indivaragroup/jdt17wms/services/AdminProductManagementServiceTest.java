@@ -1,7 +1,6 @@
 package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
-import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Product;
 import com.indivaragroup.jdt17wms.repositories.ProductRepository;

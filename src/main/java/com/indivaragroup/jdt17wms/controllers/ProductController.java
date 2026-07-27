@@ -1,15 +1,11 @@
 package com.indivaragroup.jdt17wms.controllers;
 
-import com.indivaragroup.jdt17wms.aspects.AuditLogged;
-import com.indivaragroup.jdt17wms.constants.AuditConstants;
-import com.indivaragroup.jdt17wms.dto.request.AdminChangeVisibilityDTO;
 import com.indivaragroup.jdt17wms.dto.request.ProductQueryDTO;
 import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.ProductResponseDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ApiSuccess;
 import com.indivaragroup.jdt17wms.services.ProductManagementService;
-import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
