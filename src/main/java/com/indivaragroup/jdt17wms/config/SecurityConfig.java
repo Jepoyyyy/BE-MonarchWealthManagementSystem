@@ -49,7 +49,7 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource(){
       CorsConfiguration corsConfig = new CorsConfiguration();
-      corsConfig.setAllowedOrigins(List.of("http://localhost:5174","http://domain.com"));
+      corsConfig.setAllowedOrigins(List.of("http://localhost:5174","https://monarch-plum-zeta.vercel.app/"));
       corsConfig.setAllowedMethods(List.of("GET","POST","PUT","DELETE"));
       corsConfig.setAllowCredentials(true);
 
