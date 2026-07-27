@@ -48,6 +48,8 @@ public class SecurityConfig {
           HttpMethod.DELETE.name(),
           HttpMethod.OPTIONS.name()
   );
+  private static final List<String> ALLOWED_HEADERS = List.of("*");
+  private static final List<String> EXPOSED_HEADERS = List.of("Authorization", "Content-Type");
 
   public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -64,10 +66,12 @@ public class SecurityConfig {
       CorsConfiguration corsConfig = new CorsConfiguration();
       corsConfig.setAllowedOrigins(ALLOWED_ORIGINS);
       corsConfig.setAllowedMethods(ALLOWED_METHODS);
+      corsConfig.setAllowedHeaders(ALLOWED_HEADERS);
+      corsConfig.setExposedHeaders(EXPOSED_HEADERS);
       corsConfig.setAllowCredentials(true);
 
       UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-      source.registerCorsConfiguration(API_PATH_PATTERN, corsConfig);
+      source.registerCorsConfiguration(ANY_WILDCARD, corsConfig);
       return source;
   }
 
@@ -79,6 +83,7 @@ public class SecurityConfig {
       .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
+        .requestMatchers(HttpMethod.OPTIONS, ANY_WILDCARD).permitAll()
         .requestMatchers(
                 BASE_AUTH_ROUTE + LOGIN_ROUTE,
                 BASE_AUTH_ROUTE + REGISTER_ROUTE,
