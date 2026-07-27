@@ -41,7 +41,7 @@ class UserControllerTest extends BaseControllerTest {
         Page<AdminUserDTO> expectedPage = new PageImpl<>(List.of());
         when(userManagementService.getAllUsers(any(), any(), any(Pageable.class))).thenReturn(expectedPage);
 
-        mockMvc.perform(get("/api/v1/users"))
+        mockMvc.perform(get("/api/v1/admin/users"))
                 .andExpect(status().isOk());
     }
 
@@ -50,7 +50,7 @@ class UserControllerTest extends BaseControllerTest {
         Page<AdminUserDTO> expectedPage = new PageImpl<>(List.of());
         when(userManagementService.getAllUsers(eq("john"), eq("active"), any(Pageable.class))).thenReturn(expectedPage);
 
-        mockMvc.perform(get("/api/v1/users?search=john&status=active"))
+        mockMvc.perform(get("/api/v1/admin/users?search=john&status=active"))
                 .andExpect(status().isOk());
     }
 
@@ -60,7 +60,7 @@ class UserControllerTest extends BaseControllerTest {
         AdminUserDTO dto = AdminUserDTO.builder().id(id).name("John").build();
         when(userManagementService.getUserById(id)).thenReturn(dto);
 
-        mockMvc.perform(get("/api/v1/users/" + id))
+        mockMvc.perform(get("/api/v1/admin/users/" + id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result.name").value("John"));
     }
@@ -71,7 +71,7 @@ class UserControllerTest extends BaseControllerTest {
         when(userManagementService.getUserById(id))
                 .thenThrow(new CoreThrowHandler(ApiError.ITEM_NOT_FOUND, "User not found"));
 
-        mockMvc.perform(get("/api/v1/users/" + id))
+        mockMvc.perform(get("/api/v1/admin/users/" + id))
                 .andExpect(status().isNotFound());
     }
 
@@ -82,7 +82,7 @@ class UserControllerTest extends BaseControllerTest {
         when(userManagementService.updateUserStatus(any(UUID.class), any(UserStatusUpdateDTO.class)))
                 .thenReturn(user);
 
-        mockMvc.perform(put("/api/v1/users/" + id)
+        mockMvc.perform(put("/api/v1/admin/users/" + id)
                         .contentType("application/json")
                         .content("{\"status\":\"active\"}"))
                 .andExpect(status().isOk());
@@ -95,7 +95,7 @@ class UserControllerTest extends BaseControllerTest {
         when(userManagementService.updateUserStatus(any(UUID.class), any(UserStatusUpdateDTO.class)))
                 .thenReturn(user);
 
-        mockMvc.perform(put("/api/v1/users/" + id)
+        mockMvc.perform(put("/api/v1/admin/users/" + id)
                         .contentType("application/json")
                         .content("{\"status\":\"suspended\"}"))
                 .andExpect(status().isOk());
@@ -105,13 +105,13 @@ class UserControllerTest extends BaseControllerTest {
     void updateUser_shouldReturnNotFound_whenUserDoesNotExist() throws Exception {
         UUID id = UUID.randomUUID();
         when(userManagementService.updateUserStatus(any(UUID.class), any(UserStatusUpdateDTO.class)))
-                .thenThrow(new CoreThrowHandler(ApiError.NOT_FOUND, "No valid item with the ID"));
+                .thenThrow(new CoreThrowHandler(ApiError.NOT_FOUND, "RESOURCE NOT FOUND"));
 
-        mockMvc.perform(put("/api/v1/users/" + id)
+        mockMvc.perform(put("/api/v1/admin/users/" + id)
                         .contentType("application/json")
                         .content("{\"status\":\"active\"}"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.message").value("No valid item with the ID"))
+                .andExpect(jsonPath("$.message").value("RESOURCE NOT FOUND"))
                 .andExpect(jsonPath("$.code").value(404));
     }
 
@@ -119,7 +119,7 @@ class UserControllerTest extends BaseControllerTest {
     void updateUser_shouldReturnBadRequest_whenStatusIsInvalid() throws Exception {
         UUID id = UUID.randomUUID();
 
-        mockMvc.perform(put("/api/v1/users/" + id)
+        mockMvc.perform(put("/api/v1/admin/users/" + id)
                         .contentType("application/json")
                         .content("{\"status\":\"invalid_status\"}"))
                 .andExpect(status().isBadRequest())

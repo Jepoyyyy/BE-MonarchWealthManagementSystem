@@ -242,7 +242,7 @@ class AssetTransactionServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
-        assertEquals("Either units or amount must be provided", ex.getMessage());
+        assertEquals(ApiError.TRANSACTION_TYPE_REQUIRED.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -257,7 +257,7 @@ class AssetTransactionServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
-        assertEquals("Provide either units or amount, not both", ex.getMessage());
+        assertEquals(ApiError.BOTH_UNITS_AND_AMOUNT.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -442,7 +442,7 @@ class AssetTransactionServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> assetTransactionService.executeSellTransaction(assetId, dto, user));
-        assertEquals("No units available to sell", ex.getMessage());
+        assertEquals(ApiError.INSUFFICIENT_UNITS.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -756,7 +756,7 @@ class AssetTransactionServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> assetTransactionService.executeSellTransaction(assetId, dto, user));
-        assertEquals("No units available to sell", ex.getMessage());
+        assertEquals(ApiError.INSUFFICIENT_UNITS.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -771,7 +771,7 @@ class AssetTransactionServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
-        assertEquals("Either units or amount must be provided", ex.getMessage());
+        assertEquals(ApiError.TRANSACTION_TYPE_REQUIRED.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -786,7 +786,7 @@ class AssetTransactionServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
                 () -> assetTransactionService.executeBuyTransaction(assetId, dto, user));
-        assertEquals("Either units or amount must be provided", ex.getMessage());
+        assertEquals(ApiError.TRANSACTION_TYPE_REQUIRED.getMessage(), ex.getMessage());
     }
 
     @Test

@@ -1,8 +1,6 @@
 package com.indivaragroup.jdt17wms.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.indivaragroup.jdt17wms.constants.ErrorConstants;
-import com.indivaragroup.jdt17wms.dto.response.ApiPath;
 import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.models.enums.UserRole;
 import org.springframework.context.annotation.Bean;
@@ -50,7 +48,7 @@ public class SecurityConfig {
   public CorsConfigurationSource corsConfigurationSource(){
       CorsConfiguration corsConfig = new CorsConfiguration();
       corsConfig.setAllowedOrigins(List.of("http://localhost:5174","https://monarch-plum-zeta.vercel.app/"));
-      corsConfig.setAllowedMethods(List.of("GET","POST","PUT","DELETE"));
+      corsConfig.setAllowedMethods(List.of("GET","POST","PUT","DELETE", "OPTIONS"));
       corsConfig.setAllowCredentials(true);
 
       UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -63,6 +61,7 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
       .csrf(AbstractHttpConfigurer::disable)
+      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(

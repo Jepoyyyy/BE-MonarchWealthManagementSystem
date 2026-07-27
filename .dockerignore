@@ -1,0 +1,30 @@
+# Ignore git files
+.git
+.gitattributes
+.gitignore
+
+# Ignore build artifacts
+target/
+*.jar
+*.war
+
+# Ignore local configurations and sensitive credentials
+.env
+.env.example
+
+# Ignore IDE files
+.idea/
+.vscode/
+*.iml
+
+# Ignore Docker files themselves to prevent rebuilding when they change
+Dockerfile
+Dockerfile.vercel
+Dockerfile.md
+docker-compose.yml
+
+# Ignore Maven wrapper temp files
+mvnw.tmp
+
+# Ignore OS files
+.DS_Store

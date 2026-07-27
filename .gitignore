@@ -41,6 +41,10 @@ build/
 
 GEMINI-INPUT.md
 API-DOCS.md
+DRAFT-DOCS.md
+AGENTS.md
+Dockerfile.md
+REQUEST-BODY.md
 DATABASE-SCHEMA.md
 API_TESTING_README.md
 postman_collection_assets_pnl.json
