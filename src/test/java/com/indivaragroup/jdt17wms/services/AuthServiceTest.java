@@ -112,7 +112,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("WrongPassword", "hash")).thenReturn(false);
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> authService.login(dto));
-        assertEquals("Email or Password Invalid", ex.getMessage());
+        assertEquals(ApiError.INVALID_CREDENTIALS.getMessage(), ex.getMessage());
     }
 
     @Test

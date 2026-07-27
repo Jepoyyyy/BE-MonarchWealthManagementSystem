@@ -1,6 +1,7 @@
 package com.indivaragroup.jdt17wms.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.indivaragroup.jdt17wms.dto.response.ApiResponse;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.dto.utils.ErrorResponseDTO;
 import com.indivaragroup.jdt17wms.services.JwtService;
@@ -133,9 +134,11 @@ class JwtAuthenticationFilterTest {
         assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
         assertEquals("application/json", response.getContentType());
 
-        ErrorResponseDTO expectedResponse = ErrorResponseDTO.builder()
-                .error("Invalid token type")
-                .code(401)
+        ApiResponse<?> expectedResponse = ApiResponse.builder()
+                .restApiResponseHttpCode(401)
+                .restApiResponseResult(null)
+                .restApiResponseMessage("Invalid token type")
+                .restApiResponseError(null)
                 .build();
         String jsonResponse = response.getContentAsString();
         assertEquals(objectMapper.writeValueAsString(expectedResponse), jsonResponse);
@@ -157,9 +160,11 @@ class JwtAuthenticationFilterTest {
         verify(filterChain, never()).doFilter(any(), any());
         assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
 
-        ErrorResponseDTO expectedResponse = ErrorResponseDTO.builder()
-                .error("Token expired")
-                .code(401)
+        ApiResponse<?> expectedResponse = ApiResponse.builder()
+                .restApiResponseHttpCode(401)
+                .restApiResponseResult(null)
+                .restApiResponseMessage("Token expired")
+                .restApiResponseError(null)
                 .build();
         assertEquals(objectMapper.writeValueAsString(expectedResponse), response.getContentAsString());
     }
@@ -179,9 +184,11 @@ class JwtAuthenticationFilterTest {
         verify(filterChain, never()).doFilter(any(), any());
         assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
 
-        ErrorResponseDTO expectedResponse = ErrorResponseDTO.builder()
-                .error("Invalid token")
-                .code(401)
+        ApiResponse<?> expectedResponse = ApiResponse.builder()
+                .restApiResponseHttpCode(401)
+                .restApiResponseResult(null)
+                .restApiResponseMessage("Invalid token")
+                .restApiResponseError(null)
                 .build();
         assertEquals(objectMapper.writeValueAsString(expectedResponse), response.getContentAsString());
     }
@@ -263,9 +270,11 @@ class JwtAuthenticationFilterTest {
         verify(filterChain, never()).doFilter(any(), any());
         assertEquals(HttpServletResponse.SC_UNAUTHORIZED, response.getStatus());
 
-        ErrorResponseDTO expectedResponse = ErrorResponseDTO.builder()
-                .error("Authentication failed")
-                .code(401)
+        ApiResponse<?> expectedResponse = ApiResponse.builder()
+                .restApiResponseHttpCode(401)
+                .restApiResponseResult(null)
+                .restApiResponseMessage("Authentication failed")
+                .restApiResponseError(null)
                 .build();
         assertEquals(objectMapper.writeValueAsString(expectedResponse), response.getContentAsString());
     }

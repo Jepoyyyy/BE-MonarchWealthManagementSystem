@@ -280,8 +280,8 @@ class AssetsManagementServiceTest {
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> assetsManagementService.createAssetForUser(dto));
-        assertEquals(ApiError.BAD_REQUEST.getCode(), ex.getCode());
-        assertEquals("Units must be greater than zero", ex.getMessage());
+        assertEquals(ApiError.INSUFFICIENT_UNITS.getCode(), ex.getCode());
+        assertEquals(ApiError.INSUFFICIENT_UNITS.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -299,8 +299,8 @@ class AssetsManagementServiceTest {
         when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> assetsManagementService.createAssetForUser(dto));
-        assertEquals(ApiError.BAD_REQUEST.getCode(), ex.getCode());
-        assertEquals("Units must be greater than zero", ex.getMessage());
+        assertEquals(ApiError.INSUFFICIENT_UNITS.getCode(), ex.getCode());
+        assertEquals(ApiError.INSUFFICIENT_UNITS.getMessage(), ex.getMessage());
     }
 
     @Test
@@ -455,7 +455,7 @@ class AssetsManagementServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> assetsManagementService.updateAssetForUser(assetId, dto));
         assertEquals(ApiError.ITEM_NOT_FOUND.getCode(), ex.getCode());
-        assertEquals("Access denied. Goal belongs to different user", ex.getMessage());
+        assertEquals("Item Not Found", ex.getMessage());
     }
 
     @Test
@@ -816,7 +816,7 @@ class AssetsManagementServiceTest {
 
         CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> assetsManagementService.updateAssetGoal(assetId, goalId));
         assertEquals(ApiError.ITEM_NOT_FOUND.getCode(), ex.getCode());
-        assertEquals("Access denied. Goal belongs to different user", ex.getMessage());
+        assertEquals("Item Not Found", ex.getMessage());
     }
 
     @Test

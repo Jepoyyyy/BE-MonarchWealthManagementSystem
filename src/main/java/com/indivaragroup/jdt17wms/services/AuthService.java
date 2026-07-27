@@ -76,9 +76,9 @@ public class AuthService {
     // Login
     public AuthSuccessDTO login(LoginDTO dto) {
 
-        if (!Pattern.compile(String.valueOf(EMAIL_PATTERN)).matcher(dto.getLoginRequestEmail()).matches()) {
+        if (dto.getLoginRequestEmail() == null || !EMAIL_PATTERN.matcher(dto.getLoginRequestEmail()).matches()) {
            throw new CoreThrowHandler(ApiError.VALIDATION, MSG_INVALID_EMAIL_FORMAT);
-        };
+        }
 
         User user = userRepository.findByEmail(dto.getLoginRequestEmail())
                 .orElseThrow(() -> new CoreThrowHandler(ApiError.INVALID_CREDENTIALS));
@@ -256,5 +256,13 @@ public class AuthService {
         } catch (Exception e) {
             throw new CoreThrowHandler(ApiError.INVALID_TOKEN);
         }
+    }
+
+    public String extractEmailFromToken(String token) {
+        return jwtService.getEmailFromToken(token);
+    }
+
+    public UUID extractUserIdFromToken(String token) {
+        return jwtService.getUserIdFromToken(token);
     }
 }

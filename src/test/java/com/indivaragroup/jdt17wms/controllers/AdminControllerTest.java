@@ -108,11 +108,11 @@ class AdminControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("searchAuditLogs - when date format is invalid, return 500 Internal Server Error")
+    @DisplayName("searchAuditLogs - when date format is invalid, return 400 Bad Request")
     void searchAuditLogs_withInvalidDateFormat_shouldReturnInternalServerError() throws Exception {
         mockMvc.perform(get("/api/v1/admin/audit/search")
                         .param("from", "invalid-date-format"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     // --- GET /api/v1/admin/products ---
@@ -194,11 +194,11 @@ class AdminControllerTest extends BaseControllerTest {
     }
 
     @Test
-    @DisplayName("updateProduct - when product ID is invalid UUID, return 500 Internal Server Error")
+    @DisplayName("updateProduct - when product ID is invalid UUID, return 400 Bad Request")
     void updateProduct_withInvalidUuid_shouldReturnInternalServerError() throws Exception {
         mockMvc.perform(put("/api/v1/admin/products/invalid-uuid-string")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 }

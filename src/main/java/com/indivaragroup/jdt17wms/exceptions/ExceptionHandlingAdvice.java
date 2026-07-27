@@ -46,7 +46,7 @@ public class ExceptionHandlingAdvice {
         Map<String, Serializable> errorMap;
 
         if (ex.getDetails() != null && !ex.getDetails().isEmpty()) {
-            errorMap = new HashMap<>();
+            errorMap = ex.getError() != null ? new HashMap<>(ex.getError()) : new HashMap<>();
             errorMap.put(KEY_FIELDS, (Serializable) ex.getDetails());
         } else if (ex.getError() != null && !ex.getError().isEmpty()) {
             errorMap = ex.getError();
