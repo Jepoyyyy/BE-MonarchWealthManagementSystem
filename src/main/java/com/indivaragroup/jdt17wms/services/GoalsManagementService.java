@@ -38,6 +38,10 @@ public class GoalsManagementService implements VerifiedUserProvider {
     private static final String FIELD_TARGET_DATE = "target_date";
     private static final String BUSINESS_ERROR_CODE = "ERR-001";
 
+    private static final String MSG_INVALID_GOAL_TYPE = "Invalid goal type";
+    private static final String MSG_TARGET_DATE_MUST_BE_FUTURE = "Target date must be in the future";
+    private static final String MSG_TARGET_DATE_EXCEEDS_LIMIT = "Target date exceeds maximum limit of %d months";
+
     private final GoalRepository goalRepository;
     private final UserRepository userRepository;
     private final FinancialProfileRepository financialProfileRepository;
@@ -94,19 +98,19 @@ public class GoalsManagementService implements VerifiedUserProvider {
     String type = dto.getType(); // Enforced non-blank and lowercase by DTO @Pattern
 
     if (type == null || !GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason("Invalid goal type").type(BUSINESS_ERROR_CODE).build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason(MSG_INVALID_GOAL_TYPE).type(BUSINESS_ERROR_CODE).build());
     }
 
     LocalDate now = LocalDate.now(clock);
     LocalDate targetDate = dto.getTargetDate();
 
     if (targetDate.isBefore(now)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").type(BUSINESS_ERROR_CODE).build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason(MSG_TARGET_DATE_MUST_BE_FUTURE).type(BUSINESS_ERROR_CODE).build());
     } else if (type != null && GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
       int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type);
       long months = ChronoUnit.MONTHS.between(now, targetDate);
       if (months > maxMonths) {
-        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").type(BUSINESS_ERROR_CODE).build());
+        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason(String.format(MSG_TARGET_DATE_EXCEEDS_LIMIT, maxMonths)).type(BUSINESS_ERROR_CODE).build());
       }
     }
 
@@ -179,7 +183,7 @@ public class GoalsManagementService implements VerifiedUserProvider {
     }
 
     if (type == null || !GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason("Invalid goal type").type(BUSINESS_ERROR_CODE).build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TYPE).reason(MSG_INVALID_GOAL_TYPE).type(BUSINESS_ERROR_CODE).build());
     }
 
     // 1. Validate Target Date logic (Enforced non-null by DTO @NotNull)
@@ -187,12 +191,12 @@ public class GoalsManagementService implements VerifiedUserProvider {
     LocalDate targetDate = dto.getTargetDate();
 
     if (targetDate.isBefore(now)) {
-      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date must be in the future").type(BUSINESS_ERROR_CODE).build());
+      errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason(MSG_TARGET_DATE_MUST_BE_FUTURE).type(BUSINESS_ERROR_CODE).build());
     } else if (type != null && GoalConstants.GOAL_MAX_MONTHS.containsKey(type)) {
       int maxMonths = GoalConstants.GOAL_MAX_MONTHS.get(type);
       long months = ChronoUnit.MONTHS.between(now, targetDate);
       if (months > maxMonths) {
-        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason("Target date exceeds maximum limit of " + maxMonths + " months").type(BUSINESS_ERROR_CODE).build());
+        errors.add(ValidationErrorDetailDTO.builder().field(FIELD_TARGET_DATE).reason(String.format(MSG_TARGET_DATE_EXCEEDS_LIMIT, maxMonths)).type(BUSINESS_ERROR_CODE).build());
       }
     }
 

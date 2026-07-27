@@ -32,7 +32,22 @@ public class SecurityConfig {
   private final ObjectMapper objectMapper;
 
   public static final String ANY_WILDCARD = "/**";
+  public static final String API_PATH_PATTERN = "/api" + ANY_WILDCARD;
 
+  private static final String MSG_UNAUTHORIZED_USER = "Unauthorized User";
+  private static final String MSG_ACCESS_DENIED = "Access Denied";
+
+  private static final List<String> ALLOWED_ORIGINS = List.of(
+          "http://localhost:5174",
+          "https://monarch-plum-zeta.vercel.app"
+  );
+  private static final List<String> ALLOWED_METHODS = List.of(
+          HttpMethod.GET.name(),
+          HttpMethod.POST.name(),
+          HttpMethod.PUT.name(),
+          HttpMethod.DELETE.name(),
+          HttpMethod.OPTIONS.name()
+  );
 
   public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
     this.jwtAuthenticationFilter = jwtAuthenticationFilter;
@@ -47,12 +62,12 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource(){
       CorsConfiguration corsConfig = new CorsConfiguration();
-      corsConfig.setAllowedOrigins(List.of("http://localhost:5174","https://monarch-plum-zeta.vercel.app/"));
-      corsConfig.setAllowedMethods(List.of("GET","POST","PUT","DELETE", "OPTIONS"));
+      corsConfig.setAllowedOrigins(ALLOWED_ORIGINS);
+      corsConfig.setAllowedMethods(ALLOWED_METHODS);
       corsConfig.setAllowCredentials(true);
 
       UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-      source.registerCorsConfiguration("/api/**", corsConfig);
+      source.registerCorsConfiguration(API_PATH_PATTERN, corsConfig);
       return source;
   }
 
@@ -85,7 +100,7 @@ public class SecurityConfig {
             ApiResponse<?> body = ApiResponse.builder()
                     .restApiResponseHttpCode(HttpServletResponse.SC_UNAUTHORIZED)
                     .restApiResponseResult(null)
-                    .restApiResponseMessage("Unauthorized User")
+                    .restApiResponseMessage(MSG_UNAUTHORIZED_USER)
                     .restApiResponseError(null)
                     .build();
             response.getWriter().write(objectMapper.writeValueAsString(body));
@@ -96,9 +111,9 @@ public class SecurityConfig {
             ApiResponse<?> body = ApiResponse.builder()
                     .restApiResponseHttpCode(HttpServletResponse.SC_FORBIDDEN)
                     .restApiResponseError(null)
-                            .restApiResponseMessage("Access Denied")
-                                    .restApiResponseError(null)
-                                            .build();
+                    .restApiResponseMessage(MSG_ACCESS_DENIED)
+                    .restApiResponseError(null)
+                    .build();
             response.getWriter().write(objectMapper.writeValueAsString(body));
         })
       )

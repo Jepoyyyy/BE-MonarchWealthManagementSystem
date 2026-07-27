@@ -22,6 +22,7 @@ import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @RestControllerAdvice
@@ -37,6 +38,10 @@ public class ExceptionHandlingAdvice {
     private static final String KEY_PATH = "path";
     private static final String KEY_METHOD = "method";
     private static final String KEY_ERROR_ID = "errorId";
+    private static final String KEY_PARAMETER = "parameter";
+    private static final String KEY_VALUE = "value";
+
+    private static final String MSG_INVALID_PARAM_VALUE = "Invalid value '%s' for parameter '%s'";
 
     private static final String LOG_UNHANDLED_EXCEPTION = "[{}] Unhandled exception";
 
@@ -181,21 +186,21 @@ public class ExceptionHandlingAdvice {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<?>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String paramName = ex.getName();
-        String value = ex.getValue() != null ? ex.getValue().toString() : null;
-        String errorMsg = "Invalid value '" + value + "' for parameter '" + paramName + "'";
-
+        String value = Objects.toString(ex.getValue(), null);
+        String errorMsg = String.format(MSG_INVALID_PARAM_VALUE, value, paramName);
 
         Map<String, Serializable> errorMap = new HashMap<>();
-                errorMap.put("detail", errorMsg);
-                errorMap.put("parameter", paramName);errorMap.put("value", value);
+        errorMap.put(KEY_DETAIL, errorMsg);
+        errorMap.put(KEY_PARAMETER, paramName);
+        errorMap.put(KEY_VALUE, value);
 
-                ApiResponse<?> body = ApiResponse.builder()
-                        .restApiResponseHttpCode(ApiError.INVALID_REQUEST_PARAMETER.getCode())
-                        .restApiResponseMessage(ApiError.INVALID_REQUEST_PARAMETER.getMessage())
-                        .restApiResponseResult(null)
-                       .restApiResponseError(errorMap)
-                        .build();
+        ApiResponse<?> body = ApiResponse.builder()
+                .restApiResponseHttpCode(ApiError.INVALID_REQUEST_PARAMETER.getCode())
+                .restApiResponseMessage(ApiError.INVALID_REQUEST_PARAMETER.getMessage())
+                .restApiResponseResult(null)
+                .restApiResponseError(errorMap)
+                .build();
         return ResponseEntity.badRequest().body(body);
-  }
+    }
 }
 
