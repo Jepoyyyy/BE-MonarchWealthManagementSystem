@@ -75,6 +75,13 @@ class AuthServiceTest {
     }
 
     @Test
+    void login_withInvalidEmailFormat_shouldThrowValidationException() {
+        LoginDTO dto = LoginDTO.builder().loginRequestEmail("invalid-email-format").loginRequestPassword("Password123!").build();
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class, () -> authService.login(dto));
+        assertEquals("Invalid email format", ex.getMessage());
+    }
+
+    @Test
     void login_withUserNotFound_shouldThrowBadRequestException() {
         LoginDTO dto = LoginDTO.builder().loginRequestEmail("notfound@example.com").loginRequestPassword("Password123!").build();
         when(userRepository.findByEmail("notfound@example.com")).thenReturn(Optional.empty());

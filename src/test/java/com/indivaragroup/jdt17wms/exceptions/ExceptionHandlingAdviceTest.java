@@ -19,6 +19,7 @@ import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -130,6 +131,22 @@ class ExceptionHandlingAdviceTest {
         assertNotNull(body);
         assertNotNull(body.getRestApiResponseError());
         assertEquals("info", body.getRestApiResponseError().get("extra"));
+        assertTrue(body.getRestApiResponseError().containsKey("fields"));
+    }
+
+    @Test
+    void handleCoreThrowHandler_withValidationDetailsAndNullErrorMap_shouldIncludeFieldsInErrorResponse() {
+        List<ValidationErrorDetailDTO> details = List.of(
+                ValidationErrorDetailDTO.builder().field("email").reason("Required").type("ERR-001").build()
+        );
+        CoreThrowHandler ex = new CoreThrowHandler(ApiError.VALIDATION, "Validation Error", null, details);
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleCoreThrowHandler(ex);
+
+        assertEquals(400, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertNotNull(body.getRestApiResponseError());
         assertTrue(body.getRestApiResponseError().containsKey("fields"));
     }
 
@@ -383,5 +400,41 @@ class ExceptionHandlingAdviceTest {
         assertEquals("Internal Server Error", body.getRestApiResponseMessage());
         assertNotNull(body.getRestApiResponseError());
         assertNotNull(body.getRestApiResponseError().get("errorId"));
+    }
+
+    // --- MethodArgumentTypeMismatchException ---
+
+    @Test
+    void handleTypeMismatch_withNonNullValue_shouldIncludeValueInError() {
+        MethodArgumentTypeMismatchException ex = mock(MethodArgumentTypeMismatchException.class);
+        when(ex.getName()).thenReturn("id");
+        when(ex.getValue()).thenReturn("invalid-uuid");
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleTypeMismatch(ex);
+
+        assertEquals(400, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(ApiError.INVALID_REQUEST_PARAMETER.getCode(), body.getRestApiResponseHttpCode());
+        assertEquals("Invalid value 'invalid-uuid' for parameter 'id'", body.getRestApiResponseError().get("detail"));
+        assertEquals("id", body.getRestApiResponseError().get("parameter"));
+        assertEquals("invalid-uuid", body.getRestApiResponseError().get("value"));
+    }
+
+    @Test
+    void handleTypeMismatch_withNullValue_shouldHandleNullValue() {
+        MethodArgumentTypeMismatchException ex = mock(MethodArgumentTypeMismatchException.class);
+        when(ex.getName()).thenReturn("date");
+        when(ex.getValue()).thenReturn(null);
+
+        ResponseEntity<ApiResponse<?>> response = advice.handleTypeMismatch(ex);
+
+        assertEquals(400, response.getStatusCode().value());
+        ApiResponse<?> body = response.getBody();
+        assertNotNull(body);
+        assertEquals(ApiError.INVALID_REQUEST_PARAMETER.getCode(), body.getRestApiResponseHttpCode());
+        assertEquals("Invalid value 'null' for parameter 'date'", body.getRestApiResponseError().get("detail"));
+        assertEquals("date", body.getRestApiResponseError().get("parameter"));
+        assertNull(body.getRestApiResponseError().get("value"));
     }
 }

@@ -399,6 +399,34 @@ class AssetTransactionServiceTest {
         assertEquals(BigDecimal.valueOf(20), response.getUnitsTransacted());
     }
 
+    @Test
+    void executeSellTransaction_whenSellingAllUnits_shouldDeleteAsset() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(transactionHistoryRepository.findAllByAssetIdAndActionOrderByTransactionDateAsc(
+                assetId, TransactionAction.SELL)).thenReturn(List.of());
+        when(transactionHistoryRepository.save(any(TransactionHistory.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        AssetsPnLResponseDTO pnl = AssetsPnLResponseDTO.builder()
+                .assetId(assetId)
+                .units(BigDecimal.ZERO)
+                .currentValue(BigDecimal.ZERO)
+                .build();
+        when(pnLCalculationService.computePnLForAsset(any(Asset.class))).thenReturn(pnl);
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder()
+                .units(BigDecimal.valueOf(100))
+                .build();
+
+        AssetUpdateResponseDTO response = assetTransactionService.executeSellTransaction(assetId, dto, user);
+        assertNotNull(response);
+        assertEquals(BigDecimal.valueOf(100), response.getUnitsTransacted());
+
+        verify(assetRepository, times(1)).delete(asset);
+        verify(assetRepository, never()).save(asset);
+    }
+
     // ==========================================
     //  executeSellTransaction — Negative Cases
     // ==========================================
