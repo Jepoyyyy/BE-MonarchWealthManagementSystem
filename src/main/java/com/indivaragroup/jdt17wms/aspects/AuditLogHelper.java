@@ -11,7 +11,9 @@ import java.util.UUID;
 
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @SuppressWarnings("java:S3011")
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 final class AuditLogHelper {
@@ -55,7 +57,7 @@ final class AuditLogHelper {
                 java.lang.reflect.Method method = obj.getClass().getMethod(getterName);
                 return method.invoke(obj);
             } catch (Exception e) {
-                // Ignore
+                log.trace("Getter {} failed on {}: {}", getterName, obj.getClass().getSimpleName(), e.getMessage());
             }
         }
         try {
@@ -65,7 +67,7 @@ final class AuditLogHelper {
                 return field.get(obj);
             }
         } catch (Exception e) {
-            // Ignore
+            log.trace("Field {} access failed on {}: {}", propertyName, obj.getClass().getSimpleName(), e.getMessage());
         }
         return null;
     }

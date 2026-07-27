@@ -18,6 +18,7 @@ import com.indivaragroup.jdt17wms.repositories.ProductRepository;
 import com.indivaragroup.jdt17wms.repositories.UserRepository;
 import com.indivaragroup.jdt17wms.repositories.FinancialProfileRepository;
 import com.indivaragroup.jdt17wms.repositories.ExpenseRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -29,6 +30,7 @@ import java.lang.reflect.Field;
 import java.time.Instant;
 import java.util.*;
 
+@Slf4j
 @Aspect
 @Component
 @SuppressWarnings("java:S3011")
@@ -107,7 +109,7 @@ public class AuditLogAspect {
                 UUID currentUserId = SecurityUtils.getCurrentUserId();
                 oldEntity = userRepository.findById(currentUserId).orElse(null);
             } catch (Exception e) {
-                // Ignore if unauthenticated initially
+                log.trace("Failed to resolve initial risk profile for user: {}", e.getMessage());
             }
         }
 
@@ -132,7 +134,7 @@ public class AuditLogAspect {
                     }
                 }
             } catch (Exception e) {
-                // Ignore
+                log.trace("Failed to snapshot financial profile/expenses pre-proceed: {}", e.getMessage());
             }
         } else {
             oldEntitySnapshot = snapshotEntity(oldEntity);
@@ -149,7 +151,7 @@ public class AuditLogAspect {
                 userName = authData.getName();
             }
         } catch (Exception e) {
-            // Fallback for unauthenticated/anonymous actions
+            log.trace("Failed to extract authenticated user details: {}", e.getMessage());
         }
 
         String changedValueJson = null;
@@ -236,12 +238,8 @@ public class AuditLogAspect {
         Map<String, Object> snapshot = new HashMap<>();
         Class<?> unproxiedClass = AuditLogHelper.getUnproxiedClass(entity);
         for (Field field : AuditLogHelper.getDeclaredFieldsInherited(unproxiedClass)) {
-            try {
-                Object value = AuditLogHelper.getPropertyValue(entity, field.getName());
-                snapshot.put(field.getName(), value);
-            } catch (Exception e) {
-                // Ignore
-            }
+            Object value = AuditLogHelper.getPropertyValue(entity, field.getName());
+            snapshot.put(field.getName(), value);
         }
         return snapshot;
     }
@@ -249,8 +247,8 @@ public class AuditLogAspect {
     private List<FieldChange> getChanges(Object dto, Map<String, Object> oldEntitySnapshot) {
         List<FieldChange> changes = new ArrayList<>();
         for (Field dtoField : AuditLogHelper.getDeclaredFieldsInherited(dto.getClass())) {
-            dtoField.setAccessible(true);
             try {
+                dtoField.setAccessible(true);
                 Object newValue = dtoField.get(dto);
                 if (newValue == null) {
                     continue;
@@ -265,7 +263,7 @@ public class AuditLogAspect {
                     }
                 }
             } catch (Exception e) {
-                // Ignore reflection exceptions
+                log.trace("Failed to extract DTO field change for {}: {}", dtoField.getName(), e.getMessage());
             }
         }
         return changes;
@@ -274,8 +272,8 @@ public class AuditLogAspect {
     private List<FieldChange> getCreateChanges(Object dto) {
         List<FieldChange> changes = new ArrayList<>();
         for (Field dtoField : AuditLogHelper.getDeclaredFieldsInherited(dto.getClass())) {
-            dtoField.setAccessible(true);
             try {
+                dtoField.setAccessible(true);
                 Object newValue = dtoField.get(dto);
                 if (newValue == null) {
                     continue;
@@ -283,7 +281,7 @@ public class AuditLogAspect {
                 String jsonFieldName = AuditLogHelper.getJsonFieldName(dtoField);
                 changes.add(new FieldChange(jsonFieldName, null, newValue));
             } catch (Exception e) {
-                // Ignore reflection exceptions
+                log.trace("Failed to extract DTO create change for {}: {}", dtoField.getName(), e.getMessage());
             }
         }
         return changes;
@@ -302,7 +300,7 @@ public class AuditLogAspect {
                         break;
                     }
                 } catch (Exception e) {
-                    // Ignore
+                    log.trace("Failed to inspect name field on argument: {}", e.getMessage());
                 }
             }
         }
@@ -317,7 +315,7 @@ public class AuditLogAspect {
                     name = val != null ? (String) val : "";
                 }
             } catch (Exception e) {
-                // Ignore
+                log.trace("Failed to inspect name field on response result: {}", e.getMessage());
             }
         }
 

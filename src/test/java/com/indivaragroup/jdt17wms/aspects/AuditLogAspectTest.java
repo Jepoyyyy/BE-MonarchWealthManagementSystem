@@ -1194,4 +1194,98 @@ class AuditLogAspectTest {
         assertNull(captor.getValue().getChangedValue());
         assertEquals("Deleted Goal (ID: " + goalId + ")", captor.getValue().getDetails());
     }
+
+    @Test
+    void logAudit_updateFinances_whenPreProceedThrowsException_handlesGracefully() throws Throwable {
+        when(financialProfileRepository.findByUserId(userId)).thenThrow(new RuntimeException("DB pre-proceed failure"));
+
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        AuditLogged auditLogged = mock(AuditLogged.class);
+        when(auditLogged.action()).thenReturn("UPDATE_FINANCES");
+        when(auditLogged.category()).thenReturn("FINANCES");
+
+        when(pjp.getArgs()).thenReturn(new Object[]{});
+        when(pjp.proceed()).thenReturn(ApiResponse.success(ApiSuccess.FINANCES_UPDATED, null));
+
+        aspect.logAudit(pjp, auditLogged);
+
+        verify(auditLogRepository).save(any(AuditLog.class));
+    }
+
+    @Test
+    void logAudit_getDetails_whenNameFieldAccessFails_handlesExceptionGracefully() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        AuditLogged auditLogged = mock(AuditLogged.class);
+        when(auditLogged.action()).thenReturn("CREATE_GOAL");
+        when(auditLogged.category()).thenReturn("GOAL");
+
+        // String.class has a private 'name' field in java.lang.Class whose reflection access is restricted
+        when(pjp.getArgs()).thenReturn(new Object[]{ String.class });
+        when(pjp.proceed()).thenReturn(ApiResponse.success(ApiSuccess.GOAL_CREATED, null));
+
+        aspect.logAudit(pjp, auditLogged);
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).save(captor.capture());
+        assertEquals("Created Goal", captor.getValue().getDetails());
+    }
+
+    @Test
+    void logAudit_getDetails_whenResultBodyNameFieldAccessFails_handlesExceptionGracefully() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        AuditLogged auditLogged = mock(AuditLogged.class);
+        when(auditLogged.action()).thenReturn("CREATE_GOAL");
+        when(auditLogged.category()).thenReturn("GOAL");
+
+        // Response result body is String.class which has private 'name' field in java.lang.Class
+        when(pjp.getArgs()).thenReturn(new Object[]{});
+        when(pjp.proceed()).thenReturn(ApiResponse.success(ApiSuccess.GOAL_CREATED, String.class));
+
+        aspect.logAudit(pjp, auditLogged);
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(auditLogRepository).save(captor.capture());
+        assertEquals("Created Goal", captor.getValue().getDetails());
+    }
+
+    static class DtoWithJdkSuperclass extends Exception {
+        private final String name = "Test Goal";
+        public String getName() { return name; }
+    }
+
+    @Test
+    void logAudit_createWithJdkSuperclassDto_triggersGetCreateChangesCatchBlock() throws Throwable {
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        AuditLogged auditLogged = mock(AuditLogged.class);
+        when(auditLogged.action()).thenReturn("CREATE_GOAL");
+        when(auditLogged.category()).thenReturn("GOAL");
+
+        DtoWithJdkSuperclass dto = new DtoWithJdkSuperclass();
+        when(pjp.getArgs()).thenReturn(new Object[]{dto});
+        when(pjp.proceed()).thenReturn(ApiResponse.success(ApiSuccess.GOAL_CREATED, null));
+
+        aspect.logAudit(pjp, auditLogged);
+
+        verify(auditLogRepository).save(any(AuditLog.class));
+    }
+
+    @Test
+    void logAudit_updateWithJdkSuperclassDto_triggersGetChangesCatchBlock() throws Throwable {
+        UUID goalId = UUID.randomUUID();
+        ProceedingJoinPoint pjp = mock(ProceedingJoinPoint.class);
+        AuditLogged auditLogged = mock(AuditLogged.class);
+        when(auditLogged.action()).thenReturn("UPDATE_GOAL");
+        when(auditLogged.category()).thenReturn("GOAL");
+
+        Goal oldGoal = Goal.builder().id(goalId).name("Old Goal").build();
+        when(goalRepository.findById(goalId)).thenReturn(Optional.of(oldGoal));
+
+        DtoWithJdkSuperclass dto = new DtoWithJdkSuperclass();
+        when(pjp.getArgs()).thenReturn(new Object[]{goalId, dto});
+        when(pjp.proceed()).thenReturn(ApiResponse.success(ApiSuccess.GOAL_UPDATED, null));
+
+        aspect.logAudit(pjp, auditLogged);
+
+        verify(auditLogRepository).save(any(AuditLog.class));
+    }
 }

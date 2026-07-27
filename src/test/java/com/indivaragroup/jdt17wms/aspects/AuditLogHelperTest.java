@@ -360,4 +360,27 @@ class AuditLogHelperTest {
         assertNotNull(f);
         assertEquals(SampleDto.class, f.getDeclaringClass());
     }
+
+    static class ThrowingGetterObj {
+        public String getName() {
+            throw new RuntimeException("Simulated getter error");
+        }
+    }
+
+    @Test
+    void getPropertyValue_throwingGetter_logsAndReturnsNull() {
+        ThrowingGetterObj obj = new ThrowingGetterObj();
+        assertNull(AuditLogHelper.getPropertyValue(obj, "name"));
+    }
+
+    @Test
+    void getPropertyValue_jdkInternalField_triggersFieldAccessCatchBlock() {
+        assertNull(AuditLogHelper.getPropertyValue(Thread.currentThread(), "target"));
+    }
+
+    @Test
+    void getPropertyValue_jdkInternalFieldAccess_triggersCatchBlock() {
+        AuditLogAspectTest.DtoWithJdkSuperclass dto = new AuditLogAspectTest.DtoWithJdkSuperclass();
+        assertNull(AuditLogHelper.getPropertyValue(dto, "backtrace"));
+    }
 }
