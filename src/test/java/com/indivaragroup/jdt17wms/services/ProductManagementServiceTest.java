@@ -130,6 +130,32 @@ class ProductManagementServiceTest {
     }
 
     @Test
+    void getProductsForUser_shouldMatchByIssuer_whenNameDoesNotMatch() {
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .role(UserRole.USER)
+                .questionnaireCompleted(true)
+                .riskProfile("risk_taker")
+                .build();
+
+        Product matchByName = Product.builder().name("Danareksa Stock").issuer("Danareksa").visible(true).build();
+        Product matchByIssuerOnly = Product.builder().name("Mandiri Obligasi").issuer("Bank Danareksa").visible(true).build();
+        Product noMatch = Product.builder().name("BCA Stock").issuer("Bank BCA").visible(true).build();
+
+        mockAuthenticatedUser(SecurityUtils.STATIC_USER_ID);
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(productRepository.findAll()).thenReturn(List.of(matchByName, matchByIssuerOnly, noMatch));
+
+        Page<ProductResponseDTO> result = productManagementService.getProductsForUser(
+                new ProductQueryDTO("Danareksa", null, false, false),
+                PageRequest.of(0, 10)
+        );
+
+        assertEquals(2, result.getTotalElements());
+    }
+
+    @Test
     void getProductsForUser_shouldFilterByTypeAndSearchQuery() {
         User user = User.builder()
                 .id(SecurityUtils.STATIC_USER_ID)

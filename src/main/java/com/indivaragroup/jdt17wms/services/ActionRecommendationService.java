@@ -158,19 +158,14 @@ public class ActionRecommendationService {
                 .map(a -> Optional.ofNullable(a.getCurrentValue()).orElse(BigDecimal.ZERO))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // ── Max risk level for user's profile ──
-        String riskProfile = Optional.ofNullable(user.getRiskProfile())
-                .orElseThrow(() -> new CoreThrowHandler(ApiError.REQUIRED_RISK_PROFILER));
+
+        String riskProfile = user.getRiskProfile();
         int maxRiskLv = MAX_RISK_LEVELS.getOrDefault(riskProfile.toLowerCase(), DEFAULT_MAX_RISK_LEVEL);
 
         // Product lookup by ID for O(1) access
         Map<UUID, Product> productMap = products.stream()
                 .collect(Collectors.toMap(Product::getId, p -> p));
 
-        // ══════════════════════════════════════════════════════════════
-        // COMPONENT 1: Emergency Fund (25 pts)
-        // Target = 6× monthly expenses in liquid assets (money_market, deposit)
-        // ══════════════════════════════════════════════════════════════
         BigDecimal emergencyTarget = monthlyExpenses.multiply(BigDecimal.valueOf(EMERGENCY_FUND_EXPENSES_MULTIPLIER));
 
         BigDecimal liquidValue = calcLiquidValue(assets, productMap);
@@ -182,11 +177,6 @@ public class ActionRecommendationService {
         } else {
             emergency = MIDPOINT_COMPONENT_SCORE; // No expenses → midpoint score
         }
-
-        // ══════════════════════════════════════════════════════════════
-        // COMPONENT 2: Diversification (25 pts)
-        // Unique product types owned vs. eligible (visible + within risk)
-        // ══════════════════════════════════════════════════════════════
         final int finalMaxRiskLv = maxRiskLv;
 
         Set<String> eligibleTypes = products.stream()

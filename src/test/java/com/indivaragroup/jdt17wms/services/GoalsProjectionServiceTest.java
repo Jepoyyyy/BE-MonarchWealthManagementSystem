@@ -3,6 +3,7 @@ package com.indivaragroup.jdt17wms.services;
 import com.indivaragroup.jdt17wms.dto.response.GoalProjectionDTO;
 import com.indivaragroup.jdt17wms.dto.response.UserDTO;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
+import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.SecurityUtils;
 import com.indivaragroup.jdt17wms.models.Goal;
 import com.indivaragroup.jdt17wms.models.User;
@@ -173,6 +174,44 @@ class GoalsProjectionServiceTest {
         assertNotNull(res.getRecommendedContribution());
         assertNotNull(res.getTimeSeries());
         assertEquals(60, res.getTimeSeries().size());
+    }
+
+
+
+    @Test
+    void getProjectionsForUser_shouldThrowNotFound_whenAssetProductMissing() {
+        mockAuthenticatedUser();
+        User user = User.builder()
+                .id(SecurityUtils.STATIC_USER_ID)
+                .questionnaireCompleted(true)
+                .build();
+        UUID goalId = UUID.randomUUID();
+        Goal goal = Goal.builder()
+                .id(goalId)
+                .userId(SecurityUtils.STATIC_USER_ID)
+                .name("Retirement Fund")
+                .type("property")
+                .targetAmount(new BigDecimal("500000.00"))
+                .monthlyContribution(new BigDecimal("1000.00"))
+                .targetDate(LocalDate.of(2036, Month.JULY, 13))
+                .currentAmount(BigDecimal.ZERO)
+                .build();
+        UUID productId = UUID.randomUUID();
+        Asset asset = Asset.builder()
+                .id(UUID.randomUUID())
+                .productId(productId)
+                .goalId(goalId)
+                .currentValue(new BigDecimal("10000.00"))
+                .build();
+
+        when(userRepository.findById(SecurityUtils.STATIC_USER_ID)).thenReturn(Optional.of(user));
+        when(goalRepository.findAllByUserId(SecurityUtils.STATIC_USER_ID)).thenReturn(List.of(goal));
+        when(assetRepository.findAllByGoalId(goalId)).thenReturn(List.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.empty());
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> goalsProjectionService.getProjectionsForUser());
+        assertEquals(ApiError.ITEM_NOT_FOUND.getCode(), ex.getCode());
     }
 
 

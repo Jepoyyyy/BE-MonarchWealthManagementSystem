@@ -453,6 +453,18 @@ class AssetTransactionServiceTest {
     }
 
     @Test
+    void executeSellTransaction_shouldThrowNotFound_whenProductNotFound() {
+        when(assetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(productRepository.findById(productId)).thenReturn(Optional.empty());
+
+        AssetTransactionDTO dto = AssetTransactionDTO.builder().units(BigDecimal.ONE).build();
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> assetTransactionService.executeSellTransaction(assetId, dto, user));
+        assertEquals(ApiError.ITEM_NOT_FOUND.getCode(), ex.getCode());
+    }
+
+    @Test
     void executeSellTransaction_shouldThrow_whenNoUnitsAvailableToSell() {
         // Already sold all 100 units
         TransactionHistory priorSell = TransactionHistory.builder()

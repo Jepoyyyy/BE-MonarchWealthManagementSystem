@@ -4,6 +4,7 @@ import com.indivaragroup.jdt17wms.constants.RiskConstants;
 import com.indivaragroup.jdt17wms.dto.request.RiskProfilerDTO;
 import com.indivaragroup.jdt17wms.dto.response.QuestionnaireDTO;
 import com.indivaragroup.jdt17wms.dto.response.RiskProfilerResponseDTO;
+import com.indivaragroup.jdt17wms.dto.utils.ApiError;
 import com.indivaragroup.jdt17wms.dto.utils.QuestionnaireDataDTO;
 import com.indivaragroup.jdt17wms.dto.utils.QuestionnaireItem;
 import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
@@ -168,6 +169,23 @@ class RiskProfilerAssessmentServiceTest {
         assertEquals("risk_taker", response.getRiskProfile());
         assertEquals(80, response.getScore());
         assertEquals(true, response.getQuestionnaireCompleted());
+    }
+
+    @Test
+    void updateProfilerAssessment_shouldThrowUserNotFound_whenUserMissing() {
+        com.indivaragroup.jdt17wms.dto.request.Answer answer1 = com.indivaragroup.jdt17wms.dto.request.Answer.builder().score(1).build();
+        com.indivaragroup.jdt17wms.dto.request.Answer answer2 = com.indivaragroup.jdt17wms.dto.request.Answer.builder().score(2).build();
+        RiskProfilerDTO request = new RiskProfilerDTO(List.of(answer1, answer2));
+
+        when(questionnaireDataDTO.getData()).thenReturn(List.of(
+                QuestionnaireItem.builder().build(),
+                QuestionnaireItem.builder().build()
+        ));
+        when(userRepository.findById(TEST_USER_ID)).thenReturn(Optional.empty());
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> riskProfilerAssessmentService.updateProfilerAssessment(request));
+        assertEquals(ApiError.USER_NOT_FOUND.getCode(), ex.getCode());
     }
 
     @Test

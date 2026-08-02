@@ -2,6 +2,8 @@ package com.indivaragroup.jdt17wms.services;
 
 import com.indivaragroup.jdt17wms.dto.response.AssetsPnLResponseDTO;
 import com.indivaragroup.jdt17wms.dto.response.GoalProgressResponseDTO;
+import com.indivaragroup.jdt17wms.dto.utils.ApiError;
+import com.indivaragroup.jdt17wms.exceptions.CoreThrowHandler;
 import com.indivaragroup.jdt17wms.models.Asset;
 import com.indivaragroup.jdt17wms.models.Goal;
 import com.indivaragroup.jdt17wms.models.User;
@@ -155,6 +157,15 @@ class GoalProgressServiceTest {
         assertEquals(1, result.size());
         GoalProgressResponseDTO progress = result.get(0);
         assertEquals(0, progress.getProjectedEtaMonths());
+    }
+
+    @Test
+    void getGoalProgressForUser_shouldThrowNotFound_whenUserNotFound() {
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
+
+        CoreThrowHandler ex = assertThrows(CoreThrowHandler.class,
+                () -> goalProgressService.getGoalProgressForUser());
+        assertEquals(ApiError.USER_NOT_FOUND.getCode(), ex.getCode());
     }
 
     @Test
